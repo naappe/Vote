@@ -5,7 +5,7 @@ const url=process.env.NEXT_PUBLIC_SUPABASE_URL||'https://espezmdpkoixnfchomqb.su
 const key=process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY||'sb_publishable_xP8z74zcMuCkj6xlu1bJ3w_Kudqbcu1';
 export const supabase=createClient(url,key,{auth:{persistSession:true,autoRefreshToken:true}});
 
-const RESIDENT_COLUMNS='id,name,national_id,house,lives_in,phone,photo_url,vote_status,phone_status,reach_status,d2d_status,support_level,remarks,updated_at';
+const RESIDENT_COLUMNS='id,name,national_id,house,lives_in,phone,photo_url,party,vote_status,phone_status,reach_status,d2d_status,support_level,remarks,updated_at';
 
 export interface ResidentPage{
   rows:Resident[];
@@ -33,7 +33,7 @@ export async function getResidentsPage({page=1,pageSize=25,search='',filter='all
 
   const term=search.trim().replace(/[,%()]/g,' ');
   if(term){
-    query=query.or(`name.ilike.%${term}%,national_id.ilike.%${term}%,house.ilike.%${term}%,lives_in.ilike.%${term}%,phone.ilike.%${term}%`);
+    query=query.or(`name.ilike.%${term}%,national_id.ilike.%${term}%,house.ilike.%${term}%,lives_in.ilike.%${term}%,phone.ilike.%${term}%,party.ilike.%${term}%`);
   }
 
   if(filter!=='all'){
@@ -42,6 +42,7 @@ export async function getResidentsPage({page=1,pageSize=25,search='',filter='all
     else if(['not-visited','reach','not-home','live-in-another-place'].includes(filter)) query=query.eq('d2d_status',filter);
     else if(['reached','not-reached'].includes(filter)) query=query.eq('reach_status',filter);
     else if(['guaranteed','not-guaranteed'].includes(filter)) query=query.eq('support_level',filter);
+    else if(filter.startsWith('party:')) query=query.eq('party',filter.slice(6));
   }
 
   const {data,error,count}=await query.order('id',{ascending:true}).range(from,to);
@@ -58,7 +59,7 @@ export async function getResidentById(id:Resident['id']):Promise<Resident>{
 
 export async function updateResident(id:Resident['id'],changes:Partial<Resident>){
   const allowed:Partial<Resident>={};
-  const editable:(keyof Resident)[]=['name','national_id','house','lives_in','phone','vote_status','phone_status','reach_status','d2d_status','support_level','remarks'];
+  const editable:(keyof Resident)[]=['name','national_id','house','lives_in','phone','party','vote_status','phone_status','reach_status','d2d_status','support_level','remarks'];
   for(const field of editable){
     if(Object.prototype.hasOwnProperty.call(changes,field)) (allowed as any)[field]=changes[field]??null;
   }
