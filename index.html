@@ -1,1 +1,108 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="theme-color" content="#08111f" />
+  <title>Vote Command Center</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Manrope:wght@500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div class="ambient ambient-one"></div>
+  <div class="ambient ambient-two"></div>
 
+  <aside class="sidebar" id="sidebar">
+    <div class="brand">
+      <div class="brand-mark">V</div>
+      <div><strong>Vote</strong><span>Command Center</span></div>
+    </div>
+
+    <nav>
+      <button class="nav-item active" data-view="dashboard"><span>⌂</span> Dashboard</button>
+      <button class="nav-item" data-view="residents"><span>◎</span> Residents</button>
+      <button class="nav-item" data-view="assignments"><span>↗</span> Assignments</button>
+      <button class="nav-item" data-view="calls"><span>◖</span> Call Center</button>
+      <button class="nav-item" data-view="votes"><span>✓</span> Vote Status</button>
+      <button class="nav-item" data-view="zeroday"><span>⚡</span> Zero Day</button>
+    </nav>
+
+    <div class="sidebar-card">
+      <div class="live-dot"></div>
+      <div><strong>System live</strong><span>Demo data connected</span></div>
+    </div>
+  </aside>
+
+  <main class="shell">
+    <header class="topbar">
+      <button class="menu-btn" id="menuBtn">☰</button>
+      <div>
+        <p class="eyebrow">Election operations</p>
+        <h1 id="pageTitle">Dashboard</h1>
+      </div>
+      <div class="top-actions">
+        <button class="icon-btn" id="themeBtn" title="Toggle theme">◐</button>
+        <button class="profile"><span class="avatar">MM</span><span><b>Admin</b><small>Control room</small></span></button>
+      </div>
+    </header>
+
+    <section class="hero panel">
+      <div>
+        <span class="pill">LIVE DEMO</span>
+        <h2>Every voter. Every action. One clear view.</h2>
+        <p>A fast, modern operations workspace for residents, calls, assignments and election-day tracking.</p>
+        <div class="hero-actions">
+          <button class="primary-btn" id="openResidents">Open resident list</button>
+          <button class="secondary-btn">View live report</button>
+        </div>
+      </div>
+      <div class="hero-orbit">
+        <div class="orbit-ring"></div>
+        <div class="score"><span>Campaign readiness</span><strong>82%</strong><small>+7% this week</small></div>
+      </div>
+    </section>
+
+    <section class="stats-grid">
+      <article class="stat-card panel"><div class="stat-icon cyan">◎</div><span>Total residents</span><strong data-counter="3264">0</strong><small>Complete constituency list</small></article>
+      <article class="stat-card panel"><div class="stat-icon green">✓</div><span>Will vote</span><strong data-counter="2108">0</strong><small>64.6% confirmed</small></article>
+      <article class="stat-card panel"><div class="stat-icon amber">◖</div><span>Need call</span><strong data-counter="684">0</strong><small>Priority follow-up queue</small></article>
+      <article class="stat-card panel"><div class="stat-icon violet">↗</div><span>Assigned</span><strong data-counter="2480">0</strong><small>76% field coverage</small></article>
+    </section>
+
+    <section class="content-grid">
+      <article class="panel chart-card">
+        <div class="section-head"><div><p class="eyebrow">Seven-day activity</p><h3>Campaign momentum</h3></div><select><option>This week</option><option>This month</option></select></div>
+        <div class="chart" id="chart"></div>
+        <div class="chart-legend"><span><i class="legend-a"></i>Reached</span><span><i class="legend-b"></i>Confirmed</span></div>
+      </article>
+
+      <article class="panel progress-card">
+        <div class="section-head"><div><p class="eyebrow">Live progress</p><h3>Operational coverage</h3></div><span class="metric">82%</span></div>
+        <div class="progress-list">
+          <div><header><span>Resident verification</span><b>92%</b></header><div class="track"><i style="--value:92%"></i></div></div>
+          <div><header><span>Call center completion</span><b>68%</b></header><div class="track"><i style="--value:68%"></i></div></div>
+          <div><header><span>Door-to-door visits</span><b>74%</b></header><div class="track"><i style="--value:74%"></i></div></div>
+          <div><header><span>Transport readiness</span><b>81%</b></header><div class="track"><i style="--value:81%"></i></div></div>
+        </div>
+      </article>
+    </section>
+
+    <section class="panel table-card" id="residentSection">
+      <div class="section-head table-head">
+        <div><p class="eyebrow">Priority queue</p><h3>Residents requiring attention</h3></div>
+        <div class="filters"><input id="searchInput" type="search" placeholder="Search name, ID or address"/><button class="secondary-btn">Filter</button></div>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Resident</th><th>Official address</th><th>Mobile</th><th>Status</th><th>Assigned to</th><th></th></tr></thead>
+          <tbody id="residentRows"></tbody>
+        </table>
+      </div>
+    </section>
+  </main>
+
+  <script src="app.js"></script>
+</body>
+</html>
