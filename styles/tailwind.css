@@ -1,0 +1,13 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root{--bg:#f5f7f4;--panel:#ffffff;--line:#e4e9e3;--text:#26332c;--muted:#758078;--sage:#789783;--mint:#e8f1ea;--sand:#f3ecdf;--lilac:#eee9f5;--blue:#e8eff4}
+html{scroll-behavior:smooth}body{@apply min-h-screen antialiased; background:var(--bg);color:var(--text)}
+@layer components{
+  .panel{@apply rounded-3xl border bg-white p-5 shadow-sm; border-color:var(--line)}
+  .soft-card{@apply rounded-2xl border p-4 transition duration-300 hover:-translate-y-1 hover:shadow-lg; border-color:var(--line)}
+  .section-title{@apply text-xl font-semibold tracking-tight}
+  .muted{@apply text-sm; color:var(--muted)}
+  .action{@apply rounded-xl px-4 py-2 text-sm font-semibold transition hover:-translate-y-0.5 active:translate-y-0}
+}
