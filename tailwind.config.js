@@ -1,0 +1,2 @@
+/** @type {import('tailwindcss').Config} */
+module.exports={content:['./app/**/*.{js,ts,jsx,tsx}','./components/**/*.{js,ts,jsx,tsx}','./layout/**/*.{js,ts,jsx,tsx}','./shared/**/*.{js,ts,jsx,tsx}'],theme:{extend:{fontFamily:{sans:['Inter','system-ui','sans-serif']},colors:{calm:{50:'#f5f7f4',100:'#e8f1ea',500:'#789783',700:'#4f6958'}},boxShadow:{soft:'0 18px 50px rgba(66,82,71,.08)'}}},plugins:[]};
