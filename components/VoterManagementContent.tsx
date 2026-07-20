@@ -1,0 +1,19 @@
+'use client';
+import Link from 'next/link';
+import {useEffect,useMemo,useState} from 'react';
+import {getResidents} from '../lib/supabase';
+import type {Resident} from '../lib/types';
+import StatusBadge from '../shared/StatusBadge';
+
+export default function VoterManagementContent(){
+ const [rows,setRows]=useState<Resident[]>([]),[loading,setLoading]=useState(true),[error,setError]=useState(''),[query,setQuery]=useState(''),[filter,setFilter]=useState('all'),[page,setPage]=useState(1); const pageSize=25;
+ useEffect(()=>{getResidents().then(setRows).catch(e=>setError(e.message||'Unable to load voters')).finally(()=>setLoading(false))},[]);
+ const filtered=useMemo(()=>rows.filter(r=>{const text=[r.name,r.national_id,r.house,r.lives_in,r.phone].join(' ').toLowerCase(); const match=text.includes(query.toLowerCase()); const status=filter==='all'||r.vote_status===filter||r.phone_status===filter||r.d2d_status===filter; return match&&status}),[rows,query,filter]);
+ const pages=Math.max(1,Math.ceil(filtered.length/pageSize)); const visible=filtered.slice((page-1)*pageSize,page*pageSize);
+ useEffect(()=>setPage(1),[query,filter]);
+ if(loading)return <div className="panel">Loading campaign voters…</div>; if(error)return <div className="panel text-rose-700">{error}</div>;
+ return <div className="space-y-6"><section><p className="muted">Operations</p><h1 className="text-3xl font-bold">Voter Management</h1><p className="mt-2 text-slate-500">Search, filter and open any of the {rows.length.toLocaleString()} campaign records.</p></section>
+ <section className="panel"><div className="mb-5 flex flex-col gap-3 md:flex-row"><input className="input-base flex-1" value={query} onChange={e=>setQuery(e.target.value)} placeholder="Search name, ID, house, phone or living address"/><select className="input-base" value={filter} onChange={e=>setFilter(e.target.value)}><option value="all">All voters</option><option value="will-vote">Will vote</option><option value="not-decided">Not decided</option><option value="not-vote">Not voting</option><option value="need-call">Need call</option><option value="not-visited">Not visited</option></select></div>
+ <div className="overflow-x-auto"><table className="w-full min-w-[850px] text-left text-sm"><thead><tr className="border-b border-slate-200 text-xs uppercase tracking-wide text-slate-400"><th className="p-3">Resident</th><th className="p-3">ID</th><th className="p-3">Address</th><th className="p-3">Phone</th><th className="p-3">Vote</th><th className="p-3">Call</th><th className="p-3">Visit</th></tr></thead><tbody>{visible.map(r=><tr key={String(r.id)} className="border-b border-slate-100 hover:bg-slate-50"><td className="p-3"><Link prefetch={false} href={`/voter-detail/?id=${encodeURIComponent(String(r.id))}`} className="font-semibold text-slate-900 hover:text-calm-700">{r.name||'Unnamed resident'}</Link></td><td className="p-3 text-slate-500">{r.national_id||'—'}</td><td className="p-3 text-slate-500">{r.house||r.lives_in||'—'}</td><td className="p-3 text-slate-500">{r.phone||'—'}</td><td className="p-3"><StatusBadge status={r.vote_status}/></td><td className="p-3"><StatusBadge status={r.phone_status}/></td><td className="p-3"><StatusBadge status={r.d2d_status}/></td></tr>)}</tbody></table></div>
+ <div className="mt-5 flex items-center justify-between text-sm"><span className="text-slate-500">{filtered.length.toLocaleString()} results · Page {page} of {pages}</span><div className="flex gap-2"><button className="btn-ghost" disabled={page===1} onClick={()=>setPage(p=>Math.max(1,p-1))}>Previous</button><button className="btn-primary" disabled={page===pages} onClick={()=>setPage(p=>Math.min(pages,p+1))}>Next</button></div></div></section></div>;
+}
