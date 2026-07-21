@@ -2,7 +2,7 @@ import type {ReactNode} from 'react';
 import Sidebar from './Sidebar';
 import Header from './Header';
 
-export default function AppLayout({children}:{children:ReactNode}){
+export default function AppLayout({children}:{children:ReactNode;showCampaignShowcase?:boolean}){
  return <div className="min-h-screen bg-calm-50 lg:flex">
   <Sidebar/>
   <div className="min-w-0 flex-1">
