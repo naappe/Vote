@@ -1,3 +1,5 @@
-import AppLayout from '../../layout/AppLayout';
-import OperationsListContent from '../../components/OperationsListContent';
-export default function Page(){return <AppLayout><OperationsListContent mode="settings"/></AppLayout>}
+import {notFound} from 'next/navigation';
+
+export default function Page(){
+  notFound();
+}
