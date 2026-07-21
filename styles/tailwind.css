@@ -4,65 +4,30 @@
 @tailwind utilities;
 
 :root{
-  --primary:#0066FF;
-  --primary-hover:#0044CC;
-  --primary-light:#EBF4FF;
-  --navy:#051C33;
-  --body-text:#4F5E71;
-  --accent-green:#00D084;
-  --background:#F0F5FA;
-  --background-end:#E8F0F8;
-  --card:#FFFFFF;
-  --border:#E2E8F0;
-  --danger:#DC2626;
-  --warning:#D97706;
-  --radius-card:20px;
-  --radius-pill:999px;
-  --shadow-card:0 4px 24px rgba(5,28,51,.06);
-  --shadow-card-hover:0 8px 32px rgba(5,28,51,.10);
+  --primary:#0066FF;--primary-hover:#0044CC;--primary-light:#EBF4FF;--navy:#051C33;--body-text:#4F5E71;--accent-green:#00D084;--background:#F0F5FA;--background-end:#E8F0F8;--card:#FFFFFF;--border:#E2E8F0;--danger:#DC2626;--warning:#D97706;--radius-card:20px;--radius-pill:999px;--shadow-card:0 4px 24px rgba(5,28,51,.06);--shadow-card-hover:0 8px 32px rgba(5,28,51,.10)
 }
-.dark{
-  --background:#071523;
-  --background-end:#0B1E30;
-  --card:#0E2438;
-  --border:#20384D;
-  --navy:#F7FAFC;
-  --body-text:#B8C5D2;
-  --primary-light:#102E55;
-}
+.dark{--background:#071523;--background-end:#0B1E30;--card:#0E2438;--border:#20384D;--navy:#F7FAFC;--body-text:#B8C5D2;--primary-light:#102E55}
 *{box-sizing:border-box}
 html{scroll-behavior:smooth;background:var(--background)}
 body{@apply min-h-screen antialiased font-sans; background:linear-gradient(135deg,var(--background) 0%,var(--background-end) 100%);color:var(--body-text)}
-h1,h2,h3,h4,h5,h6{color:var(--navy);letter-spacing:-.025em}
-h1{font-size:clamp(1.75rem,3vw,2rem);font-weight:700;line-height:1.15}
-h2{font-size:clamp(1.375rem,2.4vw,1.5rem);font-weight:600;line-height:1.2}
-h3{font-size:clamp(1.125rem,2vw,1.25rem);font-weight:600;line-height:1.25}
-button,input,select,textarea{font:inherit}
-button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible{outline:3px solid color-mix(in srgb,var(--primary) 24%,transparent);outline-offset:2px}
-::selection{background:color-mix(in srgb,var(--primary) 20%,transparent)}
-::-webkit-scrollbar{width:8px;height:8px}::-webkit-scrollbar-track{background:var(--background-end)}::-webkit-scrollbar-thumb{background:color-mix(in srgb,var(--body-text) 42%,transparent);border-radius:var(--radius-pill)}::-webkit-scrollbar-thumb:hover{background:var(--primary)}
+h1,h2,h3,h4,h5,h6{color:var(--navy);letter-spacing:-.025em}h1{font-size:clamp(1.75rem,3vw,2rem);font-weight:700;line-height:1.15}h2{font-size:clamp(1.375rem,2.4vw,1.5rem);font-weight:600;line-height:1.2}h3{font-size:clamp(1.125rem,2vw,1.25rem);font-weight:600;line-height:1.25}
+button,input,select,textarea{font:inherit}button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible{outline:3px solid color-mix(in srgb,var(--primary) 24%,transparent);outline-offset:2px}::selection{background:color-mix(in srgb,var(--primary) 20%,transparent)}::-webkit-scrollbar{width:8px;height:8px}::-webkit-scrollbar-track{background:var(--background-end)}::-webkit-scrollbar-thumb{background:#AAB8C6;border-radius:999px}::-webkit-scrollbar-thumb:hover{background:var(--primary)}
 
 @layer components{
-  .panel{@apply bg-card p-5 shadow-card; border-radius:var(--radius-card)}
-  .soft-card{@apply bg-card p-4 shadow-card transition duration-200 hover:-translate-y-0.5 hover:shadow-card-hover; border-radius:var(--radius-card)}
-  .brand-card{@apply bg-card p-6 shadow-card transition hover:shadow-card-hover; border-radius:var(--radius-card)}
-  .section-title{@apply text-xl font-semibold tracking-tight text-navy}
-  .muted{@apply text-sm text-body}
-  .eyebrow{@apply text-[11px] font-semibold uppercase tracking-[.16em] text-primary}
-  .action{@apply inline-flex min-h-11 items-center justify-center px-5 py-2 text-sm font-semibold transition duration-200 active:scale-[.98] disabled:cursor-not-allowed disabled:opacity-50; border-radius:var(--radius-pill)}
-  .btn-primary{@apply action bg-primary text-white shadow-[0_6px_18px_rgba(0,102,255,.18)] hover:bg-primary-hover}
-  .btn-secondary{@apply action border border-primary bg-white text-primary hover:bg-primary-light}
-  .btn-ghost{@apply action bg-transparent text-primary hover:bg-primary-light}
-  .field,.input-base{@apply min-h-11 w-full border border-border bg-white px-4 text-sm text-navy shadow-sm transition placeholder:text-slate-400 focus:border-primary; border-radius:var(--radius-pill)}
-  textarea.field,textarea.input-base{border-radius:16px}
-  .status-chip{@apply inline-flex items-center px-3 py-1 text-[11px] font-medium; border-radius:var(--radius-pill)}
-  .info-banner{@apply flex items-start gap-3 bg-primary-light px-4 py-3 text-sm shadow-card; border-radius:var(--radius-card)}
-  .info-icon{@apply mt-0.5 grid h-7 w-7 shrink-0 place-items-center bg-white font-bold text-primary shadow-sm; border-radius:var(--radius-pill)}
-  .notice-card{@apply bg-card px-4 py-3 shadow-card; border-left:4px solid var(--primary);border-radius:var(--radius-card)}
-  .tab-bar{@apply flex gap-2 overflow-x-auto bg-card p-1.5 shadow-card; border-radius:var(--radius-pill)}
-  .tab-pill{@apply shrink-0 whitespace-nowrap px-4 py-2 text-sm font-semibold text-body transition hover:bg-primary-light hover:text-primary; border-radius:var(--radius-pill)}
-  .tab-pill-active{@apply bg-primary text-white shadow-[0_5px_14px_rgba(0,102,255,.2)] hover:bg-primary hover:text-white}
+ .panel{@apply bg-card p-5 shadow-card; border-radius:var(--radius-card)}
+ .soft-card{@apply bg-card p-4 shadow-card transition duration-200 hover:-translate-y-0.5 hover:shadow-card-hover; border-radius:var(--radius-card)}
+ .brand-card{@apply bg-card p-6 shadow-card transition hover:shadow-card-hover; border-radius:var(--radius-card)}
+ .metric-card{@apply bg-card p-4 shadow-card; border-radius:var(--radius-card)}
+ .section-title{@apply text-xl font-semibold tracking-tight text-navy}.muted{@apply text-sm text-body}.eyebrow{@apply text-[11px] font-bold uppercase tracking-[.16em] text-primary}
+ .action{@apply inline-flex min-h-11 items-center justify-center px-5 py-2 text-sm font-semibold transition duration-200 active:scale-[.98] disabled:cursor-not-allowed disabled:opacity-50; border-radius:var(--radius-pill)}
+ .btn-primary{@apply action bg-primary text-white shadow-card hover:bg-primary-hover}.btn-secondary{@apply action border border-primary bg-white text-primary hover:bg-primary-light}.btn-ghost{@apply action bg-transparent text-primary hover:bg-primary-light}
+ .field,.input-base{@apply min-h-11 w-full border border-border bg-white px-4 text-sm text-navy shadow-sm transition placeholder:text-slate-400 focus:border-primary; border-radius:var(--radius-pill)}textarea.field,textarea.input-base{border-radius:16px}
+ .status-chip{@apply inline-flex items-center px-3 py-1 text-[11px] font-medium; border-radius:var(--radius-pill)}
+ .info-banner{@apply flex items-start gap-3 bg-primary-light px-4 py-3 text-sm text-body; border-radius:var(--radius-card)}.info-icon{@apply grid h-7 w-7 shrink-0 place-items-center bg-white font-bold text-primary shadow-sm; border-radius:var(--radius-pill)}
+ .notice-card{@apply bg-card px-4 py-3 shadow-card; border-left:4px solid var(--primary);border-radius:var(--radius-card)}
+ .error-banner{@apply border border-red-200 bg-red-50 p-4 text-sm font-semibold text-danger; border-radius:var(--radius-card)}
+ .tab-bar{@apply flex gap-2 overflow-x-auto bg-card p-1.5 shadow-card; border-radius:var(--radius-pill)}.tab-pill{@apply shrink-0 whitespace-nowrap px-4 py-2 text-sm font-semibold text-body transition hover:bg-primary-light hover:text-primary; border-radius:var(--radius-pill)}.tab-pill-active{@apply bg-primary text-white shadow-card hover:bg-primary hover:text-white}
+ .page-hero{@apply brand-card}.filter-chip{@apply status-chip bg-primary-light text-primary}.empty-state{@apply panel py-14 text-center}
 }
-
 @media(max-width:767px){.panel,.soft-card,.brand-card{padding:1rem;border-radius:16px}.tab-bar{border-radius:16px}}
 @media(prefers-reduced-motion:reduce){*,*::before,*::after{scroll-behavior:auto!important;animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}}
