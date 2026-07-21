@@ -12,8 +12,9 @@ export interface PartyOption{name:string;count:number}
 function normalizeHouse(value?:string|null){
   const name=(value||'').trim();
   if(!name)return'';
-  const compact=name.toLowerCase().replace(/[.\s-]+/g,' ');
-  if(compact.includes('dhafthar')||compact.includes('no rs')||compact.includes('no dh r'))return'Dhafthar';
+  const compact=name.toLowerCase().replace(/[._/\\-]+/g,' ').replace(/\s+/g,' ').trim();
+  const dhaftharPattern=/^(?:no\s*)?(?:dh\s*r|dhr|rs)(?:\s*no)?\s*\d+/i;
+  if(compact.includes('dhafthar')||dhaftharPattern.test(compact)||compact.startsWith('no rs')||compact.startsWith('no dh r')||compact.startsWith('dh r')||compact.startsWith('dhr'))return'Dhafthar';
   if(compact.includes('sina male')||compact.includes('sina malé'))return'Sina Malé';
   return name;
 }
@@ -35,7 +36,7 @@ function applyBaseFilters(query:any,{search,filter,house}:{search:string;filter:
   const term=search.trim().replace(/[,%()]/g,' ');
   if(term)query=query.or(`name.ilike.%${term}%,national_id.ilike.%${term}%,house.ilike.%${term}%,lives_in.ilike.%${term}%,phone.ilike.%${term}%`);
   if(house&&house!=='all'){
-    if(house==='Dhafthar')query=query.or('house.ilike.%Dhafthar%,house.ilike.%No RS%,house.ilike.%No Dh R%');
+    if(house==='Dhafthar')query=query.or('house.ilike.%Dhafthar%,house.ilike.%No RS%,house.ilike.%RS%,house.ilike.%No DH R%,house.ilike.%DH R%,house.ilike.%DHR%');
     else if(house==='Sina Malé')query=query.or('house.ilike.%Sina Male%,house.ilike.%Sina Malé%');
     else query=query.eq('house',house);
   }
@@ -91,7 +92,6 @@ export async function getResidentsPage({page=1,pageSize=25,search='',filter='all
     if(error)throw new Error(`Campaign search failed: ${error.message}`);
     return {rows:(data||[]).map(normalizeResident),count:count||0};
   }
-
   const all:Resident[]=[];const batch=1000;
   for(let from=0;;from+=batch){
     let query=applyBaseFilters(supabase.from('campaign').select('*'),{search,filter,house});
@@ -100,11 +100,7 @@ export async function getResidentsPage({page=1,pageSize=25,search='',filter='all
     all.push(...(data||[]).map(normalizeResident));
     if((data||[]).length<batch)break;
   }
-  const filtered=all.filter(r=>{
-    const value=normalizeParty(r.party);
-    if(party==='Other')return !['PNC','MDP','Unspecified'].includes(value);
-    return value===party;
-  });
+  const filtered=all.filter(r=>{const value=normalizeParty(r.party);if(party==='Other')return !['PNC','MDP','Unspecified'].includes(value);return value===party});
   const start=(safePage-1)*safeSize;
   return {rows:filtered.slice(start,start+safeSize),count:filtered.length};
 }
