@@ -10,114 +10,23 @@ export interface HouseOption{name:string;count:number}
 export interface PartyOption{name:string;count:number}
 
 function normalizeHouse(value?:string|null){
-  const name=(value||'').trim();
-  if(!name)return'';
-  const compact=name.toLowerCase().replace(/[._/\\-]+/g,' ').replace(/\s+/g,' ').trim();
-  const dhaftharPattern=/^(?:no\s*)?(?:dh\s*r|dhr|rs)(?:\s*no)?\s*\d+/i;
-  if(compact.includes('dhafthar')||dhaftharPattern.test(compact)||compact.startsWith('no rs')||compact.startsWith('no dh r')||compact.startsWith('dh r')||compact.startsWith('dhr'))return'Dhafthar';
-  if(compact.includes('sina male')||compact.includes('sina malé'))return'Sina Malé';
-  return name;
+ const name=(value||'').trim();if(!name)return'';
+ const compact=name.toLowerCase().replace(/[._/\\-]+/g,' ').replace(/\s+/g,' ').trim();
+ const dhaftharPattern=/^(?:no\s*)?(?:dh\s*r|dhr|rs)(?:\s*no)?\s*\d+/i;
+ if(compact.includes('dhafthar')||dhaftharPattern.test(compact)||compact.startsWith('no rs')||compact.startsWith('no dh r')||compact.startsWith('dh r')||compact.startsWith('dhr'))return'Dhafthar';
+ if(compact.includes('sina male')||compact.includes('sina malé'))return'Sina Malé';return name;
 }
+function normalizeParty(value?:string|null){const party=(value||'').trim();if(!party)return'Unspecified';const key=party.toUpperCase();if(key.includes('PNC'))return'PNC';if(key.includes('MDP'))return'MDP';return party}
+function normalizeResident(row:any):Resident{return {...row,house:normalizeHouse(row.house),photo_url:row.photo_url??row.photo??row.image_url??null,party:normalizeParty(row.party??row.party_name??row.political_party??row.affiliation)} as Resident}
+function applyBaseFilters(query:any,{search,filter,house}:{search:string;filter:string;house:string}){const term=search.trim().replace(/[,%()]/g,' ');if(term)query=query.or(`name.ilike.%${term}%,national_id.ilike.%${term}%,house.ilike.%${term}%,lives_in.ilike.%${term}%,phone.ilike.%${term}%`);if(house&&house!=='all'){if(house==='Dhafthar')query=query.or('house.ilike.%Dhafthar%,house.ilike.%No RS%,house.ilike.%RS%,house.ilike.%No DH R%,house.ilike.%DH R%,house.ilike.%DHR%');else if(house==='Sina Malé')query=query.or('house.ilike.%Sina Male%,house.ilike.%Sina Malé%');else query=query.eq('house',house)}if(filter!=='all'){if(['will-vote','not-decided','not-vote'].includes(filter))query=query.eq('vote_status',filter);else if(['need-call','called'].includes(filter))query=query.eq('phone_status',filter);else if(['not-visited','reach','not-home','live-in-another-place'].includes(filter))query=query.eq('d2d_status',filter);else if(['reached','not-reached'].includes(filter))query=query.eq('reach_status',filter);else if(['guaranteed','not-guaranteed'].includes(filter))query=query.eq('support_level',filter)}return query}
 
-function normalizeParty(value?:string|null){
-  const party=(value||'').trim();
-  if(!party)return'Unspecified';
-  const key=party.toUpperCase();
-  if(key.includes('PNC'))return'PNC';
-  if(key.includes('MDP'))return'MDP';
-  return party;
-}
+export async function getResidents():Promise<Resident[]>{const pageSize=1000,rows:Resident[]=[];for(let from=0;;from+=pageSize){const {data,error}=await supabase.from('campaign').select('*').order('id',{ascending:true}).range(from,from+pageSize-1);if(error)throw new Error(`Campaign load failed: ${error.message}`);rows.push(...(data||[]).map(normalizeResident));if((data||[]).length<pageSize)break}return rows}
+export async function getHouseOptions():Promise<HouseOption[]>{const counts=new Map<string,number>(),pageSize=1000;for(let from=0;;from+=pageSize){const {data,error}=await supabase.from('campaign').select('house').order('house',{ascending:true}).range(from,from+pageSize-1);if(error)throw new Error(`House list failed: ${error.message}`);for(const row of data||[]){const house=normalizeHouse(row.house);if(house)counts.set(house,(counts.get(house)||0)+1)}if((data||[]).length<pageSize)break}return [...counts.entries()].map(([name,count])=>({name,count})).sort((a,b)=>a.name.localeCompare(b.name))}
+export async function getPartyOptions():Promise<PartyOption[]>{const residents=await getResidents(),counts=new Map<string,number>();for(const resident of residents){const party=normalizeParty(resident.party);counts.set(party,(counts.get(party)||0)+1)}const preferred=['PNC','MDP','Other','Unspecified'],mapped=[...counts.entries()].map(([name,count])=>({name,count})),known=mapped.filter(x=>x.name==='PNC'||x.name==='MDP'||x.name==='Unspecified'),otherCount=mapped.filter(x=>!['PNC','MDP','Unspecified'].includes(x.name)).reduce((sum,x)=>sum+x.count,0);if(otherCount)known.push({name:'Other',count:otherCount});return known.sort((a,b)=>preferred.indexOf(a.name)-preferred.indexOf(b.name))}
+export async function getResidentsPage({page=1,pageSize=25,search='',filter='all',house='all',party='all'}:{page?:number;pageSize?:number;search?:string;filter?:string;house?:string;party?:string}):Promise<ResidentPage>{const safePage=Math.max(1,page),safeSize=Math.min(100,Math.max(10,pageSize));if(party==='all'){const from=(safePage-1)*safeSize,to=from+safeSize-1;let query=applyBaseFilters(supabase.from('campaign').select('*',{count:'exact'}),{search,filter,house});const {data,error,count}=await query.order('id',{ascending:true}).range(from,to);if(error)throw new Error(`Campaign search failed: ${error.message}`);return {rows:(data||[]).map(normalizeResident),count:count||0}}const all:Resident[]=[],batch=1000;for(let from=0;;from+=batch){let query=applyBaseFilters(supabase.from('campaign').select('*'),{search,filter,house});const {data,error}=await query.order('id',{ascending:true}).range(from,from+batch-1);if(error)throw new Error(`Campaign search failed: ${error.message}`);all.push(...(data||[]).map(normalizeResident));if((data||[]).length<batch)break}const filtered=all.filter(r=>{const value=normalizeParty(r.party);if(party==='Other')return !['PNC','MDP','Unspecified'].includes(value);return value===party}),start=(safePage-1)*safeSize;return {rows:filtered.slice(start,start+safeSize),count:filtered.length}}
+export async function getResidentById(id:Resident['id']):Promise<Resident>{const {data,error}=await supabase.from('campaign').select('*').eq('id',id).maybeSingle();if(error)throw new Error(`Voter load failed: ${error.message}`);if(!data)throw new Error('Voter record not found.');return normalizeResident(data)}
 
-function normalizeResident(row:any):Resident{
-  return {...row,house:normalizeHouse(row.house),photo_url:row.photo_url??row.photo??row.image_url??null,party:normalizeParty(row.party??row.party_name??row.political_party??row.affiliation)} as Resident;
-}
+// Only operational campaign fields may update the verified campaign record directly.
+export async function updateResident(id:Resident['id'],changes:Partial<Resident>){const allowed:Partial<Resident>={};const editable:(keyof Resident)[]=['vote_status','phone_status','reach_status','d2d_status','support_level','remarks'];for(const field of editable){if(Object.prototype.hasOwnProperty.call(changes,field))(allowed as any)[field]=changes[field]??null}if(Object.keys(allowed).length===0)return getResidentById(id);const {data,error}=await supabase.from('campaign').update(allowed).eq('id',id).select('*').single();if(error)throw new Error(`Save failed: ${error.message}`);return normalizeResident(data)}
 
-function applyBaseFilters(query:any,{search,filter,house}:{search:string;filter:string;house:string}){
-  const term=search.trim().replace(/[,%()]/g,' ');
-  if(term)query=query.or(`name.ilike.%${term}%,national_id.ilike.%${term}%,house.ilike.%${term}%,lives_in.ilike.%${term}%,phone.ilike.%${term}%`);
-  if(house&&house!=='all'){
-    if(house==='Dhafthar')query=query.or('house.ilike.%Dhafthar%,house.ilike.%No RS%,house.ilike.%RS%,house.ilike.%No DH R%,house.ilike.%DH R%,house.ilike.%DHR%');
-    else if(house==='Sina Malé')query=query.or('house.ilike.%Sina Male%,house.ilike.%Sina Malé%');
-    else query=query.eq('house',house);
-  }
-  if(filter!=='all'){
-    if(['will-vote','not-decided','not-vote'].includes(filter))query=query.eq('vote_status',filter);
-    else if(['need-call','called'].includes(filter))query=query.eq('phone_status',filter);
-    else if(['not-visited','reach','not-home','live-in-another-place'].includes(filter))query=query.eq('d2d_status',filter);
-    else if(['reached','not-reached'].includes(filter))query=query.eq('reach_status',filter);
-    else if(['guaranteed','not-guaranteed'].includes(filter))query=query.eq('support_level',filter);
-  }
-  return query;
-}
-
-export async function getResidents():Promise<Resident[]>{
-  const pageSize=1000;const rows:Resident[]=[];
-  for(let from=0;;from+=pageSize){
-    const {data,error}=await supabase.from('campaign').select('*').order('id',{ascending:true}).range(from,from+pageSize-1);
-    if(error)throw new Error(`Campaign load failed: ${error.message}`);
-    rows.push(...(data||[]).map(normalizeResident));
-    if((data||[]).length<pageSize)break;
-  }
-  return rows;
-}
-
-export async function getHouseOptions():Promise<HouseOption[]>{
-  const counts=new Map<string,number>();const pageSize=1000;
-  for(let from=0;;from+=pageSize){
-    const {data,error}=await supabase.from('campaign').select('house').order('house',{ascending:true}).range(from,from+pageSize-1);
-    if(error)throw new Error(`House list failed: ${error.message}`);
-    for(const row of data||[]){const house=normalizeHouse(row.house);if(house)counts.set(house,(counts.get(house)||0)+1)}
-    if((data||[]).length<pageSize)break;
-  }
-  return [...counts.entries()].map(([name,count])=>({name,count})).sort((a,b)=>a.name.localeCompare(b.name));
-}
-
-export async function getPartyOptions():Promise<PartyOption[]>{
-  const residents=await getResidents();const counts=new Map<string,number>();
-  for(const resident of residents){const party=normalizeParty(resident.party);counts.set(party,(counts.get(party)||0)+1)}
-  const preferred=['PNC','MDP','Other','Unspecified'];
-  const mapped=[...counts.entries()].map(([name,count])=>({name,count}));
-  const known=mapped.filter(x=>x.name==='PNC'||x.name==='MDP'||x.name==='Unspecified');
-  const otherCount=mapped.filter(x=>!['PNC','MDP','Unspecified'].includes(x.name)).reduce((sum,x)=>sum+x.count,0);
-  if(otherCount)known.push({name:'Other',count:otherCount});
-  return known.sort((a,b)=>preferred.indexOf(a.name)-preferred.indexOf(b.name));
-}
-
-export async function getResidentsPage({page=1,pageSize=25,search='',filter='all',house='all',party='all'}:{page?:number;pageSize?:number;search?:string;filter?:string;house?:string;party?:string}):Promise<ResidentPage>{
-  const safePage=Math.max(1,page);const safeSize=Math.min(100,Math.max(10,pageSize));
-  if(party==='all'){
-    const from=(safePage-1)*safeSize;const to=from+safeSize-1;
-    let query=applyBaseFilters(supabase.from('campaign').select('*',{count:'exact'}),{search,filter,house});
-    const {data,error,count}=await query.order('id',{ascending:true}).range(from,to);
-    if(error)throw new Error(`Campaign search failed: ${error.message}`);
-    return {rows:(data||[]).map(normalizeResident),count:count||0};
-  }
-  const all:Resident[]=[];const batch=1000;
-  for(let from=0;;from+=batch){
-    let query=applyBaseFilters(supabase.from('campaign').select('*'),{search,filter,house});
-    const {data,error}=await query.order('id',{ascending:true}).range(from,from+batch-1);
-    if(error)throw new Error(`Campaign search failed: ${error.message}`);
-    all.push(...(data||[]).map(normalizeResident));
-    if((data||[]).length<batch)break;
-  }
-  const filtered=all.filter(r=>{const value=normalizeParty(r.party);if(party==='Other')return !['PNC','MDP','Unspecified'].includes(value);return value===party});
-  const start=(safePage-1)*safeSize;
-  return {rows:filtered.slice(start,start+safeSize),count:filtered.length};
-}
-
-export async function getResidentById(id:Resident['id']):Promise<Resident>{
-  const {data,error}=await supabase.from('campaign').select('*').eq('id',id).maybeSingle();
-  if(error)throw new Error(`Voter load failed: ${error.message}`);
-  if(!data)throw new Error('Voter record not found.');
-  return normalizeResident(data);
-}
-
-export async function updateResident(id:Resident['id'],changes:Partial<Resident>){
-  const allowed:Partial<Resident>={};
-  const editable:(keyof Resident)[]=['name','national_id','house','lives_in','phone','vote_status','phone_status','reach_status','d2d_status','support_level','remarks'];
-  for(const field of editable){if(Object.prototype.hasOwnProperty.call(changes,field))(allowed as any)[field]=changes[field]??null}
-  if(Object.keys(allowed).length===0)throw new Error('No editable changes were provided.');
-  const {data,error}=await supabase.from('campaign').update(allowed).eq('id',id).select('*').single();
-  if(error)throw new Error(`Save failed: ${error.message}`);
-  return normalizeResident(data);
-}
+export async function submitResidentContactChange(resident:Resident,{phone,lives_in,remarks}:{phone?:string|null;lives_in?:string|null;remarks?:string|null}){const payload={resident_id:resident.id,existing_phone:resident.phone??null,requested_phone:phone?.trim()||null,existing_lives_in:resident.lives_in??null,requested_lives_in:lives_in?.trim()||null,request_note:remarks?.trim()||null,status:'pending'};if(payload.requested_phone===payload.existing_phone&&payload.requested_lives_in===payload.existing_lives_in)throw new Error('Enter a new mobile number or living place before submitting.');const {error}=await supabase.from('resident_change_requests').insert(payload);if(error){if(error.message.toLowerCase().includes('resident_change_requests'))throw new Error('Admin verification table is not installed yet. Run supabase/resident-change-requests.sql in Supabase.');throw new Error(`Verification request failed: ${error.message}`)}}
