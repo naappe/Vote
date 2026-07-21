@@ -7,6 +7,7 @@ export const supabase=createClient(url,key,{auth:{persistSession:true,autoRefres
 
 export interface ResidentPage{rows:Resident[];count:number}
 export interface HouseOption{name:string;count:number}
+export interface PartyOption{name:string;count:number}
 
 function normalizeHouse(value?:string|null){
   const name=(value||'').trim();
@@ -17,8 +18,35 @@ function normalizeHouse(value?:string|null){
   return name;
 }
 
+function normalizeParty(value?:string|null){
+  const party=(value||'').trim();
+  if(!party)return'Unspecified';
+  const key=party.toUpperCase();
+  if(key.includes('PNC'))return'PNC';
+  if(key.includes('MDP'))return'MDP';
+  return party;
+}
+
 function normalizeResident(row:any):Resident{
-  return {...row,house:normalizeHouse(row.house),photo_url:row.photo_url??row.photo??row.image_url??null,party:row.party??row.party_name??row.political_party??row.affiliation??null} as Resident;
+  return {...row,house:normalizeHouse(row.house),photo_url:row.photo_url??row.photo??row.image_url??null,party:normalizeParty(row.party??row.party_name??row.political_party??row.affiliation)} as Resident;
+}
+
+function applyBaseFilters(query:any,{search,filter,house}:{search:string;filter:string;house:string}){
+  const term=search.trim().replace(/[,%()]/g,' ');
+  if(term)query=query.or(`name.ilike.%${term}%,national_id.ilike.%${term}%,house.ilike.%${term}%,lives_in.ilike.%${term}%,phone.ilike.%${term}%`);
+  if(house&&house!=='all'){
+    if(house==='Dhafthar')query=query.or('house.ilike.%Dhafthar%,house.ilike.%No RS%,house.ilike.%No Dh R%');
+    else if(house==='Sina Malé')query=query.or('house.ilike.%Sina Male%,house.ilike.%Sina Malé%');
+    else query=query.eq('house',house);
+  }
+  if(filter!=='all'){
+    if(['will-vote','not-decided','not-vote'].includes(filter))query=query.eq('vote_status',filter);
+    else if(['need-call','called'].includes(filter))query=query.eq('phone_status',filter);
+    else if(['not-visited','reach','not-home','live-in-another-place'].includes(filter))query=query.eq('d2d_status',filter);
+    else if(['reached','not-reached'].includes(filter))query=query.eq('reach_status',filter);
+    else if(['guaranteed','not-guaranteed'].includes(filter))query=query.eq('support_level',filter);
+  }
+  return query;
 }
 
 export async function getResidents():Promise<Resident[]>{
@@ -43,26 +71,42 @@ export async function getHouseOptions():Promise<HouseOption[]>{
   return [...counts.entries()].map(([name,count])=>({name,count})).sort((a,b)=>a.name.localeCompare(b.name));
 }
 
-export async function getResidentsPage({page=1,pageSize=25,search='',filter='all',house='all'}:{page?:number;pageSize?:number;search?:string;filter?:string;house?:string}):Promise<ResidentPage>{
-  const safePage=Math.max(1,page);const safeSize=Math.min(100,Math.max(10,pageSize));const from=(safePage-1)*safeSize;const to=from+safeSize-1;
-  let query=supabase.from('campaign').select('*',{count:'exact'});
-  const term=search.trim().replace(/[,%()]/g,' ');
-  if(term)query=query.or(`name.ilike.%${term}%,national_id.ilike.%${term}%,house.ilike.%${term}%,lives_in.ilike.%${term}%,phone.ilike.%${term}%`);
-  if(house&&house!=='all'){
-    if(house==='Dhafthar')query=query.or('house.ilike.%Dhafthar%,house.ilike.%No RS%,house.ilike.%No Dh R%');
-    else if(house==='Sina Malé')query=query.or('house.ilike.%Sina Male%,house.ilike.%Sina Malé%');
-    else query=query.eq('house',house);
+export async function getPartyOptions():Promise<PartyOption[]>{
+  const residents=await getResidents();const counts=new Map<string,number>();
+  for(const resident of residents){const party=normalizeParty(resident.party);counts.set(party,(counts.get(party)||0)+1)}
+  const preferred=['PNC','MDP','Other','Unspecified'];
+  const mapped=[...counts.entries()].map(([name,count])=>({name,count}));
+  const known=mapped.filter(x=>x.name==='PNC'||x.name==='MDP'||x.name==='Unspecified');
+  const otherCount=mapped.filter(x=>!['PNC','MDP','Unspecified'].includes(x.name)).reduce((sum,x)=>sum+x.count,0);
+  if(otherCount)known.push({name:'Other',count:otherCount});
+  return known.sort((a,b)=>preferred.indexOf(a.name)-preferred.indexOf(b.name));
+}
+
+export async function getResidentsPage({page=1,pageSize=25,search='',filter='all',house='all',party='all'}:{page?:number;pageSize?:number;search?:string;filter?:string;house?:string;party?:string}):Promise<ResidentPage>{
+  const safePage=Math.max(1,page);const safeSize=Math.min(100,Math.max(10,pageSize));
+  if(party==='all'){
+    const from=(safePage-1)*safeSize;const to=from+safeSize-1;
+    let query=applyBaseFilters(supabase.from('campaign').select('*',{count:'exact'}),{search,filter,house});
+    const {data,error,count}=await query.order('id',{ascending:true}).range(from,to);
+    if(error)throw new Error(`Campaign search failed: ${error.message}`);
+    return {rows:(data||[]).map(normalizeResident),count:count||0};
   }
-  if(filter!=='all'){
-    if(['will-vote','not-decided','not-vote'].includes(filter))query=query.eq('vote_status',filter);
-    else if(['need-call','called'].includes(filter))query=query.eq('phone_status',filter);
-    else if(['not-visited','reach','not-home','live-in-another-place'].includes(filter))query=query.eq('d2d_status',filter);
-    else if(['reached','not-reached'].includes(filter))query=query.eq('reach_status',filter);
-    else if(['guaranteed','not-guaranteed'].includes(filter))query=query.eq('support_level',filter);
+
+  const all:Resident[]=[];const batch=1000;
+  for(let from=0;;from+=batch){
+    let query=applyBaseFilters(supabase.from('campaign').select('*'),{search,filter,house});
+    const {data,error}=await query.order('id',{ascending:true}).range(from,from+batch-1);
+    if(error)throw new Error(`Campaign search failed: ${error.message}`);
+    all.push(...(data||[]).map(normalizeResident));
+    if((data||[]).length<batch)break;
   }
-  const {data,error,count}=await query.order('id',{ascending:true}).range(from,to);
-  if(error)throw new Error(`Campaign search failed: ${error.message}`);
-  return {rows:(data||[]).map(normalizeResident),count:count||0};
+  const filtered=all.filter(r=>{
+    const value=normalizeParty(r.party);
+    if(party==='Other')return !['PNC','MDP','Unspecified'].includes(value);
+    return value===party;
+  });
+  const start=(safePage-1)*safeSize;
+  return {rows:filtered.slice(start,start+safeSize),count:filtered.length};
 }
 
 export async function getResidentById(id:Resident['id']):Promise<Resident>{
