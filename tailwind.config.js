@@ -11,8 +11,11 @@ module.exports={
       body:'var(--body-text)',
       accent:'var(--accent-green)',
       canvas:'var(--background)',
+      'background-end':'var(--background-end)',
       card:'var(--card)',
       border:'var(--border)',
+      danger:'var(--danger)',
+      warning:'var(--warning)',
       calm:{50:'var(--background)',100:'var(--primary-light)',500:'var(--body-text)',700:'var(--navy)',900:'var(--navy)'}
     },
     borderRadius:{card:'var(--radius-card)',pill:'var(--radius-pill)',input:'var(--radius-pill)'},
