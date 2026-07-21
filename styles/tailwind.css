@@ -17,21 +17,22 @@
  --shadow-card-hover:0 12px 30px rgba(15,23,42,.09)
 }
 *{box-sizing:border-box}
-html{scroll-behavior:smooth;background:var(--background)}
-body{@apply min-h-screen antialiased; font-family:'Inter',sans-serif;color:var(--body-text);background:var(--background)}
+html{scroll-behavior:smooth;background:var(--background);overflow-x:hidden}
+body{@apply min-h-screen antialiased; font-family:'Inter',sans-serif;color:var(--body-text);background:var(--background);overflow-x:hidden}
 h1,h2,h3,h4,h5,h6{font-family:'Inter',sans-serif;color:var(--navy);letter-spacing:-.015em}h1{font-size:clamp(1.45rem,2.2vw,1.9rem);font-weight:600;line-height:1.2}h2{font-size:clamp(1.12rem,1.7vw,1.38rem);font-weight:600;line-height:1.25}h3{font-size:1rem;font-weight:600}
 a:not(.nav-item):not(.btn-primary):not(.btn-secondary):not(.btn-ghost):not(.btn-danger):not(.btn-success):not([role='button']){color:var(--primary)}
 a:not(.nav-item):not(.btn-primary):not(.btn-secondary):not(.btn-ghost):not(.btn-danger):not(.btn-success):not([role='button']):visited{color:var(--primary)}
 a:not(.nav-item):not(.btn-primary):not(.btn-secondary):not(.btn-ghost):not(.btn-danger):not(.btn-success):not([role='button']):hover{color:var(--primary-hover)}
 button,input,select,textarea{font:inherit}button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible{outline:3px solid rgba(59,130,246,.22);outline-offset:2px}
+img{max-width:100%}
 
 @layer components{
  .master-card,.panel,.soft-card,.brand-card,.metric-card,.page-hero{@apply bg-card transition duration-200; padding:var(--card-padding);border:1px solid var(--border);border-radius:var(--radius-card);box-shadow:var(--shadow-card)}
  .master-card:hover,.soft-card:hover,.metric-card:hover{border-color:var(--border-strong);box-shadow:var(--shadow-card-hover);transform:translateY(-1px)}
  .master-card-static,.panel,.brand-card,.page-hero{transform:none!important}
  .metric-card{min-height:126px;display:flex;flex-direction:column;justify-content:space-between}
- .resident-card{min-height:100%;display:flex;flex-direction:column}
- .card-header{@apply mb-3 flex items-start justify-between gap-3 border-b border-border pb-3}
+ .resident-card{min-height:100%;display:flex;flex-direction:column;min-width:0}
+ .card-header{@apply mb-3 flex items-start justify-between gap-3 border-b border-border pb-3;min-width:0}
  .card-body{@apply min-w-0 flex-1}
  .card-footer{@apply mt-3 flex flex-wrap items-center gap-2 border-t border-border pt-3}
  .card-grid{@apply grid gap-3 sm:grid-cols-2 xl:grid-cols-3}
@@ -45,7 +46,7 @@ button,input,select,textarea{font:inherit}button:focus-visible,a:focus-visible,i
  .field,.input-base{@apply min-h-11 w-full px-3.5 text-sm text-navy transition placeholder:text-slate-400;background:#fff;border:1px solid var(--border-strong);border-radius:10px}.field:hover,.input-base:hover{border-color:#94A3B8}.field:focus,.input-base:focus{border-color:var(--primary);box-shadow:0 0 0 3px rgba(59,130,246,.12)}
  textarea.field,textarea.input-base{border-radius:10px}
  .field-label{@apply mb-1.5 block text-sm font-medium;text-transform:none;color:var(--navy)}
- .status-chip{@apply inline-flex items-center px-2.5 py-1 text-[11px] font-medium;border-radius:999px}
+ .status-chip{@apply inline-flex items-center px-2.5 py-1 text-[11px] font-medium;border-radius:999px;max-width:100%}
  .status-will-vote,.status-success,.status-completed{color:#166534;background:#DCFCE7;border:1px solid #BBF7D0}
  .status-not-decided,.status-warning{color:#92400E;background:#FEF3C7;border:1px solid #FDE68A}
  .status-not-vote,.status-danger{color:#991B1B;background:#FEE2E2;border:1px solid #FECACA}
@@ -53,7 +54,7 @@ button,input,select,textarea{font:inherit}button:focus-visible,a:focus-visible,i
  .status-called{color:#3730A3;background:#E0E7FF;border:1px solid #C7D2FE}
  .status-transport{color:#9A3412;background:#FFEDD5;border:1px solid #FED7AA}
  .info-banner{@apply flex items-start gap-3 px-4 py-3 text-sm;background:var(--primary-soft);border:1px solid #BFDBFE;border-radius:12px;color:#1E40AF}.notice-card{@apply px-4 py-3;background:#FFFBEB;border:1px solid #FDE68A;border-left:3px solid var(--gold);border-radius:12px}
- .error-banner{@apply p-4 text-sm font-medium text-danger;background:#FEF2F2;border:1px solid #FECACA;border-radius:12px}
+ .error-banner{@apply p-4 text-sm font-medium text-danger;background:#FEF2F2;border:1px solid #FECACA;border-radius:12px;overflow-wrap:anywhere}
  .empty-state{@apply bg-card py-10 text-center;border:1px dashed var(--border-strong);border-radius:var(--radius-card)}
  .brand-mark{@apply grid h-9 w-9 place-items-center text-[10px] font-semibold text-white;background:var(--primary);border-radius:10px;box-shadow:0 4px 12px rgba(59,130,246,.22)}
  .nav-group-label{@apply px-3 text-[9px] font-semibold uppercase tracking-[.13em];color:var(--muted)}
@@ -66,5 +67,51 @@ button,input,select,textarea{font:inherit}button:focus-visible,a:focus-visible,i
  .record-grid{@apply grid gap-0 sm:grid-cols-2}
  .record-row{@apply grid grid-cols-[130px_1fr] gap-4 border-b border-border py-2.5 text-sm}.record-row dt{color:var(--secondary)}.record-row dd{font-weight:500;color:var(--navy);word-break:break-word}
 }
-@media(max-width:767px){:root{--card-padding:15px}.record-row{grid-template-columns:1fr;gap:.25rem}.metric-card{min-height:112px}.nav-item{min-height:48px}.btn-primary,.btn-secondary,.btn-danger,.btn-success,.btn-ghost{min-height:46px}}
+
+@media(max-width:767px){
+ :root{--card-padding:14px;--radius-card:15px}
+ body{font-size:15px;padding-bottom:env(safe-area-inset-bottom)}
+ h1{font-size:1.55rem;line-height:1.18}h2{font-size:1.2rem}h3{font-size:1rem}
+ main{min-width:0}
+ .page-hero{padding:14px}
+ .page-hero p{max-width:100%;overflow-wrap:anywhere}
+ .panel,.master-card,.soft-card,.metric-card,.brand-card{min-width:0;overflow-wrap:anywhere}
+ .master-card:hover,.soft-card:hover,.metric-card:hover,.btn-primary:hover{transform:none}
+ .record-row{grid-template-columns:1fr;gap:.25rem}
+ .metric-card{min-height:106px}
+ .card-header{align-items:flex-start}
+ .card-footer{display:grid;grid-template-columns:1fr;width:100%}
+ .card-footer>*{width:100%}
+ .section-heading{flex-direction:column;align-items:stretch}
+ .profile-header{align-items:stretch}
+ .profile-header>div:last-child{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));width:100%}
+ .profile-header>div:last-child>*{width:100%}
+ .nav-item{min-height:48px}
+ .btn-primary,.btn-secondary,.btn-danger,.btn-success,.btn-ghost{min-height:48px;white-space:normal;text-align:center;line-height:1.25}
+ .field,.input-base{min-height:48px;font-size:16px}
+ textarea.field,textarea.input-base{min-height:112px}
+ select.field{padding-right:2.25rem}
+ .party-filter{display:flex;max-width:100%;overflow-x:auto;overscroll-behavior-inline:contain;scrollbar-width:none;padding-bottom:2px}
+ .party-filter::-webkit-scrollbar{display:none}
+ .party-filter-button{flex:0 0 auto;min-height:44px;white-space:nowrap}
+ .record-grid{grid-template-columns:1fr}
+ .status-chip{white-space:normal;text-align:center}
+ table{font-size:13px}
+ .overflow-x-auto{-webkit-overflow-scrolling:touch;overscroll-behavior-inline:contain}
+ [class*='grid-cols-[']{grid-template-columns:minmax(0,1fr)!important}
+ .fixed.inset-0 aside{max-width:100%!important;padding-bottom:env(safe-area-inset-bottom)}
+ .fixed.inset-0 aside header{padding-top:max(1rem,env(safe-area-inset-top))}
+ .fixed.inset-0 aside .sticky{z-index:5}
+ .fixed.inset-0 aside .grid.sm\:grid-cols-2{grid-template-columns:1fr}
+ .fixed.inset-0 aside button,.fixed.inset-0 aside a{min-height:48px}
+ .empty-state{padding:2rem 1rem}
+}
+
+@media(max-width:420px){
+ :root{--card-padding:12px}
+ h1{font-size:1.42rem}
+ .page-hero,.panel,.master-card,.soft-card,.metric-card,.brand-card{border-radius:14px}
+ .btn-primary,.btn-secondary,.btn-danger,.btn-success,.btn-ghost{padding-left:12px;padding-right:12px}
+}
+
 @media(prefers-reduced-motion:reduce){*,*::before,*::after{scroll-behavior:auto!important;animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}}
