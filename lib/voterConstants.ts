@@ -1,4 +1,5 @@
 export const VOTER_TABS=['Overview','Call Center','Door-to-Door','Candidate Visit','Election Day','Remarks'] as const;
+export const VOTER_DETAIL_TABS=VOTER_TABS;
 
 export const STATUS_LABELS:Record<string,string>={
   'will-vote':'Will vote',
@@ -17,19 +18,19 @@ export const STATUS_LABELS:Record<string,string>={
 };
 
 export const STATUS_STYLES:Record<string,string>={
-  'will-vote':'bg-emerald-100 text-emerald-700',
-  'not-decided':'bg-amber-100 text-amber-700',
-  'not-vote':'bg-rose-100 text-rose-700',
+  'will-vote':'bg-accent/15 text-accent',
+  'not-decided':'bg-primary-light text-primary',
+  'not-vote':'bg-danger/10 text-danger',
   reached:'bg-primary-light text-primary',
-  'not-reached':'bg-slate-100 text-body',
-  called:'bg-violet-100 text-violet-700',
-  'need-call':'bg-orange-100 text-orange-700',
-  guaranteed:'bg-emerald-100 text-emerald-700',
-  'not-guaranteed':'bg-slate-100 text-body',
-  'not-visited':'bg-slate-100 text-body',
+  'not-reached':'bg-background-end text-body',
+  called:'bg-primary-light text-primary',
+  'need-call':'bg-warning/10 text-warning',
+  guaranteed:'bg-accent/15 text-accent',
+  'not-guaranteed':'bg-background-end text-body',
+  'not-visited':'bg-background-end text-body',
   reach:'bg-primary-light text-primary',
-  'not-home':'bg-amber-100 text-amber-700',
-  'live-in-another-place':'bg-violet-100 text-violet-700'
+  'not-home':'bg-warning/10 text-warning',
+  'live-in-another-place':'bg-primary-light text-primary'
 };
 
 export function residentInitials(name?:string|null){
