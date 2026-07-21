@@ -20,7 +20,9 @@
 html{scroll-behavior:smooth;background:var(--background)}
 body{@apply min-h-screen antialiased; font-family:'Inter',sans-serif;color:var(--body-text);background:var(--background)}
 h1,h2,h3,h4,h5,h6{font-family:'Inter',sans-serif;color:var(--navy);letter-spacing:-.015em}h1{font-size:clamp(1.45rem,2.2vw,1.9rem);font-weight:600;line-height:1.2}h2{font-size:clamp(1.12rem,1.7vw,1.38rem);font-weight:600;line-height:1.25}h3{font-size:1rem;font-weight:600}
-a{color:var(--primary)}
+a:not(.nav-item):not(.btn-primary):not(.btn-secondary):not(.btn-ghost):not(.btn-danger):not(.btn-success):not([role='button']){color:var(--primary)}
+a:not(.nav-item):not(.btn-primary):not(.btn-secondary):not(.btn-ghost):not(.btn-danger):not(.btn-success):not([role='button']):visited{color:var(--primary)}
+a:not(.nav-item):not(.btn-primary):not(.btn-secondary):not(.btn-ghost):not(.btn-danger):not(.btn-success):not([role='button']):hover{color:var(--primary-hover)}
 button,input,select,textarea{font:inherit}button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible{outline:3px solid rgba(59,130,246,.22);outline-offset:2px}
 
 @layer components{
