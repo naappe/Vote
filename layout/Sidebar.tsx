@@ -20,6 +20,7 @@ const groups=[
  {label:'Control',items:[
   {label:'Contact Verification',href:'/contact-verification/',icon:'Q'},
   {label:'Reports',href:'/reports/',icon:'P'},
+  {label:'Admin Backup',href:'/backup/',icon:'B'},
  ]},
 ];
 
