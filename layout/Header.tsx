@@ -6,7 +6,7 @@ import {usePathname} from 'next/navigation';
 const titles:Record<string,{title:string;eyebrow:string}>={
   '/':{title:'Operations Dashboard',eyebrow:'Villimalé Campaign'},
   '/voter-management':{title:'Voter Management',eyebrow:'Residents and field status'},
-  '/voter-detail':{title:'Voter Detail',eyebrow:'Resident workspace'},
+  '/voter-detail':{title:'Resident Profile',eyebrow:'Verified resident workspace'},
   '/call-center':{title:'Call Center',eyebrow:'Phone outreach'},
   '/door-to-door':{title:'Door-to-Door',eyebrow:'Field outreach'},
   '/election-day':{title:'Election Day',eyebrow:'Turnout operations'},
@@ -15,9 +15,15 @@ const titles:Record<string,{title:string;eyebrow:string}>={
   '/settings':{title:'Settings',eyebrow:'System configuration'}
 };
 
+function normalizePath(pathname:string){
+  const withoutBase=pathname.replace(/^\/Vote(?=\/|$)/i,'')||'/';
+  return withoutBase==='/'?'/':withoutBase.replace(/\/$/,'');
+}
+
 export default function Header(){
   const pathname=usePathname();
-  const page=titles[pathname]||titles['/'];
+  const current=normalizePath(pathname);
+  const page=titles[current]||titles['/'];
   return <>
     <header className="sticky top-0 z-30 flex min-h-16 items-center justify-between border-b border-slate-200/80 bg-white/90 px-4 py-3 backdrop-blur-xl sm:px-6 lg:min-h-20 lg:px-8">
       <div className="min-w-0">
@@ -35,7 +41,7 @@ export default function Header(){
     <nav className="sticky top-16 z-20 flex gap-2 overflow-x-auto border-b border-slate-200 bg-white/95 px-3 py-2.5 backdrop-blur lg:hidden" aria-label="Mobile navigation">
       {[
         ['Dashboard','/'],['Voters','/voter-management/'],['Calls','/call-center/'],['Visits','/door-to-door/'],['Election','/election-day/'],['Reports','/reports/']
-      ].map(([label,href])=><Link prefetch={false} key={href} href={href} className={`shrink-0 rounded-full px-4 py-2 text-xs font-semibold transition ${pathname===href.replace(/\/$/,'')||pathname===href?'bg-[#0066FF] text-white shadow-[0_6px_16px_rgba(0,102,255,0.18)]':'bg-[#F8FBFF] text-[#4F5E71] hover:bg-[#EBF4FF] hover:text-[#0066FF]'}`}>{label}</Link>)}
+      ].map(([label,href])=>{const target=href==='/'?'/':href.replace(/\/$/,'');return <Link prefetch={false} key={href} href={href} className={`shrink-0 rounded-full px-4 py-2 text-xs font-semibold transition ${current===target?'bg-[#0066FF] text-white shadow-[0_6px_16px_rgba(0,102,255,0.18)]':'bg-[#F8FBFF] text-[#4F5E71] hover:bg-[#EBF4FF] hover:text-[#0066FF]'}`}>{label}</Link>})}
     </nav>
   </>;
 }
