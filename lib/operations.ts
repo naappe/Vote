@@ -23,5 +23,18 @@ export async function saveElectionStatus(residentId:number|string,changes:Partia
 export async function getTransportationBoard(){const {data,error}=await supabase.from('transportation').select('*').order('updated_at',{ascending:false});if(error)throw new Error(`Transportation load failed: ${error.message}`);const records=(data||[]) as TransportRecord[];const residents=await residentMap(records.map(r=>r.resident_id));return records.map(record=>({record,resident:residents.get(String(record.resident_id))||null}))}
 export async function saveTransportation(residentId:number|string,changes:Partial<TransportRecord>){const payload={resident_id:residentId,...changes,updated_at:new Date().toISOString()};const {error}=await supabase.from('transportation').upsert(payload,{onConflict:'resident_id'});if(error)throw new Error(`Transportation save failed: ${error.message}`)}
 export async function createWorkflowShare(input:{workflow:string;title:string;status_filter?:string;resident_ids?:number[];can_update?:boolean;expires_at?:string|null}){const {data,error}=await supabase.from('workflow_shares').insert({...input,can_update:Boolean(input.can_update),active:true}).select('*').single();if(error)throw new Error(`Share link creation failed: ${error.message}`);return data as WorkflowShare}
-export async function getWorkflowShare(token:string){const {data,error}=await supabase.from('workflow_shares').select('*').eq('token',token).maybeSingle();if(error)throw new Error(`Share link load failed: ${error.message}`);if(!data)throw new Error('This share link is invalid or expired.');return data as WorkflowShare}
+export async function getWorkflowShare(token:string){const {data,error}=await supabase.from('workflow_shares').select('*').eq('token',token).maybeSingle();if(error)throw new Error(`Share link load failed: ${error.message}`);if(!data||!data.active)throw new Error('This share link is invalid or expired.');if(data.expires_at&&new Date(data.expires_at).getTime()<Date.now())throw new Error('This share link has expired.');return data as WorkflowShare}
 export async function getSharedResidents(share:WorkflowShare){const ids=share.resident_ids||[];const map=await residentMap(ids);return ids.map(id=>map.get(String(id))).filter(Boolean) as Resident[]}
+export async function submitSharedAssignments(share:WorkflowShare,assigneeName:string,residentIds:(number|string)[]){
+ const name=assigneeName.trim();
+ if(share.workflow!=='assignments'||!share.can_update)throw new Error('This link does not allow assignment submissions.');
+ if(!name)throw new Error('Enter the assigner name.');
+ const allowed=new Set((share.resident_ids||[]).map(String));
+ const selected=[...new Set(residentIds.map(String))].filter(id=>allowed.has(id));
+ if(!selected.length)throw new Error('Select at least one resident.');
+ const now=new Date().toISOString();
+ const payload=selected.map((residentId,index)=>({id:Date.now()+index,resident_id:Number(residentId),assignee_name:name,assignment_type:'shared-link',status:'active',notes:`Submitted from share ${share.token}`,assigned_at:now}));
+ const {error}=await supabase.from('assignments').insert(payload);
+ if(error)throw new Error(`Assignment submission failed: ${error.message}`);
+ return payload.length;
+}
