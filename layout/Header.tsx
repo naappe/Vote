@@ -1,6 +1,8 @@
 'use client';
 import Link from 'next/link';
 import {usePathname} from 'next/navigation';
+import {useEffect} from 'react';
+import {supabase} from '../lib/supabase';
 import {PartyLegend} from '../shared/PartyIdentity';
 import AuthControl from '../components/AuthControl';
 import PWAControl from '../components/PWAControl';
@@ -22,6 +24,7 @@ const pages:Record<string,{title:string;eyebrow:string}>= {
 function normalize(path:string){const clean=path.replace(/^\/Vote(?=\/|$)/i,'')||'/';return clean==='/'?'/':clean.replace(/\/$/,'')}
 export default function Header(){
  const current=normalize(usePathname()),page=pages[current]||pages['/'];
+ useEffect(()=>{supabase.functions.invoke('track-activity',{body:{route:current}}).catch(()=>{})},[current]);
  const mobile=[
   ['Dashboard','/'],['Residents','/residents/'],['Calls','/call-center/'],['Visits','/door-to-door/'],
   ['Assignments','/assignments/'],['Remarks','/remarks/'],['Election Day','/election-day/'],
