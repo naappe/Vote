@@ -13,7 +13,7 @@ export function ResidentIdentity({resident,compact=false}:{resident:Resident;com
 }
 
 export function PartyFilter({value,onChange}:{value:string;onChange:(value:string)=>void}){
- return <div className="party-filter" role="group" aria-label="Party filter">{['all','PNC','MDP','Other'].map(p=><button type="button" key={p} onClick={()=>onChange(p)} className={`party-filter-button ${value===p?'party-filter-active':''} ${p==='PNC'?'party-filter-pnc':p==='MDP'?'party-filter-mdp':p==='Other'?'party-filter-other':''}`}>{p==='all'?'All parties':p}</button>)}</div>
+ return <div className="party-filter" role="group" aria-label="Party filter">{['all','PNC','MDP','Unspecified'].map(p=><button type="button" key={p} onClick={()=>onChange(p)} className={`party-filter-button ${value===p?'party-filter-active':''} ${p==='PNC'?'party-filter-pnc':p==='MDP'?'party-filter-mdp':p==='Unspecified'?'party-filter-other':''}`}>{p==='all'?'All parties':p==='Unspecified'?'No party':p}</button>)}</div>
 }
 
-export function matchesParty(resident:Resident,party:string){if(party==='all')return true;const value=(resident.party||'').toUpperCase();if(party==='Other')return value!=='PNC'&&value!=='MDP';return value===party}
+export function matchesParty(resident:Resident,party:string){if(party==='all')return true;const value=(resident.party||'').toUpperCase();if(party==='Unspecified')return !value||value==='UNSPECIFIED';return value===party}
