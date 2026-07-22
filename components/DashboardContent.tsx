@@ -16,7 +16,7 @@ function progressTone(progress:number){if(progress>=71)return{bar:'bg-emerald-50
 async function loadDashboardSnapshot():Promise<DashboardSnapshot>{
  const [residentCount,phones,calls,visits,assignments,transportCount,votedCount,remarksCount]=await Promise.all([
   supabase.from('Resident').select('id',{count:'exact',head:true}),
-  supabase.from('Resident').select('phone'),
+  supabase.from('Resident').select('id',{count:'exact',head:true}).is('phone',null),
   supabase.from('call_center').select('resident_id,phone_status,reach_status,vote_status,support_level'),
   supabase.from('door_to_door').select('resident_id'),
   supabase.from('assignments').select('resident_id,status'),
@@ -42,7 +42,7 @@ async function loadDashboardSnapshot():Promise<DashboardSnapshot>{
  for(const row of visits.data||[])visitedResidents.add(String(row.resident_id));
  const assignedResidents=new Set<string>();
  for(const row of assignments.data||[])if(row.status!=='inactive')assignedResidents.add(String(row.resident_id));
- const missingPhone=(phones.data||[]).filter(row=>!String(row.phone||'').trim()).length;
+ const missingPhone=phones.count||0;
  const stats:DashboardStats={total,willVote,notVote,undecided:Math.max(0,total-willVote-notVote),called,needCall:Math.max(0,total-called),reached,notReached:Math.max(0,total-reached),visited:visitedResidents.size,unvisited:Math.max(0,total-visitedResidents.size)};
  return{stats,assigned:assignedResidents.size,transport:transportCount.count||0,voted:votedCount.count||0,withRemarks:remarksCount.count||0,missingPhone};
 }
