@@ -11,7 +11,7 @@ export default function AuthControl(){
  const [user,setUser]=useState<User|null>(null),[ready,setReady]=useState(false),[open,setOpen]=useState(false),[showPassword,setShowPassword]=useState(false),[identity,setIdentity]=useState(''),[password,setPassword]=useState(''),[busy,setBusy]=useState(false),[error,setError]=useState('');
  useEffect(()=>{let active=true;supabase.auth.getUser().then(({data})=>{if(active){setUser(data.user);setIdentity(data.user?.user_metadata?.login_name||data.user?.email||'');setReady(true)}});const {data:{subscription}}=supabase.auth.onAuthStateChange((_event,session)=>{setUser(session?.user||null);setReady(true);if(session?.user)setOpen(false)});return()=>{active=false;subscription.unsubscribe()}},[]);
  const isAdmin=user?.app_metadata?.role==='admin';
- async function login(event:FormEvent){event.preventDefault();setBusy(true);setError('');const {error:authError}=await supabase.auth.signInWithPassword({email:(identity.trim().includes('@')?identity.trim():`${identity.trim().toLowerCase()}@users.campaignops.invalid`),password});if(authError)setError(authError.message);else setPassword('');setBusy(false)}
+ async function login(event:FormEvent){event.preventDefault();setBusy(true);setError('');const {error:authError}=await supabase.auth.signInWithPassword({email:(identity.trim().includes('@')?identity.trim():`${identity.trim().toLowerCase()}@users.voteoperations.app`),password});if(authError)setError(authError.message);else setPassword('');setBusy(false)}
  async function signOut(){setBusy(true);setError('');const {error:authError}=await supabase.auth.signOut();if(authError)setError(authError.message);setBusy(false)}
  if(!ready)return <div className="h-10 w-24 animate-pulse rounded-xl bg-primary-light"/>;
  return <>
