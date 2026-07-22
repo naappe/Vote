@@ -51,26 +51,47 @@ export default function DashboardContent(){
  const [snapshot,setSnapshot]=useState<DashboardSnapshot|null>(null),[loading,setLoading]=useState(true),[error,setError]=useState('');
  useEffect(()=>{loadDashboardSnapshot().then(setSnapshot).catch(e=>setError(e.message||'Unable to load campaign')).finally(()=>setLoading(false))},[]);
  const stats=snapshot?.stats||empty;
- const sections=useMemo<SectionCard[]>(()=>{
-  const assigned=snapshot?.assigned||0,transport=snapshot?.transport||0,voted=snapshot?.voted||0,withRemarks=snapshot?.withRemarks||0,missingPhone=snapshot?.missingPhone||0;
-  const pct=(value:number)=>stats.total?Math.round(value/stats.total*100):0;
-  return[
-   {title:'Residents',href:'/residents/',accent:'bg-sky-500',cta:'Browse residents',emptyMessage:'No residents loaded yet',progress:pct(stats.reached),values:[{label:'Total',value:stats.total},{label:'Reached',value:stats.reached},{label:'Pending',value:stats.notReached}]},
-   {title:'Call Center',href:'/call-center/',accent:'bg-cyan-500',cta:stats.called?'Continue calling':'Get started',emptyMessage:'No calls completed yet',progress:pct(stats.called),values:[{label:'Need call',value:stats.needCall},{label:'Called',value:stats.called},{label:'Coverage',value:pct(stats.called),percentage:true}]},
-   {title:'Door-to-Door',href:'/door-to-door/',accent:'bg-emerald-500',cta:stats.visited?'Continue visits':'Get started',emptyMessage:'No visits completed yet',progress:pct(stats.visited),values:[{label:'Pending',value:stats.unvisited},{label:'Completed',value:stats.visited},{label:'Coverage',value:pct(stats.visited),percentage:true}]},
-   {title:'Assignments',href:'/assignments/',accent:'bg-violet-500',cta:assigned?'View assignments':'Create assignment',emptyMessage:'No assignments created yet',progress:pct(assigned),values:[{label:'Assigned',value:assigned},{label:'Unassigned',value:Math.max(0,stats.total-assigned)},{label:'Coverage',value:pct(assigned),percentage:true}]},
-   {title:'Transportation',href:'/transportation/',accent:'bg-amber-500',cta:transport?'Open transport queue':'Review transport',emptyMessage:'No transport requests',values:[{label:'Need transport',value:transport},{label:'Not needed',value:Math.max(0,stats.total-transport)},{label:'Open',value:transport}]},
-   {title:'Election Day',href:'/election-day/',accent:'bg-rose-500',cta:voted?'Open turnout queue':'Get started',emptyMessage:'No votes recorded yet',progress:pct(voted),values:[{label:'Voted',value:voted},{label:'Remaining',value:Math.max(0,stats.total-voted)},{label:'Turnout',value:pct(voted),percentage:true}]},
-   {title:'Contact Verification',href:'/contact-verification/',accent:'bg-orange-500',cta:missingPhone?'Review contacts':'Open verification',emptyMessage:'No contact issues detected',values:[{label:'Missing phone',value:missingPhone},{label:'With phone',value:Math.max(0,stats.total-missingPhone)},{label:'Review',value:missingPhone}]},
-   {title:'Remarks',href:'/remarks/',accent:'bg-fuchsia-500',cta:withRemarks?'View timeline':'Add first remark',emptyMessage:'No remarks recorded yet',values:[{label:'Remark records',value:withRemarks},{label:'Residents',value:stats.total},{label:'Records',value:withRemarks}]},
-   {title:'Reports',href:'/reports/',accent:'bg-indigo-500',cta:'Open reports',emptyMessage:'No campaign outcomes recorded yet',progress:pct(stats.willVote+stats.notVote),values:[{label:'Will vote',value:stats.willVote},{label:'Not decided',value:stats.undecided},{label:'Not vote',value:stats.notVote}]}
-  ];
- },[snapshot,stats]);
- if(loading)return <div className="panel"><div className="h-24 animate-pulse rounded-card bg-primary-light"/></div>;
+ const percentage=(value:number)=>stats.total?Math.round(value/stats.total*100):0;
+ const kpis=[
+  {label:'Residents loaded',value:stats.total,detail:'Campaign resident master',tone:'text-primary',bar:'bg-primary',progress:100},
+  {label:'Need call',value:stats.needCall,detail:'Awaiting phone outreach',tone:'text-amber-500',bar:'bg-amber-500',progress:percentage(stats.needCall)},
+  {label:'Resident reach',value:percentage(stats.reached)+'%',detail:stats.reached.toLocaleString()+' residents reached',tone:'text-emerald-600',bar:'bg-emerald-500',progress:percentage(stats.reached)},
+  {label:'Will vote',value:stats.willVote,detail:percentage(stats.willVote)+'% of residents',tone:'text-violet-600',bar:'bg-violet-500',progress:percentage(stats.willVote)}
+ ];
+ const quick=[
+  {label:'Assigned residents',value:snapshot?.assigned||0,tone:'bg-primary'},
+  {label:'Field visits completed',value:stats.visited,tone:'bg-emerald-500'},
+  {label:'Transport needed',value:snapshot?.transport||0,tone:'bg-amber-500'},
+  {label:'Missing phone numbers',value:snapshot?.missingPhone||0,tone:'bg-rose-500'}
+ ];
+ if(loading)return <div className="panel"><div className="h-72 animate-pulse rounded-card bg-primary-light"/></div>;
  if(error)return <div className="error-banner">{error}</div>;
  return <div className="space-y-5">
-  <section className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between"><div><p className="eyebrow">Campaign overview</p><h1 className="mt-1">Operations Dashboard</h1><p className="mt-1 text-sm text-body">Monitor campaign workload, team progress and urgent actions.</p></div><div className="status-chip bg-emerald-50 text-emerald-700">{stats.total.toLocaleString()} residents loaded</div></section>
-  <div className="grid gap-4 xl:grid-cols-3"><VoteStatusChart stats={stats}/><PhoneStatusChart stats={stats}/><ReachProgressBar stats={stats}/></div>
-  <section><div className="mb-3"><p className="eyebrow">Operational workload</p><h2 className="mt-1">Start work and track progress</h2></div><div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">{sections.map(section=>{const tone=section.progress===undefined?null:progressTone(section.progress);const isEmpty=section.values.every(item=>item.value===0);return <Link prefetch href={section.href} key={section.title} aria-label={`${section.cta}: ${section.title}`} className="group flex min-h-[210px] flex-col rounded-xl border border-border bg-white p-4 shadow-sm transition duration-200 hover:-translate-y-1 hover:border-slate-300 hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2"><div className="flex items-center gap-3"><span className={`h-2.5 w-2.5 rounded-full ${section.accent}`}/><h3 className="font-semibold text-navy group-hover:text-primary">{section.title}</h3><span className="ml-auto text-lg text-slate-400 transition-transform group-hover:translate-x-1 group-hover:text-primary">→</span></div>{isEmpty?<div className="mt-5 flex flex-1 flex-col justify-center rounded-lg border border-dashed border-slate-200 bg-slate-50 px-4 py-5 text-center"><strong className="text-sm font-semibold text-navy">{section.emptyMessage}</strong><span className="mt-1 text-xs text-body">Use this section to begin recording activity.</span></div>:<div className="mt-4 grid grid-cols-3 gap-2">{section.values.map(item=><div key={item.label} className="rounded-lg bg-slate-50 px-3 py-3"><strong className="block text-lg font-semibold text-navy">{item.percentage?`${item.value}%`:item.value.toLocaleString()}</strong><span className="mt-1 block text-[11px] text-body">{item.label}</span></div>)}</div>}{tone&&section.progress!==undefined&&<div className="mt-4"><div className="mb-1.5 flex items-center justify-between text-xs"><span className="text-body">Progress</span><span className={`rounded-full px-2 py-0.5 font-semibold ${tone.surface} ${tone.text}`}>{section.progress}%</span></div><div className="h-2 overflow-hidden rounded-full bg-slate-100"><div className={`h-full rounded-full transition-all ${tone.bar}`} style={{width:`${Math.min(100,Math.max(0,section.progress))}%`}}/></div></div>}<div className="mt-4 flex items-center justify-between border-t border-slate-100 pt-3"><span className="text-sm font-semibold text-primary">{section.cta}</span><span className="text-xs text-body">Open section</span></div></Link>})}</div></section>
+  <section className="dashboard-banner"><div><p className="eyebrow">Campaign overview</p><h1 className="mt-1">Operations Dashboard</h1><p className="mt-1 text-sm text-body">Monitor campaign workload, team progress, and urgent action areas.</p></div><div className="status-chip bg-emerald-50 text-emerald-700">{stats.total.toLocaleString()} residents loaded</div></section>
+  <section className="dashboard-kpi-grid">{kpis.map(item=><article key={item.label} className="dashboard-kpi"><p className="text-sm font-semibold text-navy">{item.label}</p><strong className={`mt-2 block text-3xl ${item.tone}`}>{typeof item.value==='number'?item.value.toLocaleString():item.value}</strong><p className="mt-1 text-xs text-body">{item.detail}</p><div className="mt-4 h-1.5 overflow-hidden rounded-full bg-slate-100"><div className={`h-full rounded-full ${item.bar}`} style={{width:`${Math.max(3,Math.min(100,item.progress))}%`}}/></div></article>)}</section>
+  <section className="grid gap-4 xl:grid-cols-2">
+   <ProgressPanel title="Call Center Progress" action="Open Call Center" href="/call-center/" rows={[
+    ['Calls completed',stats.called,percentage(stats.called),'bg-emerald-500'],
+    ['Awaiting calls',stats.needCall,percentage(stats.needCall),'bg-amber-500'],
+    ['Residents reached',stats.reached,percentage(stats.reached),'bg-primary']
+   ]}/>
+   <ProgressPanel title="Door-to-Door Progress" action="Open Door-to-Door" href="/door-to-door/" rows={[
+    ['Visits completed',stats.visited,percentage(stats.visited),'bg-emerald-500'],
+    ['Visits remaining',stats.unvisited,percentage(stats.unvisited),'bg-amber-500'],
+    ['Coverage',stats.visited,percentage(stats.visited),'bg-violet-500']
+   ]}/>
+  </section>
+  <section className="grid gap-4 xl:grid-cols-[1.2fr_.8fr]">
+   <article className="panel"><div className="section-heading"><div><p className="eyebrow">Operational workload</p><h2 className="mt-1">Start where work is needed</h2></div></div><div className="grid gap-3 sm:grid-cols-2">{[
+    ['Call Center',stats.needCall,'Residents waiting for outreach','/call-center/'],
+    ['Door-to-Door',stats.unvisited,'Residents not yet visited','/door-to-door/'],
+    ['Assignments',Math.max(0,stats.total-(snapshot?.assigned||0)),'Residents not assigned','/assignments/'],
+    ['Contact Verification',snapshot?.missingPhone||0,'Residents missing phone numbers','/contact-verification/']
+   ].map(([label,value,detail,href])=><Link key={String(label)} href={String(href)} className="dashboard-work-link"><span><b className="block text-navy">{label}</b><small>{detail}</small></span><strong>{Number(value).toLocaleString()}</strong></Link>)}</div></article>
+   <article className="panel"><div className="section-heading"><div><p className="eyebrow">Quick stats</p><h2 className="mt-1">Campaign pulse</h2></div></div><div className="space-y-4">{quick.map(item=><div key={item.label}><div className="flex items-center justify-between gap-3 text-sm"><span className="text-body">{item.label}</span><b className="text-xl text-navy">{item.value.toLocaleString()}</b></div><div className="mt-2 h-2 overflow-hidden rounded-full bg-slate-100"><div className={`h-full rounded-full ${item.tone}`} style={{width:`${Math.max(4,Math.min(100,percentage(item.value)))}%`}}/></div></div>)}</div></article>
+  </section>
  </div>;
+}
+function ProgressPanel({title,action,href,rows}:{title:string;action:string;href:string;rows:[string,number,number,string][]}){
+ return <article className="panel"><div className="section-heading"><h2>{title}</h2><Link href={href} className="text-sm font-semibold text-primary">{action} →</Link></div><div className="space-y-4">{rows.map(([label,value,pct,tone])=><div key={label}><div className="mb-1.5 flex items-center justify-between gap-3 text-sm"><span className="text-body">{label}</span><b className="text-navy">{value.toLocaleString()} <span className="text-body">({pct}%)</span></b></div><div className="progress-bar h-2 overflow-hidden rounded-full bg-slate-100"><div className={`h-full rounded-full ${tone}`} style={{width:`${Math.max(3,Math.min(100,pct))}%`}}/></div></div>)}</div></article>
 }
