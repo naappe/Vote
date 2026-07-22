@@ -56,7 +56,7 @@ export default function DashboardContent(){
   {label:'Residents loaded',value:stats.total,detail:'Campaign resident master',tone:'text-primary',bar:'bg-primary',progress:100},
   {label:'Need call',value:stats.needCall,detail:'Awaiting phone outreach',tone:'text-amber-500',bar:'bg-amber-500',progress:percentage(stats.needCall)},
   {label:'Resident reach',value:percentage(stats.reached)+'%',detail:stats.reached.toLocaleString()+' residents reached',tone:'text-emerald-600',bar:'bg-emerald-500',progress:percentage(stats.reached)},
-  {label:'Will vote',value:stats.willVote,detail:percentage(stats.willVote)+'% of residents',tone:'text-violet-600',bar:'bg-violet-500',progress:percentage(stats.willVote)}
+  {label:'Will vote',value:stats.willVote,detail:percentage(stats.willVote)+'% of residents',tone:'text-primary',bar:'bg-primary',progress:percentage(stats.willVote)}
  ];
  const quick=[
   {label:'Assigned residents',value:snapshot?.assigned||0,tone:'bg-primary'},
@@ -78,7 +78,7 @@ export default function DashboardContent(){
    <ProgressPanel title="Door-to-Door Progress" action="Open Door-to-Door" href="/door-to-door/" rows={[
     ['Visits completed',stats.visited,percentage(stats.visited),'bg-emerald-500'],
     ['Visits remaining',stats.unvisited,percentage(stats.unvisited),'bg-amber-500'],
-    ['Coverage',stats.visited,percentage(stats.visited),'bg-violet-500']
+    ['Coverage',stats.visited,percentage(stats.visited),'bg-primary']
    ]}/>
   </section>
   <section className="grid gap-4 xl:grid-cols-[1.2fr_.8fr]">
