@@ -43,7 +43,7 @@ export async function getResidentsPage({page=1,pageSize=25,search='',filter='all
  const term=search.trim().replace(/[,%()]/g,' ');
  if(term)query=query.or(`name.ilike.%${term}%,national_id.ilike.%${term}%,house.ilike.%${term}%,lives_in.ilike.%${term}%,election_box.ilike.%${term}%`);
  if(house!=='all')query=query.eq('house',house);
- if(party==='Unspecified')query=query.or('party.is.null,party.eq.');
+ if(party==='Unspecified')query=query.is('party',null);
  else if(party!=='all')query=query.ilike('party',`%${party}%`);
  if(gender!=='all')query=query.ilike('sex',gender);
  if(box!=='all')query=query.eq('election_box',box);
