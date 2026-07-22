@@ -39,13 +39,11 @@ const groups=[
   {label:'Election Day',href:'/election-day/',icon:'election'},
   {label:'Transportation',href:'/transportation/',icon:'transport'},
  ]},
- {label:'Data Quality',items:[
-  {label:'Contact Verification',href:'/contact-verification/',icon:'verify'},
- ]},
  {label:'Insights',items:[
   {label:'Reports',href:'/reports/',icon:'reports'},
  ]},
  {label:'Administration',items:[
+  {label:'Contact Verification',href:'/contact-verification/',icon:'verify'},
   {label:'User Management',href:'/users/',icon:'users'},
   {label:'Admin Backup',href:'/backup/',icon:'backup'},
  ]},
