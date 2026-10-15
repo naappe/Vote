@@ -3,7 +3,7 @@ import type {CallCenterRecord,CallOutcome,Resident,SupportLevel,VoteStatus} from
 
 const url=process.env.NEXT_PUBLIC_SUPABASE_URL||'https://espezmdpkoixnfchomqb.supabase.co';
 const key=process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY||'sb_publishable_xP8z74zcMuCkj6xlu1bJ3w_Kudqbcu1';
-export const supabase=createClient(url,key,{auth:{persistSession:true,autoRefreshToken:true}});
+export const supabase=createClient(url,key,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}});
 const RESIDENT_TABLE='Resident';
 const RESIDENT_CACHE_TTL=5*60*1000;
 let residentCache:{data:Resident[];timestamp:number}|null=null;

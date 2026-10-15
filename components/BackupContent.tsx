@@ -14,7 +14,7 @@ const sections:TableConfig[]=[
  {key:'election-day',label:'Election Day',table:'election_day',description:'Turnout records'},
  {key:'transportation',label:'Transportation',table:'transportation',description:'Transport requirements and progress'},
  {key:'remarks',label:'Remarks',table:'remarks',description:'Central operational remarks'},
- {key:'contact-verification',label:'Contact Verification',table:'resident_change_requests',description:'Pending and reviewed contact corrections'}
+ {key:'contact-verification',label:'Contact Verification',table:'contact_verification',description:'Pending and reviewed contact corrections'}
 ];
 
 function safeName(value:string){return value.toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'')}
@@ -26,7 +26,7 @@ async function readAll(table:string){const rows:Record<string,unknown>[]=[];cons
 
 export default function BackupContent(){
  const [admin,setAdmin]=useState<AdminState>('checking'),[email,setEmail]=useState(''),[busy,setBusy]=useState(''),[message,setMessage]=useState(''),[error,setError]=useState('');
- useEffect(()=>{(async()=>{const {data,error}=await supabase.auth.getUser();if(error||!data.user){setAdmin('denied');return}const user=data.user;setEmail(user.email||'');const role=String(user.app_metadata?.role||user.user_metadata?.role||'').toLowerCase();const allowedEmails=(process.env.NEXT_PUBLIC_ADMIN_EMAILS||'').split(',').map(x=>x.trim().toLowerCase()).filter(Boolean);setAdmin(role==='admin'||Boolean(user.email&&allowedEmails.includes(user.email.toLowerCase()))?'allowed':'denied')})()},[]);
+ useEffect(()=>{(async()=>{const {data,error}=await supabase.auth.getUser();if(error||!data.user){setAdmin('denied');return}const user=data.user;setEmail(user.email||'');const {data:role,error:roleError}=await supabase.from('user_roles').select('role,active').eq('user_id',user.id).maybeSingle();setAdmin(!roleError&&role?.active&&role.role==='admin'?'allowed':'denied')})()},[]);
  const sectionCount=useMemo(()=>sections.length,[]);
  async function exportCsv(section:TableConfig){setBusy(section.key);setError('');setMessage('');try{const rows=await readAll(section.table);download(`${safeName(section.label)}-${stamp()}.csv`,toCsv(rows),'text/csv;charset=utf-8');setMessage(`${section.label}: ${rows.length.toLocaleString()} rows exported.`)}catch(e){setError(`${section.label} export failed: ${e instanceof Error?e.message:'Unknown error'}`)}finally{setBusy('')}}
  async function fullBackup(){setBusy('all');setError('');setMessage('');try{const tables:Record<string,unknown[]>={},failures:Record<string,string>={};for(const section of sections){try{tables[section.table]=await readAll(section.table)}catch(e){failures[section.table]=e instanceof Error?e.message:'Unknown error'}}const payload={format:'CampaignOps Backup',version:1,created_at:new Date().toISOString(),created_by:email||null,table_count:Object.keys(tables).length,tables,failures};download(`campaignops-backup-${stamp()}.json`,JSON.stringify(payload,null,2),'application/json;charset=utf-8');setMessage(`Full JSON backup created with ${Object.keys(tables).length} tables${Object.keys(failures).length?` and ${Object.keys(failures).length} unavailable table(s)`:''}.`)}catch(e){setError(e instanceof Error?e.message:'Backup failed')}finally{setBusy('')}}

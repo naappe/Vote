@@ -1,7 +1,8 @@
 'use client';
 import Link from 'next/link';
 import {useEffect,useMemo,useState} from 'react';
-import {getResidents,getResidentsPage} from '../lib/supabase';
+import {getResidents} from '../lib/supabase';
+import {readOperationalRows} from '../lib/operations';
 import type {Resident} from '../lib/types';
 import StatusBadge from '../shared/StatusBadge';
 import {PartyFilter,ResidentIdentity,matchesParty} from '../shared/ResidentIdentity';
@@ -9,12 +10,23 @@ import {PartyFilter,ResidentIdentity,matchesParty} from '../shared/ResidentIdent
 type Mode='calls'|'visits'|'election'|'reports'|'notifications'|'settings';
 export default function OperationsListContent({mode}:{mode:Mode}){
  const [rows,setRows]=useState<Resident[]>([]),[count,setCount]=useState(0),[loading,setLoading]=useState(true),[error,setError]=useState(''),[party,setParty]=useState('all');
- useEffect(()=>{let active=true;setLoading(true);setError('');const request=mode==='visits'?getResidentsPage({page:1,pageSize:60,party}):getResidents().then(data=>({rows:data,count:data.length}));request.then(result=>{if(active){setRows(result.rows);setCount(result.count)}}).catch(e=>active&&setError(e.message||'Unable to load campaign data')).finally(()=>active&&setLoading(false));return()=>{active=false}},[mode,party]);
- const config={calls:{title:'Call Center',description:'Phone outreach queue.',filter:(r:Resident)=>!r.phone_status||r.phone_status==='need-call'},visits:{title:'Door-to-Door',description:'Field visit queue. Showing the first 60 matching residents for fast loading.',filter:(r:Resident)=>!r.d2d_status||r.d2d_status==='not-visited'},election:{title:'Election Day',description:'Turnout and readiness.',filter:(_:Resident)=>true},reports:{title:'Reports',description:'Cross-section totals.',filter:(_:Resident)=>true},notifications:{title:'Notifications',description:'Items needing attention.',filter:(r:Resident)=>r.vote_status==='not-decided'||r.phone_status==='need-call'},settings:{title:'Settings',description:'System configuration.',filter:(_:Resident)=>true}}[mode];
- const visible=useMemo(()=>rows.filter(r=>(mode==='visits'||matchesParty(r,party))&&config.filter(r)),[rows,party,config,mode]);
+ useEffect(()=>{let active=true;setLoading(true);setError('');
+  Promise.all([getResidents(),readOperationalRows('door_to_door'),readOperationalRows('election_day'),readOperationalRows('transportation'),readOperationalRows('assignments')]).then(([residents,visits,elections,transports,assignments])=>{
+   const visitMap=new Map(visits.map(row=>[String(row.resident_id),row]));
+   const electionMap=new Map(elections.map(row=>[String(row.resident_id),row]));
+   const transportMap=new Map(transports.map(row=>[String(row.resident_id),row]));
+   const assigned=new Set(assignments.filter(row=>row.status!=='inactive').map(row=>String(row.resident_id)));
+   const merged=residents.map(r=>({...r,d2d_status:visitMap.get(String(r.id))?.visit_status||'not-visited',has_voted:Boolean(electionMap.get(String(r.id))?.has_voted),transport_status:transportMap.get(String(r.id))?.transport_status||'not-needed',vote_assigned_by:assigned.has(String(r.id))?'assigned':null}));
+   if(active){setRows(merged);setCount(merged.length)}
+  }).catch(e=>active&&setError(e.message||'Unable to load campaign data')).finally(()=>active&&setLoading(false));return()=>{active=false}
+ },[mode]);
+ const [page,setPage]=useState(1);
+ useEffect(()=>{setPage(1)},[party,mode]);
+ const config={calls:{title:'Call Center',description:'Phone outreach queue.',filter:(r:Resident)=>!r.phone_status||r.phone_status==='need-call'},visits:{title:'Door-to-Door',description:'Field visit queue. Browse all matching residents by page.',filter:(r:Resident)=>!r.d2d_status||r.d2d_status==='not-visited'},election:{title:'Election Day',description:'Turnout and readiness.',filter:(_:Resident)=>true},reports:{title:'Reports',description:'Cross-section totals.',filter:(_:Resident)=>true},notifications:{title:'Notifications',description:'Items needing attention.',filter:(r:Resident)=>r.vote_status==='not-decided'||r.phone_status==='need-call'},settings:{title:'Settings',description:'System configuration.',filter:(_:Resident)=>true}}[mode];
+ const visible=useMemo(()=>rows.filter(r=>matchesParty(r,party)&&config.filter(r)),[rows,party,config,mode]);
  if(mode==='settings')return <div className="panel"><h1>Settings</h1><p className="mt-2 text-sm text-body">Connected to public.Resident · {rows.length.toLocaleString()} residents.</p></div>;
  if(mode==='reports')return <ReportsView rows={visible} party={party} setParty={setParty} loading={loading} error={error}/>;
- return <div className="space-y-4"><section className="page-hero"><p className="eyebrow">Campaign operations</p><h1 className="mt-2">{config.title}</h1><p className="mt-2 text-sm text-body">{config.description}</p><div className="mt-4"><PartyFilter value={party} onChange={setParty}/></div></section>{error&&<div className="error-banner">{error}</div>}<section className="panel overflow-hidden p-0"><div className="border-b border-border px-5 py-4"><b className="text-navy">{count.toLocaleString()} matching residents</b></div><div className="grid gap-3 p-4 md:grid-cols-2 xl:grid-cols-3">{loading?Array.from({length:6}).map((_,i)=><div key={i} className="h-48 animate-pulse rounded-xl bg-primary-light"/>):visible.map(r=><WorkCard key={String(r.id)} resident={r} mode={mode}/>)}</div></section></div>
+ return <div className="space-y-4"><section className="page-hero"><p className="eyebrow">Campaign operations</p><h1 className="mt-2">{config.title}</h1><p className="mt-2 text-sm text-body">{config.description}</p><div className="mt-4"><PartyFilter value={party} onChange={setParty}/></div></section>{error&&<div className="error-banner">{error}</div>}<section className="panel overflow-hidden p-0"><div className="border-b border-border px-5 py-4"><b className="text-navy">{visible.length.toLocaleString()} matching residents</b></div><div className="grid gap-3 p-4 md:grid-cols-2 xl:grid-cols-3">{loading?Array.from({length:6}).map((_,i)=><div key={i} className="h-48 animate-pulse rounded-xl bg-primary-light"/>):visible.slice((page-1)*60,page*60).map(r=><WorkCard key={String(r.id)} resident={r} mode={mode}/>)}</div><div className="flex items-center justify-between border-t border-border p-4"><button className="btn-secondary" disabled={page<=1} onClick={()=>setPage(p=>p-1)}>Previous</button><span>Page {page} of {Math.max(1,Math.ceil(visible.length/60))}</span><button className="btn-secondary" disabled={page*60>=visible.length} onClick={()=>setPage(p=>p+1)}>Next</button></div></section></div>
 }
 
 function ReportsView({rows,party,setParty,loading,error}:{rows:Resident[];party:string;setParty:(value:string)=>void;loading:boolean;error:string}){
