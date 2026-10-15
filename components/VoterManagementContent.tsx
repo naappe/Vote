@@ -1,43 +1,64 @@
 'use client';
 import Link from 'next/link';
-import {usePathname,useRouter,useSearchParams} from 'next/navigation';
+import {usePathname,useSearchParams} from 'next/navigation';
 import {useEffect,useMemo,useRef,useState} from 'react';
-import {getElectionBoxOptions,getHouseOptions,getPartyOptions,getResidentsPage} from '../lib/supabase';
+import {getDirectoryFilterOptions,getDirectoryPage} from '../lib/supabase';
+import {collectDirectoryPages,residentsCsv} from '../lib/directory-utils';
 import type {HouseOption,PartyOption} from '../lib/supabase';
 import type {Resident} from '../lib/types';
 
-const PAGE_SIZE=24;
 type ViewMode='list'|'gallery';
-
 export default function VoterManagementContent(){
- const router=useRouter(),pathname=usePathname(),params=useSearchParams(),resultsRef=useRef<HTMLElement>(null),firstQuery=useRef(true);
- const initial=(name:string,fallback='all')=>params.get(name)||fallback;
- const [rows,setRows]=useState<Resident[]>([]),[houses,setHouses]=useState<HouseOption[]>([]),[parties,setParties]=useState<PartyOption[]>([]),[boxes,setBoxes]=useState<string[]>([]),[loading,setLoading]=useState(true),[error,setError]=useState('');
- const [query,setQuery]=useState(()=>params.get('q')||''),[debouncedQuery,setDebouncedQuery]=useState(()=>params.get('q')||''),[house,setHouse]=useState(()=>initial('house')),[party,setParty]=useState(()=>initial('party')),[gender,setGender]=useState(()=>initial('gender')),[age,setAge]=useState(()=>initial('age')),[box,setBox]=useState(()=>initial('box')),[page,setPage]=useState(()=>Math.max(1,Number(params.get('page'))||1)),[count,setCount]=useState(0),[view,setView]=useState<ViewMode>(()=>params.get('view')==='list'?'list':'gallery');
- useEffect(()=>{getHouseOptions().then(setHouses).catch(()=>setHouses([]));getPartyOptions().then(setParties).catch(()=>setParties([]));getElectionBoxOptions().then(setBoxes).catch(()=>setBoxes([]))},[]);
- useEffect(()=>{const timer=window.setTimeout(()=>{setDebouncedQuery(query);if(firstQuery.current)firstQuery.current=false;else setPage(1)},250);return()=>window.clearTimeout(timer)},[query]);
- useEffect(()=>{const next=new URLSearchParams();if(debouncedQuery)next.set('q',debouncedQuery);if(house!=='all')next.set('house',house);if(party!=='all')next.set('party',party);if(gender!=='all')next.set('gender',gender);if(age!=='all')next.set('age',age);if(box!=='all')next.set('box',box);if(page>1)next.set('page',String(page));if(view!=='gallery')next.set('view',view);const href=`${pathname}${next.size?`?${next.toString()}`:''}`;router.replace(href,{scroll:false})},[debouncedQuery,house,party,gender,age,box,page,view,pathname,router]);
- useEffect(()=>{let active=true;setLoading(true);setError('');getResidentsPage({page,pageSize:PAGE_SIZE,search:debouncedQuery,house,party,gender,age,box}).then(r=>{if(active){setRows(r.rows);setCount(r.count)}}).catch(e=>active&&setError(e instanceof Error?e.message:'Unable to load residents')).finally(()=>active&&setLoading(false));return()=>{active=false}},[page,debouncedQuery,house,party,gender,age,box]);
- const pages=Math.max(1,Math.ceil(count/PAGE_SIZE)),range=useMemo(()=>count?`${(page-1)*PAGE_SIZE+1}–${Math.min(page*PAGE_SIZE,count)}`:'0',[page,count]);
+ const pathname=usePathname(),params=useSearchParams(),resultsRef=useRef<HTMLElement>(null);
+ const initial=(key:string)=>params.get(key)||'all';
+ const [rows,setRows]=useState<Resident[]>([]),[houses,setHouses]=useState<HouseOption[]>([]),[parties,setParties]=useState<PartyOption[]>([]),[boxes,setBoxes]=useState<string[]>([]),[loading,setLoading]=useState(true),[error,setError]=useState(''),[message,setMessage]=useState('');
+ const [query,setQuery]=useState(()=>params.get('q')||''),[debouncedQuery,setDebouncedQuery]=useState(()=>params.get('q')||''),[house,setHouse]=useState(()=>initial('house')),[party,setParty]=useState(()=>initial('party')),[gender,setGender]=useState(()=>initial('gender')),[age,setAge]=useState(()=>initial('age')),[box,setBox]=useState(()=>initial('box')),[page,setPage]=useState(()=>Math.max(1,Number(params.get('page'))||1)),[count,setCount]=useState(0),[view,setView]=useState<ViewMode>(()=>params.get('view')==='gallery'?'gallery':'list'),[pageSize,setPageSize]=useState(50),[exporting,setExporting]=useState(false),[exportProgress,setExportProgress]=useState('');
+ const filters=useMemo(()=>({search:debouncedQuery,house,party,gender,age,box}),[debouncedQuery,house,party,gender,age,box]);
+ useEffect(()=>{let active=true;getDirectoryFilterOptions().then(data=>{if(active){setHouses(data.houses);setParties(data.parties);setBoxes(data.boxes)}}).catch(e=>active&&setError(e.message));return()=>{active=false}},[]);
+ useEffect(()=>{const timer=window.setTimeout(()=>setDebouncedQuery(query),250);return()=>window.clearTimeout(timer)},[query]);
+ useEffect(()=>{
+  const next=new URLSearchParams();if(debouncedQuery)next.set('q',debouncedQuery);
+  for(const [key,value] of Object.entries({house,party,gender,age,box}))if(value!=='all')next.set(key,value);
+  if(page>1)next.set('page',String(page));if(view==='gallery')next.set('view','gallery');
+  const base=pathname.startsWith('/Vote')?pathname:`/Vote${pathname}`;
+  window.history.replaceState(null,'',`${base}${next.size?'?'+next.toString():''}`);
+ },[debouncedQuery,house,party,gender,age,box,page,view,pathname]);
+ useEffect(()=>{let active=true;setLoading(true);setError('');
+  getDirectoryPage(filters,page,pageSize).then(result=>{if(active){setRows(result.rows);setCount(result.count);const max=Math.max(1,Math.ceil(result.count/pageSize));if(page>max)setPage(max)}}).catch(e=>active&&setError(e.message||'Unable to load residents')).finally(()=>active&&setLoading(false));
+  return()=>{active=false}
+ },[filters,page,pageSize]);
+ const pages=Math.max(1,Math.ceil(count/pageSize)),range=count?`${(page-1)*pageSize+1}–${Math.min(page*pageSize,count)}`:'0';
  const hasFilters=Boolean(query||house!=='all'||party!=='all'||gender!=='all'||age!=='all'||box!=='all');
  function changeFilter(setter:(value:string)=>void,value:string){setter(value);setPage(1)}
  function clearFilters(){setQuery('');setDebouncedQuery('');setHouse('all');setParty('all');setGender('all');setAge('all');setBox('all');setPage(1)}
- function changePage(next:number){setPage(Math.min(pages,Math.max(1,next)));window.setTimeout(()=>resultsRef.current?.scrollIntoView({behavior:'smooth',block:'start'}),40)}
+ function changePage(next:number){setPage(Math.min(pages,Math.max(1,next)));resultsRef.current?.scrollIntoView({behavior:'smooth',block:'start'})}
+ async function exportResults(){
+  setExporting(true);setError('');setMessage('');setExportProgress('Preparing…');
+  // Capture the complete filter state so changing controls cannot alter a running export.
+  const selected={...filters,search:query.trim()};
+  try{
+   const all=await collectDirectoryPages(p=>getDirectoryPage(selected,p,500,true),(loaded,total)=>setExportProgress(`${loaded.toLocaleString()} / ${total.toLocaleString()}`));
+   const blob=new Blob([residentsCsv(all)],{type:'text/csv;charset=utf-8'}),url=URL.createObjectURL(blob),link=document.createElement('a');
+   link.href=url;link.download=`residents-${selected.party==='all'?'all':selected.party.toLowerCase().replace(/[^a-z0-9]+/g,'-')}-${new Date().toISOString().slice(0,10)}.csv`;
+   document.body.appendChild(link);link.click();link.remove();window.setTimeout(()=>URL.revokeObjectURL(url),1000);
+   setMessage(`Exported ${all.length.toLocaleString()} residents matching your filters.`);
+  }catch(e){setError(e instanceof Error?e.message:'Export failed')}finally{setExporting(false);setExportProgress('')}
+ }
  return <div className="space-y-4">
-  <section className="page-hero"><div className="flex flex-col justify-between gap-4 md:flex-row md:items-end"><div><p className="eyebrow">Resident directory</p><h1 className="mt-1">Residents</h1><p className="mt-2 text-sm text-body">Read-only identity records. Open a card for contact verification.</p></div><div className="flex gap-2"><Metric label="Results" value={count}/><Metric label="Houses" value={houses.length}/></div></div></section>
-  <section className="panel space-y-4">
-   <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-6">
-    <Field label="Search"><input className="field" value={query} onChange={e=>setQuery(e.target.value)} placeholder="Name, ID, phone, record ID or address"/></Field>
-    <HousePicker houses={houses} value={house} onChange={value=>changeFilter(setHouse,value)}/>
-    <Select label="Party" value={party} onChange={value=>changeFilter(setParty,value)} options={[["all","All"],...parties.map(p=>[p.name,`${p.name==='Unspecified'?'No party':p.name} (${p.count})`]) ]}/>
-    <Select label="Gender" value={gender} onChange={value=>changeFilter(setGender,value)} options={[["all","All"],["M","Male"],["F","Female"]]}/>
-    <Select label="Age" value={age} onChange={value=>changeFilter(setAge,value)} options={[["all","All ages"],["18-25","18–25"],["26-35","26–35"],["36-45","36–45"],["46-60","46–60"],["61+","61+"]]}/>
-    <Select label="Election box" value={box} onChange={value=>changeFilter(setBox,value)} options={[["all","All election boxes"],...boxes.map(value=>[value,value])]}/>
+  <section className="flex flex-wrap items-center justify-between gap-3"><div><h2 className="text-2xl">Resident directory</h2><p className="mt-1 text-sm text-body">{loading?'Loading results…':`${count.toLocaleString()} residents`} · {houses.length} houses</p></div><button className="btn-primary" onClick={exportResults} disabled={exporting||loading} title="Download all matching residents, across every page">{exporting?`Exporting ${exportProgress}`:'Export CSV'}</button></section>
+  <section className="panel space-y-3 !p-4">
+   <div className="grid gap-3 md:grid-cols-[minmax(260px,2fr)_minmax(170px,1fr)_minmax(170px,1fr)]">
+    <Field label="Search residents"><input className="field" value={query} onChange={e=>{setQuery(e.target.value);setPage(1)}} placeholder="Name, national ID, record ID, phone or address" type="search"/></Field>
+    <HousePicker houses={houses} value={house} onChange={v=>changeFilter(setHouse,v)}/>
+    <Select label="Party" value={party} onChange={v=>changeFilter(setParty,v)} options={[["all","All parties"],...parties.map(p=>[p.name,`${p.name==='Unspecified'?'No party':p.name} (${p.count})`])]}/>
    </div>
-   <div className="flex flex-col gap-3 border-t border-border pt-4 sm:flex-row sm:items-center sm:justify-between"><div className="flex flex-wrap gap-2">{party!=='all'&&<Chip label={party} clear={()=>changeFilter(setParty,'all')}/>} {house!=='all'&&<Chip label={house} clear={()=>changeFilter(setHouse,'all')}/>} {gender!=='all'&&<Chip label={gender==='M'?'Male':'Female'} clear={()=>changeFilter(setGender,'all')}/>} {age!=='all'&&<Chip label={`Age ${age}`} clear={()=>changeFilter(setAge,'all')}/>} {box!=='all'&&<Chip label={`Box ${box}`} clear={()=>changeFilter(setBox,'all')}/>}</div><div className="flex items-center gap-2"><div className="inline-flex rounded-lg border border-border bg-white p-1"><button onClick={()=>setView('gallery')} className={`px-4 py-2 text-xs font-bold ${view==='gallery'?'rounded-md bg-primary text-white':'text-body'}`}>Gallery</button><button onClick={()=>setView('list')} className={`px-4 py-2 text-xs font-bold ${view==='list'?'rounded-md bg-primary text-white':'text-body'}`}>List</button></div><button className="btn-secondary" onClick={clearFilters} disabled={!hasFilters}>Clear</button></div></div>
+   <div className="flex flex-wrap items-center justify-between gap-3">
+    <details className="group flex-1"><summary className="cursor-pointer text-sm font-semibold text-primary">More filters{gender!=='all'||age!=='all'||box!=='all'?' (active)':''}</summary><div className="mt-3 grid gap-3 sm:grid-cols-3"><Select label="Gender" value={gender} onChange={v=>changeFilter(setGender,v)} options={[["all","All"],["M","Male"],["F","Female"]]}/><Select label="Age" value={age} onChange={v=>changeFilter(setAge,v)} options={[["all","All ages"],["18-25","18–25"],["26-35","26–35"],["36-45","36–45"],["46-60","46–60"],["61+","61+"]]}/><Select label="Election box" value={box} onChange={v=>changeFilter(setBox,v)} options={[["all","All election boxes"],...boxes.map(b=>[b,b])]}/></div></details>
+    <div className="flex items-center gap-2"><div className="inline-flex rounded-lg border border-border bg-white p-1">{(['list','gallery'] as const).map(mode=><button key={mode} type="button" aria-pressed={view===mode} onClick={()=>setView(mode)} className={`rounded-md px-3 py-1.5 text-xs font-bold ${view===mode?'bg-primary text-white':'text-body'}`}>{mode==='list'?'List':'Photos'}</button>)}</div><button className="btn-secondary" onClick={clearFilters} disabled={!hasFilters}>Clear filters</button></div>
+   </div>
   </section>
-  {error&&<div className="error-banner">{error}</div>}
-  <section ref={resultsRef} className="panel scroll-mt-24 overflow-hidden p-0"><div className="flex items-center justify-between border-b border-border px-5 py-4"><div><h2>Resident directory</h2><p className="text-sm text-body">Showing {range} of {count.toLocaleString()}</p></div><span className="text-xs font-semibold text-body">Page {page} of {pages}</span></div>{view==='gallery'?<Gallery rows={rows} loading={loading}/>:<List rows={rows} loading={loading}/>}<div className="flex items-center justify-between border-t border-border px-5 py-4"><span className="text-sm text-body">{count.toLocaleString()} residents</span><div className="flex gap-2"><button className="btn-secondary" disabled={loading||page===1} onClick={()=>changePage(page-1)}>Previous</button><button className="btn-primary" disabled={loading||page>=pages} onClick={()=>changePage(page+1)}>Next</button></div></div></section>
+  {error&&<div className="error-banner" role="alert">{error}</div>}{message&&<div className="info-banner" role="status">{message}</div>}
+  <section ref={resultsRef} className="panel scroll-mt-24 overflow-hidden p-0" aria-busy={loading}><div className="flex flex-wrap items-center justify-between gap-3 border-b border-border px-4 py-3"><p className="text-sm text-body" role="status">{loading?'Loading…':`Showing ${range} of ${count.toLocaleString()}`}</p><div className="flex items-center gap-3"><label className="flex items-center gap-2 text-xs text-body">Rows<select className="rounded-lg border border-border p-2" value={pageSize} onChange={e=>{setPageSize(Number(e.target.value));setPage(1)}}>{[24,50,100].map(n=><option key={n} value={n}>{n}</option>)}</select></label><button className="btn-secondary" disabled={loading||page===1} onClick={()=>changePage(page-1)}>Previous</button><span className="text-xs text-body">{page} / {pages}</span><button className="btn-secondary" disabled={loading||page>=pages} onClick={()=>changePage(page+1)}>Next</button></div></div>{view==='gallery'?<Gallery rows={rows} loading={loading}/>:<List rows={rows} loading={loading}/>}<div className="flex items-center justify-between border-t border-border px-4 py-3"><span className="text-sm text-body">{count.toLocaleString()} residents</span><div className="flex gap-2"><button className="btn-secondary" disabled={loading||page===1} onClick={()=>changePage(page-1)}>Previous</button><button className="btn-primary" disabled={loading||page>=pages} onClick={()=>changePage(page+1)}>Next</button></div></div></section>
  </div>
 }
 function Gallery({rows,loading}:{rows:Resident[];loading:boolean}){if(loading)return <div className="grid gap-4 p-5 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">{Array.from({length:8}).map((_,i)=><div key={i} className="h-72 animate-pulse rounded-xl bg-primary-light"/>)}</div>;if(!rows.length)return <div className="empty-state m-5">No residents found.</div>;return <div className="grid gap-4 p-5 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">{rows.map(r=><Link prefetch={false} href={`/resident-profile/?id=${r.id}`} key={String(r.id)} className="group overflow-hidden rounded-xl border border-border bg-white transition hover:-translate-y-0.5 hover:border-primary hover:shadow-card"><div className="flex items-center gap-4 border-b border-border p-4"><Photo r={r}/><div className="min-w-0"><h3 className="truncate group-hover:text-primary">{r.name||'Unnamed resident'}</h3><p className="mt-1 text-xs text-body">{r.national_id||'No national ID'} · #{r.id}</p></div><Party party={r.party}/></div><div className="grid grid-cols-2 gap-x-4 gap-y-3 p-4 text-sm"><Info label="Official house" value={r.house}/><Info label="Living now" value={r.lives_in}/><Info label="Phone" value={r.phone}/><Info label="Age / gender" value={`${r.age??'—'} / ${r.sex||'—'}`}/><Info label="Election box" value={r.election_box}/></div><div className="border-t border-border px-4 py-3 text-xs font-bold text-primary">Open resident →</div></Link>)}</div>}

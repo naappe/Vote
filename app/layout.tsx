@@ -1,5 +1,6 @@
 import type {Metadata,Viewport} from 'next';
 import '../styles/tailwind.css';
+import RootAccessGate from '../components/RootAccessGate';
 
 export const metadata:Metadata={
   title:'CampaignOps',
@@ -16,5 +17,5 @@ export const metadata:Metadata={
 export const viewport:Viewport={themeColor:'#0066ff'};
 
 export default function RootLayout({children}:{children:React.ReactNode}){
-  return <html lang="en"><body>{children}</body></html>;
+  return <html lang="en"><body><RootAccessGate>{children}</RootAccessGate></body></html>;
 }

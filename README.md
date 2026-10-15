@@ -449,3 +449,10 @@ The migration `supabase/migrations/20261015143000_secure_vote_access.sql` remove
 Run `npm ci`, `npm test` (Node 24), and `npm run build`. The lockfile pins deployment dependencies. Reports join operational tables, and operational reads use pagination.
 
 Email recovery redirect settings must point to this deployment before offering emailed sign-in or recovery links; password login does not use that redirect.
+
+
+## Resident directory export and loading
+
+The directory defaults to a compact list with an optional photo view. Export CSV downloads all filtered results across pages, including original registration/address values and photo links. CSV output uses a UTF-8 BOM and escapes formula-like text. Filters include Verify party directly.
+
+The caller-scoped `vote_resident_directory` RPC reads only resident identity data and provides count + one page in one request. Filter metadata is aggregated in one request. Directory pages have a 30-second in-memory cache cleared on sign-out. The root AuthGate persists across normal page navigation; shared links continue to use token-scoped access.
