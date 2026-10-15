@@ -1,7 +1,7 @@
 'use client';
 import {useEffect,useMemo,useState} from 'react';
 import {useSearchParams} from 'next/navigation';
-import {getSharedAssignmentProgress,getSharedResidents,getWorkflowShare,submitSharedAssignments} from '../lib/operations';
+import {getSharedWorkflow,submitSharedAssignments} from '../lib/operations';
 import type {SharedAssignmentRecord,WorkflowShare} from '../lib/operations';
 import type {Resident} from '../lib/types';
 import {ResidentCard,ResidentFields} from '../shared/ResidentCard';
@@ -14,7 +14,7 @@ export default function WorkflowShareContent(){
  const [loading,setLoading]=useState(true),[submitting,setSubmitting]=useState(false),[error,setError]=useState(''),[success,setSuccess]=useState('');
  const [query,setQuery]=useState(''),[house,setHouse]=useState('all'),[view,setView]=useState<ViewMode>('not-selected'),[selected,setSelected]=useState<Set<string>>(new Set());
  const [pickerOpen,setPickerOpen]=useState(false),[pickerQuery,setPickerQuery]=useState(''),[pickerHouse,setPickerHouse]=useState('all');
- async function load(){if(!token){setError('Missing share token.');setLoading(false);return}try{const item=await getWorkflowShare(token);setShare(item);const [residentRows,assignmentRows]=await Promise.all([getSharedResidents(item),getSharedAssignmentProgress(item)]);setRows(residentRows);setProgress(assignmentRows)}catch(e){setError(e instanceof Error?e.message:'Unable to load assignment link')}finally{setLoading(false)}}
+ async function load(){if(!token){setError('Missing share token.');setLoading(false);return}try{const result=await getSharedWorkflow(token);setShare(result.share);setRows(result.residents);setProgress(result.progress)}catch(e){setError(e instanceof Error?e.message:'Unable to load assignment link')}finally{setLoading(false)}}
  useEffect(()=>{load()},[token]);
  const assignmentMode=share?.workflow==='assignments'&&share.can_update;
  const assigneeName=(share?.status_filter||'').trim();

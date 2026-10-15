@@ -1,30 +1,44 @@
 'use client';
 import {useEffect,useState} from 'react';
-import type {Session} from '@supabase/supabase-js';
-import {supabase} from '../lib/supabase';
+import {usePathname} from 'next/navigation';
+import type {User} from '@supabase/supabase-js';
+import {supabase,invalidateResidentCache} from '../lib/supabase';
 import AuthControl from './AuthControl';
+import {authErrorMessage} from '../lib/auth-utils';
 
-let cachedSession:Session|null|undefined;
-let sessionRequest:Promise<Session|null>|null=null;
-function readSession(){
- if(cachedSession!==undefined)return Promise.resolve(cachedSession);
- if(!sessionRequest)sessionRequest=supabase.auth.getSession().then(({data})=>{
-  cachedSession=data.session;sessionRequest=null;return cachedSession;
- }).catch(()=>{sessionRequest=null;return null});
- return sessionRequest;
-}
+type Access={user:User;role:string}|null;
 export default function AuthGate({children}:{children:React.ReactNode}){
- const [session,setSession]=useState<Session|null>(()=>cachedSession??null);
- const [ready,setReady]=useState(()=>cachedSession!==undefined);
+ const [access,setAccess]=useState<Access>(null),[ready,setReady]=useState(false),[error,setError]=useState(''),[attempt,setAttempt]=useState(0);
+ const pathname=usePathname();
  useEffect(()=>{
-  let active=true;
-  readSession().then(next=>{if(active){setSession(next);setReady(true)}});
-  const {data:{subscription}}=supabase.auth.onAuthStateChange((_event,next)=>{
-   cachedSession=next;setSession(next);setReady(true);
+  let active=true,generation=0;
+  async function check(){
+   const current=++generation;
+   setReady(false);setError('');
+   try{
+    const {data:{user},error}=await supabase.auth.getUser();
+    if(!active||current!==generation)return;
+    if(error||!user){setAccess(null);if(error&&error.name!=='AuthSessionMissingError')setError(authErrorMessage(error));return}
+    const {data:membership,error:roleError}=await supabase.from('user_roles').select('role,active').eq('user_id',user.id).maybeSingle();
+    if(!active||current!==generation)return;
+    if(roleError)throw roleError;
+    if(!membership?.active){setAccess(null);setError('Your staff account is disabled or has not been approved.');return}
+    setAccess({user,role:membership.role});
+   }catch(error){if(active&&current===generation){setAccess(null);setError(authErrorMessage(error))}}
+   finally{if(active&&current===generation)setReady(true)}
+  }
+  const {data:{subscription}}=supabase.auth.onAuthStateChange((event)=>{
+   // Supabase auth callbacks must stay synchronous; schedule network work outside the lock.
+   if(event==='SIGNED_OUT'){generation++;invalidateResidentCache();setAccess(null);setReady(true)}
+   else if(event==='SIGNED_IN'||event==='TOKEN_REFRESHED'||event==='USER_UPDATED')setTimeout(()=>{if(active)void check()},0);
   });
-  return()=>{active=false;subscription.unsubscribe()};
- },[]);
- if(!ready)return <div className="grid min-h-screen place-items-center bg-calm-50 p-6"><div className="h-14 w-48 animate-pulse rounded-2xl bg-primary-light"/></div>;
- if(!session)return <main className="grid min-h-screen place-items-center bg-calm-50 p-5"><section className="panel w-full max-w-md text-center"><div className="brand-mark mx-auto">VO</div><p className="eyebrow mt-5">Secure campaign access</p><h1 className="mt-2 text-3xl">Login required</h1><p className="mx-auto mt-3 max-w-sm text-sm leading-6 text-body">Campaign residents, reports and operational data are hidden until an authorised user signs in.</p><div className="mt-6 flex justify-center"><AuthControl/></div></section></main>;
+  void check();
+  return()=>{active=false;generation++;subscription.unsubscribe()};
+ },[attempt]);
+ if(!ready)return <div className="grid min-h-screen place-items-center bg-calm-50 p-6"><p role="status">Checking secure access…</p></div>;
+ if(!access)return <main className="grid min-h-screen place-items-center bg-calm-50 p-5"><section className="panel w-full max-w-md text-center"><div className="brand-mark mx-auto">VO</div><p className="eyebrow mt-5">Secure campaign access</p><h1 className="mt-2 text-3xl">Login required</h1><p className="mt-3 text-sm text-body">Sign in with your staff account. Administrator: naappe@gmail.com</p>{error&&<p role="alert" className="error-banner mt-4">{error}</p>}<div className="mt-6 flex justify-center gap-3"><AuthControl/><button className="btn-secondary" onClick={()=>setAttempt(value=>value+1)}>Retry connection</button></div></section></main>;
+ const route=pathname.replace(/^\/Vote(?=\/|$)/i,'').replace(/\/$/,'');
+ if(['/users','/backup'].includes(route)&&access.role!=='admin')return <main className="p-6"><h1>Administrator access required</h1><a href="/Vote/">Return to dashboard</a></main>;
+ if(route==='/contact-verification'&&!['admin','supervisor'].includes(access.role))return <main className="p-6"><h1>Supervisor access required</h1><a href="/Vote/">Return to dashboard</a></main>;
  return <>{children}</>;
 }

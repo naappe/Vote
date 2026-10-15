@@ -439,3 +439,13 @@ Until those conditions are met, the architecture is complete but implementation 
 Private project.
 
 CampaignOps © 2026.
+
+## Authentication and access repair — 15 October 2026
+
+Sign in with an existing staff email/password. `naappe` resolves to the administrator email `naappe@gmail.com`; other usernames use the staff email domain. A signed-in user must have an active `user_roles` record. Administrator and supervisor permissions are checked in database policies; user-editable metadata does not authorize access.
+
+The migration `supabase/migrations/20261015143000_secure_vote_access.sql` removes public access to Vote tables and unused legacy privileged RPCs. Anonymous assignment links use token-scoped RPCs that validate expiry, permitted residents and the assignee on the server. Supply tables are outside this migration.
+
+Run `npm ci`, `npm test` (Node 24), and `npm run build`. The lockfile pins deployment dependencies. Reports join operational tables, and operational reads use pagination.
+
+Email recovery redirect settings must point to this deployment before offering emailed sign-in or recovery links; password login does not use that redirect.

@@ -2,6 +2,7 @@
 import Link from 'next/link';
 import {useEffect,useMemo,useState} from 'react';
 import {supabase} from '../lib/supabase';
+import {readOperationalRows} from '../lib/operations';
 import type {DashboardStats} from '../lib/types';
 import VoteStatusChart from './VoteStatusChart';
 import PhoneStatusChart from './PhoneStatusChart';
@@ -17,9 +18,9 @@ async function loadDashboardSnapshot():Promise<DashboardSnapshot>{
  const [residentCount,phones,calls,visits,assignments,transportCount,votedCount,remarksCount]=await Promise.all([
   supabase.from('Resident').select('id',{count:'exact',head:true}),
   supabase.from('Resident').select('id',{count:'exact',head:true}).is('phone',null),
-  supabase.from('call_center').select('resident_id,phone_status,reach_status,vote_status,support_level'),
-  supabase.from('door_to_door').select('resident_id'),
-  supabase.from('assignments').select('resident_id,status'),
+  readOperationalRows('call_center','resident_id,phone_status,reach_status,vote_status,support_level').then(data=>({data,error:null})),
+  readOperationalRows('door_to_door','resident_id,visit_status').then(data=>({data,error:null})),
+  readOperationalRows('assignments','resident_id,status').then(data=>({data,error:null})),
   supabase.from('transportation').select('resident_id',{count:'exact',head:true}).eq('transport_status','need-transport'),
   supabase.from('election_day').select('resident_id',{count:'exact',head:true}).eq('has_voted',true),
   supabase.from('remarks').select('id',{count:'exact',head:true})
@@ -39,7 +40,7 @@ async function loadDashboardSnapshot():Promise<DashboardSnapshot>{
   if(row.reach_status==='reached'||row.phone_status==='called'||row.vote_status==='will-vote'||row.vote_status==='not-vote'||row.support_level==='guaranteed')reached++;
  }
  const visitedResidents=new Set<string>();
- for(const row of visits.data||[])visitedResidents.add(String(row.resident_id));
+ for(const row of visits.data||[])if(row.visit_status&&row.visit_status!=='not-visited')visitedResidents.add(String(row.resident_id));
  const assignedResidents=new Set<string>();
  for(const row of assignments.data||[])if(row.status!=='inactive')assignedResidents.add(String(row.resident_id));
  const missingPhone=phones.count||0;
