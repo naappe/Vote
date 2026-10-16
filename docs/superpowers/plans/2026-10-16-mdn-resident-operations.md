@@ -81,7 +81,7 @@
 - Create: `components/MDNWorkspaceLayout.tsx`
 - Create: `components/MDNNavigation.tsx`
 - Modify: `components/AuthGate.tsx`
-- Create: `tests/mdn-routing.test.ts`
+- Reuse: `tests/mdn-routing.test.ts` from Task 2 and extend it with route/access cases.
 
 **Interfaces:**
 - `MDNWorkspaceLayout({ activeSection, children })` renders the MDN title, simple navigation, and shared content frame.
