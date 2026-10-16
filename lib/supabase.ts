@@ -10,7 +10,7 @@ let residentCache:{data:Resident[];timestamp:number}|null=null;
 let residentRequest:Promise<Resident[]>|null=null;
 let optionCache:{houses:HouseOption[];parties:PartyOption[];boxes:string[];timestamp:number}|null=null;
 let optionRequest:Promise<{houses:HouseOption[];parties:PartyOption[];boxes:string[]}>|null=null;
-export function invalidateResidentCache(){residentCache=null;residentRequest=null;optionCache=null;optionRequest=null}
+export function invalidateResidentCache(){directoryEpoch++;directoryPages.clear();directoryRequests.clear();directoryOptions=null;residentCache=null;residentRequest=null;optionCache=null;optionRequest=null}
 export interface ResidentPage{rows:Resident[];count:number}
 export interface HouseOption{name:string;count:number}
 export interface PartyOption{name:string;count:number}
@@ -66,3 +66,35 @@ export async function saveCallCenterResult(residentId:Resident['id'],input:SaveC
 export async function submitResidentContactChange(resident:Resident,{phone,lives_in,remarks}:{phone?:string|null;lives_in?:string|null;remarks?:string|null}){const payload={resident_id:resident.id,existing_phone:resident.phone??null,requested_phone:phone?.trim()||null,existing_lives_in:resident.lives_in??null,requested_lives_in:lives_in?.trim()||null,request_note:remarks?.trim()||null,status:'pending',submitted_at:new Date().toISOString()};if(payload.requested_phone===payload.existing_phone&&payload.requested_lives_in===payload.existing_lives_in)throw new Error('Enter a different mobile number or living place.');const {error}=await supabase.from('contact_verification').insert(payload);if(error)throw new Error(`Verification request failed: ${error.message}`)}
 export async function getResidentChangeRequests(status:'pending'|'approved'|'rejected'='pending'):Promise<ResidentChangeRequest[]>{const {data,error}=await supabase.from('contact_verification').select('*').eq('status',status).order('submitted_at',{ascending:false});if(error)throw new Error(`Verification queue failed: ${error.message}`);const rows=data||[],ids=[...new Set(rows.map((r:any)=>r.resident_id).filter(Boolean))],residentMap=new Map<string,Resident>();if(ids.length){const response=await supabase.from(RESIDENT_TABLE).select('*').in('id',ids);if(response.error)throw new Error(`Resident lookup failed: ${response.error.message}`);for(const row of response.data||[])residentMap.set(String(row.id),normalizeResident(row))}return rows.map((row:any)=>({...row,resident:residentMap.get(String(row.resident_id))||null}))}
 export async function reviewResidentChangeRequest(request:ResidentChangeRequest,decision:'approved'|'rejected'){const {error}=await supabase.from('contact_verification').update({status:decision,reviewed_at:new Date().toISOString()}).eq('id',request.id);if(error)throw new Error(`Review save failed: ${error.message}`)}
+export interface DirectoryFilters{search?:string;house?:string;party?:string;gender?:string;age?:string;box?:string}
+let directoryEpoch=0;
+const directoryPages=new Map<string,{expires:number;data:ResidentPage}>();
+const directoryRequests=new Map<string,Promise<ResidentPage>>();
+let directoryOptions:Promise<{houses:HouseOption[];parties:PartyOption[];boxes:string[]}>|null=null;
+export function getDirectoryFilterOptions(){
+ if(!directoryOptions)directoryOptions=(async()=>{
+  const {data,error}=await supabase.rpc('vote_resident_directory_filters');
+  if(error)throw new Error(`Directory filters failed: ${error.message}`);
+  return data as {houses:HouseOption[];parties:PartyOption[];boxes:string[]};
+ })().catch(error=>{directoryOptions=null;throw error});
+ return directoryOptions;
+}
+export async function getDirectoryPage(filters:DirectoryFilters,page=1,pageSize=24,fresh=false):Promise<ResidentPage>{
+ const args={p_page:page,p_page_size:pageSize,p_search:filters.search||'',p_house:filters.house||'all',p_party:filters.party||'all',p_gender:filters.gender||'all',p_age:filters.age||'all',p_box:filters.box||'all'};
+ const key=JSON.stringify(args),cached=directoryPages.get(key);
+ if(!fresh&&cached&&cached.expires>Date.now())return cached.data;
+ if(!fresh&&directoryRequests.has(key))return directoryRequests.get(key)!;
+ const epoch=directoryEpoch;
+ const request=(async()=>{
+  const {data,error}=await supabase.rpc('vote_resident_directory',args);
+  if(error)throw new Error(`Resident directory failed: ${error.message}`);
+  const result={count:Number(data.count),rows:(data.rows||[]).map((row:any)=>({...row,phone:row.phone==null?null:String(row.phone),party:normalizeParty(row.party)} as Resident))};
+  if(epoch===directoryEpoch){
+   if(directoryPages.size>=50)directoryPages.clear();
+   directoryPages.set(key,{data:result,expires:Date.now()+30000});
+  }
+  return result;
+ })();
+ directoryRequests.set(key,request);
+ try{return await request}finally{if(directoryRequests.get(key)===request)directoryRequests.delete(key)}
+}
