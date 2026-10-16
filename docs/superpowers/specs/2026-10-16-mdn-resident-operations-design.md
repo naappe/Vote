@@ -1,4 +1,4 @@
-# MDN Resident Operations — Design (Updated)
+# MDN Resident Operations — Design (Revised)
 
 Date: 2026-10-16
 Repository: `naappe/Vote`
@@ -6,13 +6,13 @@ Working base: `fix/workflow-navigation-review`
 
 ## Goal
 
-Create a separate, mobile-friendly entry link for **Maldivian Democracy Network (MDN)** resident operations. Keep existing resident-management functions, simplify the navigation, and remove MDP and party-based labels from this experience. Election-day status remains neutral: `voted / not yet recorded`.
+Create a separate, mobile-friendly entry link for **Maldivian Democracy Network (MDN)** resident operations. Keep existing resident-management functions, simplify navigation, and remove MDP and party-based labels from this experience. **Turnout status for each voting day remains neutral: `voted / not yet recorded`.**
 
 ## Route and data
 
 - Add an MDN entry route at `/Vote/mdn/` (Next.js route `/mdn` under the existing GitHub Pages base path).
 - Reuse current Supabase authentication, authorization, resident, and workflow data. Do not copy residents into a second database.
-- Include all resident records already available to the signed-in staff through the existing `Resident` table. Changes in either view refer to the same records.
+- Include all resident records already available to signed-in staff through the existing `Resident` table. Changes in either view refer to the same records.
 - Keep party affiliation out of MDN navigation, search filters, profiles, workflow boards, reports, and CSV exports. Do not create a party-specific resident view.
 - Preserve current role checks for administration, contact verification, and backup.
 
@@ -33,7 +33,7 @@ Use the exact app title **Maldivian Democracy Network (MDN)**. Do not use MDP id
 
 ## Voting Days
 
-**Recommended choice: admin-defined voting days.** An administrator creates each dated voting day once; staff select from that list. Each resident's turnout status is recorded separately for each day. Show neutral statuses only: `voted / not yet recorded`. Support undo and date filtering without party information.
+Use an admin-defined list of voting days. An administrator creates each dated entry once; staff select from that list. Store turnout separately for each resident and voting day. Show only neutral statuses: `voted / not yet recorded`. Support undo and filtering by voting day without party information.
 
 ## Door-to-door
 
@@ -45,37 +45,65 @@ Keep door-to-door outcomes separate from phone-call outcomes because the contact
 - Address not found or incorrect
 - Unable to access
 - Follow-up needed
-- Not visited
+- Visit postponed
 
-The existing `door_to_door` workflow remains the source for household visits; general phone-call outcomes stay in the call workflow.
+“Not visited” is a pending workflow state, not an outcome. Keep household contact in the existing `door_to_door` workflow; phone-call outcomes stay in the call workflow.
 
 ## Transportation
 
-Manage both general and door-to-door requests with states `pending → assigned → completed`. A request may optionally reference a voting day or a door-to-door visit.
+Manage both general and door-to-door requests with states `pending → assigned → completed`. A request may optionally reference a voting day or a door-to-door visit. Record transport remarks in the shared remarks table with context `transport` and a link to the transport request; do not add a second notes history to each request.
+
+## Remarks
+
+Use one resident remarks history with an optional context: `general`, `door_to_door`, `voting_day`, or `transport`. Store the associated workflow record ID when a remark is contextual. Show timestamp and staff for every remark.
 
 ## Interaction and failure handling
 
-Keep search in the same place across resident workflows. Use large buttons, compact lists, clear saved/failed messages, and pagination for long directories. Show loading and empty states. Do not show a success message until Supabase confirms the save. CSV export must include every matching page and report incomplete exports.
+Keep search in the same place across resident workflows. Use large buttons, compact lists, clear saved/failed messages, and pagination for long directories. Show loading and empty states. Do not show a success message until Supabase confirms the save.
 
-## Data-model compatibility blocker
+For MDN CSV export, select an explicit allowlist of named resident columns; never use `select *`. Exports must include every matching page and report incomplete exports. Party fields and workflow-only fields are excluded.
 
-The requested multi-day behavior conflicts with the “database schema unchanged” requirement. In the current app, election-day status is saved with `resident_id` as the upsert conflict key, so it supports one turnout row per resident. Transportation is also upserted by `resident_id`, so it cannot hold separately linked requests per voting day or visit. Multiple voting days and those optional links need an additive schema migration (for example, a voting-days table and resident/day status records, plus request links) and corresponding RLS policies.
+## Data-model compatibility and decision
 
-The implementation must not start until one of these choices is approved:
+The requested multi-day behavior conflicts with the original “database schema unchanged” requirement. The current app saves election-day status with `resident_id` as the upsert conflict key, so it supports one turnout row per resident. Transportation is also upserted by `resident_id`, so it cannot hold separately linked requests per voting day or visit.
 
-- **Keep the schema unchanged:** retain one voting day and do not add voting-day/visit links to transportation; or
-- **Keep the updated multi-day requirements:** allow the smallest additive schema migration and new RLS policies, preserving existing resident rows and authentication.
+**Recommended decision: Option 2 — permit the smallest additive migration. Status: awaiting explicit approval before implementation.** Proposed additive structures:
 
-The recommended choice is to allow additive schema changes so the requested multi-day workflow works correctly.
+- `voting_days`: admin-managed date entries.
+- `resident_voting_status`: one status per resident and voting day, unique on `(resident_id, voting_day_id)`.
+- `transport_request_links`: optional links from a transport request to a voting day or door-to-door visit.
+- Extend `remarks` with optional context and context-record ID, if equivalent columns do not already exist.
+
+Record every vote mark and undo with actor and timestamp using the existing activity log, so undo does not erase the audit trail. Preserve all existing resident rows and authentication. Existing one-day turnout rows must be retained and explicitly associated or kept as legacy; never discard them silently.
+
+If Option 2 is not approved, the requirements must be reduced to one voting day and transportation cannot be linked to voting-day/visit records. No implementation or migration should begin until the schema decision is approved.
+
+## RLS roles
+
+Keep current policies for existing tables. For new or extended data, apply row-level security using the exact existing role names:
+
+- Active staff roles: `admin`, `supervisor`, `call_agent`, `field_agent`, `election_operator`.
+- All active staff may read resident and operational records as allowed by current policies.
+- `admin` and `supervisor` may manage voting-day definitions and perform supervisor-level writes.
+- `election_operator` may record or undo turnout and manage transport requests/links, matching current `election_day` and `transportation` permissions.
+- `field_agent` may create/update door-to-door records under the existing field-agent policy.
+- `call_agent` may write call records under the existing call-agent policy.
+- Remarks retain role-specific write permissions; context does not grant additional access.
+- Authorization must use server-managed `user_roles`/staff-role checks, never user-editable metadata.
 
 ## Verification
 
 - Build and existing tests pass.
 - Direct navigation to `/Vote/mdn/` works with the GitHub Pages base path and authenticated access.
-- Directory, search, profile, CSV export, calls/visits, door-to-door, voting days (including undo), transportation, remarks, and reports load and save.
+- Directory, search, profile, explicit-column CSV export, calls/visits, door-to-door, voting days (including undo), transportation, remarks, and reports load and save.
 - No MDP text, party controls, party values, or party-based filters appear in the MDN experience or its exports.
 - Non-admin staff remain blocked from existing admin-only screens.
-- Preserve resident records and authentication. Any approved new tables or links have RLS policies matching the existing staff-role access model.
+- Migration validation confirms existing resident rows are unchanged. Opening the MDN route does not require a resident-table backfill.
+- Marking a resident voted on Day A does not change Day B.
+- Mark and undo actions retain actor and timestamp in the activity audit.
+- Door-to-door outcomes cannot be written to call records, and call outcomes cannot be written to door-to-door records.
+- RLS tests cover each named role and the new tables/links.
+- No migration is applied until Option 2 receives explicit approval.
 
 ## Data-scope assumption
 
