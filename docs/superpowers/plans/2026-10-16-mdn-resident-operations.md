@@ -19,6 +19,6 @@
 
 - [x] `npm test`
 - [x] `npm run build`; static output includes `/mdp/` and `/mdp/voting-days/` under the configured `/Vote` base path.
-- [ ] Review and apply `supabase/migrations/20261016180000_mdp_multi_voting_days.sql` in a Supabase development branch, run policy checks, and verify per-day isolation and audit behavior.
+- [ ] Review/apply `supabase/migrations/20261016180000_mdp_multi_voting_days.sql` in a development database, run policy checks, and verify per-day isolation and audit behavior. The connected Supabase project is below Pro and does not support development branches; do not apply this migration to production.
 - [ ] Smoke-test using an authenticated staff account on mobile and desktop; verify resident links, role-restricted screens, mark/undo, and saved/failed messages.
 - [ ] Open a draft PR targeting `fix/workflow-navigation-review` after review.
