@@ -1,4 +1,4 @@
-# MDN Resident Operations — Design (Revised)
+# MDP Resident Operations — Design (Revised)
 
 Date: 2026-10-16
 Repository: `naappe/Vote`
@@ -6,14 +6,14 @@ Working base: `fix/workflow-navigation-review`
 
 ## Goal
 
-Create a separate, mobile-friendly entry link for **Maldivian Democracy Network (MDN)** resident operations. Keep existing resident-management functions, simplify navigation, and remove MDP and party-based labels from this experience. **Turnout status for each voting day remains neutral: `voted / not yet recorded`.**
+Create a separate, mobile-friendly entry link for **Maldivian Democratic Party (MDP)** resident operations. Keep existing resident-management functions, simplify navigation, and use the MDP name for this experience. **Turnout status for each voting day remains neutral: `voted / not yet recorded`.**
 
 ## Route and data
 
-- Add an MDN entry route at `/Vote/mdn/` (Next.js route `/mdn` under the existing GitHub Pages base path).
+- Add an MDP entry route at `/Vote/mdp/` (Next.js route `/mdp` under the existing GitHub Pages base path).
 - Reuse current Supabase authentication, authorization, resident, and workflow data. Do not copy residents into a second database.
 - Include all resident records already available to signed-in staff through the existing `Resident` table. Changes in either view refer to the same records.
-- Keep party affiliation out of MDN navigation, search filters, profiles, workflow boards, reports, and CSV exports. Do not create a party-specific resident view.
+- Reuse the existing resident workflows and their established fields, while the new MDP entry screen focuses on common operational actions.
 - Preserve current role checks for administration, contact verification, and backup.
 
 ## Navigation and functions
@@ -29,7 +29,7 @@ Use a compact home screen with clear action buttons and primary navigation:
 7. Remarks: add a resident note and view timestamped history with staff attribution.
 8. Reports and administration: retain reports, staff controls, verification, and backup behind existing role checks.
 
-Use the exact app title **Maldivian Democracy Network (MDN)**. Do not use MDP identity, colors, party badges, or party labels in this route.
+Use the exact app title **Maldivian Democratic Party (MDP) Resident Operations**.
 
 ## Voting Days
 
@@ -61,7 +61,7 @@ Use one resident remarks history with an optional context: `general`, `door_to_d
 
 Keep search in the same place across resident workflows. Use large buttons, compact lists, clear saved/failed messages, and pagination for long directories. Show loading and empty states. Do not show a success message until Supabase confirms the save.
 
-For MDN CSV export, select an explicit allowlist of named resident columns; never use `select *`. Exports must include every matching page and report incomplete exports. Party fields and workflow-only fields are excluded.
+Resident directory and CSV export continue to use the existing implementation and access rules. The new voting-day directory RPC selects named resident columns and does not expose party values.
 
 ## Data-model compatibility and decision
 
@@ -75,9 +75,9 @@ The requested multi-day behavior conflicts with the original “database schema 
 - `transport_request_links`: optional links from a transport request to a voting day or door-to-door visit.
 - Extend `remarks` with optional context and context-record ID, if equivalent columns do not already exist.
 
-Record every vote mark and undo in `resident_voting_status_events` with actor and timestamp, so undo does not erase the audit trail. The existing activity logger records page views and logins, so it is not the voting audit source. Preserve all existing resident rows and authentication. Existing one-day turnout rows must be retained and explicitly associated or kept as legacy; never discard them silently.
+Record every vote mark and undo in `resident_voting_status_events` with actor and timestamp, so undo does not erase the audit trail. The existing activity logger records page views and logins, so it is not the voting audit source. Preserve all existing resident rows and authentication. Existing one-day turnout rows remain in `election_day` as legacy and are not backfilled without a confirmed voting date.
 
-Implementation must retain the multi-day and linked-transport requirements using the approved additive schema changes. Preserve current role-based access; review the generated migration and RLS policies before applying them to the connected Supabase project.
+Implementation must retain the multi-day and linked-transport requirements using the approved additive schema changes. Preserve current role-based access; review the migration and RLS policies before applying them to any Supabase project.
 
 ## RLS roles
 
@@ -96,11 +96,11 @@ Keep current policies for existing tables. For new or extended data, apply row-l
 ## Verification
 
 - Build and existing tests pass.
-- Direct navigation to `/Vote/mdn/` works with the GitHub Pages base path and authenticated access.
+- Direct navigation to `/Vote/mdp/` works with the GitHub Pages base path and authenticated access.
 - Directory, search, profile, explicit-column CSV export, calls/visits, door-to-door, voting days (including undo), transportation, remarks, and reports load and save.
-- No MDP text, party controls, party values, or party-based filters appear in the MDN experience or its exports.
+- Existing resident, call, visit, transport, remarks, report, and administration screens remain available through the entry page and preserve their current role checks.
 - Non-admin staff remain blocked from existing admin-only screens.
-- Migration validation confirms existing resident rows are unchanged. Opening the MDN route does not require a resident-table backfill.
+- Migration validation confirms existing resident rows are unchanged. Opening the MDP route does not require a resident-table backfill.
 - Marking a resident voted on Day A does not change Day B.
 - Mark and undo actions append actor, timestamp, day, and status change to `resident_voting_status_events`.
 - Door-to-door outcomes cannot be written to call records, and call outcomes cannot be written to door-to-door records.
@@ -109,4 +109,4 @@ Keep current policies for existing tables. For new or extended data, apply row-l
 
 ## Data-scope assumption
 
-“Only take the resident” means all resident records already visible to signed-in staff, with party affiliation omitted from the MDN experience. This is a separate link and simpler interface, not a separate copy or security boundary for resident data.
+“Only take the resident” means use all resident records already visible to signed-in staff. This is a separate entry link and simpler home screen, not a separate copy or security boundary for resident data.

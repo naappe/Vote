@@ -1,458 +1,2 @@
-# CampaignOps â€” VillimalÃ© 2026
-
-CampaignOps is a campaign operations platform for resident records, outreach, field work, assignments, election-day coordination, transportation, contact verification, remarks, and reporting.
-
-The product direction is workflow-first:
-
-> The system should tell each user what needs attention and what to do next.
-
-## Live application
-
-- https://naappe.github.io/Vote/
-
-The static export uses the `/Vote` base path configured in `next.config.js`.
-
-## Current implementation status
-
-CampaignOps is not a blank project. Navigation, the resident data model, operational tables, core pages, styling, and deployment already exist. However, the final workflow-first architecture is still being implemented.
-
-| Area | Status |
-|---|---|
-| Product vision | Complete |
-| Application architecture | Complete |
-| Database structure | Mostly complete |
-| Core navigation | Implemented |
-| Operational pages | Partially implemented |
-| Shared design system | Partially implemented |
-| Workflow-first experience | In progress |
-| Automatic activity timeline | Planned |
-| Resident Mission Control | Planned |
-| Supervisor Command Center | Planned |
-
-Progress should be measured by completed workflows, not by the existence of page routes alone.
-
-## Core product principles
-
-### One resident
-
-The Supabase `Resident` table is the source of truth for resident identity.
-
-Resident identity is not duplicated inside operational modules. Phone or living-place corrections are submitted through `contact_verification` and reviewed separately.
-
-### One operational history
-
-Calls, visits, verification changes, assignments, transportation actions, election-day updates, and remarks should contribute to one chronological resident timeline.
-
-Free-text notes should not be duplicated across workflows. User-entered comments belong in the central Remarks system, while structured workflow actions should generate automatic timeline events.
-
-### One clear action
-
-Each operational screen should prioritize the next useful action rather than displaying data without context.
-
-Examples:
-
-- Call Center: call, save, move to the next resident.
-- Door-to-Door: visit, save, move to the next resident or house.
-- Election Day: open an actionable queue, assign it, or share it.
-- Transportation: assign a driver or vehicle and complete the pickup.
-
-## Active routes
-
-| Section | Route | Current responsibility |
-|---|---|---|
-| Dashboard | `/Vote/` | Campaign overview; planned evolution into the supervisor Command Center |
-| Residents | `/Vote/residents/` | Searchable resident identity directory and entry point to resident profiles |
-| Resident Profile | `/Vote/resident-profile/?id=<resident_id>` | Resident details; planned evolution into Mission Control |
-| Call Center | `/Vote/call-center/` | Call outcomes, vote intention, support, callback, and agent workflow |
-| Door-to-Door | `/Vote/door-to-door/` | Field visit outcomes and resident outreach |
-| Assignments | `/Vote/assignments/` | Assignment creation, sharing, ownership, and planned progress tracking |
-| Remarks | `/Vote/remarks/` | Centralized operational remarks |
-| Election Day | `/Vote/election-day/` | Turnout operations and actionable resident queues |
-| Transportation | `/Vote/transportation/` | Election-box transport planning and completion tracking |
-| Contact Verification | `/Vote/contact-verification/` | Review phone and living-place correction requests |
-| Reports | `/Vote/reports/` | Read-only campaign reporting |
-| Shared Workflow | `/Vote/share/?token=<token>` | Restricted resident subset created from a workflow share |
-
-Do not restore or document legacy routes that are absent from the current `app/` structure and sidebar.
-
-## Data model
-
-### Resident identity master
-
-The `Resident` table contains resident identity and reference information.
-
-Operational pages must not overwrite resident identity directly unless the application explicitly supports an approved administrative correction workflow.
-
-### Operational tables
-
-Workflow data is stored in dedicated tables:
-
-- `call_center`
-- `door_to_door`
-- `assignments`
-- `remarks`
-- `election_day`
-- `transportation`
-- `contact_verification`
-- `workflow_shares`
-
-All operational records should reference `resident_id`.
-
-## Target operating model
-
-### Dashboard â€” Supervisor Command Center
-
-The Dashboard should answer three questions:
-
-1. What needs attention now?
-2. Who is working?
-3. Where are operations behind?
-
-Target sections:
-
-- Critical queues
-- Calls and visits in progress
-- Expected votes not yet recorded
-- Transport pending
-- Assignment completion
-- Agent activity
-- Live activity feed
-
-The Dashboard is read-only. Operational updates happen in their relevant workflows.
-
-### Residents â€” Command Search
-
-Residents remains the master directory and becomes the global campaign search experience.
-
-Search targets:
-
-- Name
-- National ID
-- Phone
-- Resident ID
-- Official address
-- Current living place
-- Election box
-- Assignee
-
-The page should use shared filters, shared pagination, and the standardized Resident Card.
-
-### Resident Profile â€” Mission Control
-
-The Resident Profile is the central workspace for one resident.
-
-Target sections:
-
-- Overview
-- Timeline
-- Call Center
-- Door-to-Door
-- Contact Verification
-- Assignments
-- Election Day
-- Transportation
-- Remarks
-
-The user should be able to understand the resident's complete campaign history without opening multiple unrelated pages.
-
-### Automatic timeline
-
-Every meaningful structured action should create an activity event automatically.
-
-Examples:
-
-- Call completed
-- Vote intention changed
-- Door visit completed
-- Contact correction requested or verified
-- Assignment created or completed
-- Transport requested, assigned, or completed
-- Resident marked voted
-- Remark added
-
-A timeline event should include:
-
-- Resident ID
-- Module
-- Action
-- Structured summary
-- Acting user or agent
-- Timestamp
-- Optional related record ID
-
-### Assignments â€” Operations and progress
-
-Assignments should show more than share-link creation.
-
-Target agent metrics:
-
-- Assigned
-- Completed
-- Remaining
-- Completion percentage
-- Last activity
-- Open queue
-- Share remaining queue
-
-The same resident may be assigned to different assignees. Duplicate assignment prevention applies within the same assignee's queue.
-
-### Election Day â€” Actionable queues
-
-Election Day should prioritize residents requiring action instead of showing the full resident master by default.
-
-Primary queue:
-
-- Expected to vote
-- Not yet recorded as voted
-
-Additional filters:
-
-- Party
-- Election box
-- House
-- Assignee
-- Assigned or unassigned
-- Vote intention
-- Needs transport
-- Search
-
-Use one `Share Current Queue` action that respects the current filters.
-
-### Transportation â€” Logistics
-
-Transportation should focus on residents who need transport.
-
-Target fields:
-
-- Resident
-- Election box
-- Pickup location
-- Driver
-- Vehicle
-- Status
-- Completion time
-
-### Remarks
-
-Remarks is the central place for free-text operational comments.
-
-Each remark should contain:
-
-- Resident ID
-- Workflow section
-- Remark
-- Recorded by
-- Recorded at
-
-Structured actions remain in their own workflow tables and appear automatically in the resident timeline.
-
-### Reports
-
-Reports are read-only.
-
-Planned views:
-
-- Daily
-- Weekly
-- Overall
-- Agent performance
-- Party
-- House
-- Election box
-- Call Center
-- Door-to-Door
-- Election Day
-- Transportation
-
-CSV export is the initial target. PDF export can be added later.
-
-## Shared platform foundation
-
-Before adding more standalone features, complete the reusable platform layer.
-
-### Shared UI
-
-- Resident Card
-- Filter bar
-- Search input
-- Status badges
-- Pagination
-- Loading skeletons
-- Empty states
-- Primary and secondary actions
-
-### Shared data layer
-
-- Server-side pagination where supported
-- Shared search and filter query handling
-- Request deduplication
-- Short-lived cache for resident identity
-- Reliable refresh after writes
-- Consistent error handling
-
-### Shared workflow behavior
-
-- Preserve filters when opening a profile and returning
-- Scroll to the top when changing pages
-- Avoid full-page reloads
-- Use the correct `/resident-profile/?id=` route
-- Generate remarks and timeline links consistently
-- Keep resident identity separate from workflow records
-
-## Implementation roadmap
-
-### Phase 1 â€” Foundation
-
-1. Verify and repair all current operational components.
-2. Complete pagination and filter consistency on every resident-based page.
-3. Standardize the Resident Card.
-4. Standardize loading, empty, and error states.
-5. Complete centralized Remarks integration.
-
-### Phase 2 â€” Operational workflow
-
-1. Build the automatic timeline engine.
-2. Expand Resident Profile into Mission Control.
-3. Add assignment completion and agent progress.
-4. Finalize Election Day actionable queues.
-5. Complete transportation workflow states.
-6. Add a focused `My Work` experience after user identity and roles are implemented.
-
-### Phase 3 â€” Management
-
-1. Upgrade Dashboard into the Supervisor Command Center.
-2. Add live activity as a Dashboard widget.
-3. Add notifications through a compact global interface rather than another sidebar page.
-4. Add house and election-box operational views.
-5. Expand reports and exports.
-
-### Phase 4 â€” Reliability
-
-1. Add role-based access control.
-2. Add audit and recovery procedures.
-3. Add offline-safe or retryable Election Day writes where feasible.
-4. Add database indexes based on real query usage.
-5. Add regression tests for critical workflows.
-
-## Immediate engineering priorities
-
-The next implementation sequence should be:
-
-1. Audit the repository for truncated or broken components.
-2. Fix resident-list performance and pagination.
-3. Standardize Resident Card usage.
-4. Complete Remarks links and remove duplicate note fields.
-5. Implement the automatic timeline data model and writer.
-6. Build Resident Mission Control.
-7. Add assignment progress.
-8. Finalize Election Day queues.
-9. Upgrade the Dashboard.
-
-Known files requiring verification before further feature work:
-
-- `components/CallCenterContent.tsx`
-- `components/OperationsListContent.tsx`
-- `styles/tailwind.css`
-
-Do not treat a successful commit as proof that a whole-file replacement is complete. Fetch and inspect changed files after connector-based updates.
-
-## Technology
-
-- Next.js 15 static export
-- React 19
-- TypeScript
-- Tailwind CSS
-- Supabase
-- GitHub Pages
-- GitHub Actions
-
-## Key source files
-
-| Area | File |
-|---|---|
-| Root Dashboard | `app/page.tsx` |
-| Shared application layout | `layout/AppLayout.tsx` |
-| Current navigation | `layout/Sidebar.tsx` |
-| Residents | `components/VoterManagementContent.tsx` |
-| Call Center | `components/CallCenterContent.tsx` |
-| Door-to-Door and shared operations | `components/OperationsListContent.tsx` |
-| Transportation | `components/TransportationContent.tsx` |
-| Resident and call data access | `lib/supabase.ts` |
-| Election, transport, assignments, and sharing | `lib/operations.ts` |
-| Static export configuration | `next.config.js` |
-| GitHub Pages deployment | `.github/workflows/deploy.yml` |
-
-## Deployment
-
-Every push to `main` runs `.github/workflows/deploy.yml`.
-
-The workflow should:
-
-1. Check out the latest `main` branch.
-2. Use Node.js 20.
-3. Install dependencies.
-4. Run the production build.
-5. Verify `out/index.html`.
-6. Upload the static export to GitHub Pages.
-
-Required repository secrets:
-
-- `NEXT_PUBLIC_SUPABASE_URL`
-- `NEXT_PUBLIC_SUPABASE_ANON_KEY`
-
-Local verification:
-
-```bash
-npm install
-npm run build
-```
-
-## Documentation maintenance
-
-After a structural change:
-
-1. Remove links to deleted routes.
-2. Update the active route table from `layout/Sidebar.tsx`.
-3. Update relevant architecture and workflow documentation.
-4. Record important restore or migration commits in `SHAS.md`.
-5. Run `npm run build` before treating the change as deployable.
-
-Avoid maintaining mutable file blob SHAs inside this README. Use `SHAS.md` for recovery baselines.
-
-## Project status definition
-
-CampaignOps v1.0 is complete when:
-
-- All operational pages use consistent resident cards, filters, pagination, loading, and error states.
-- Resident Profile provides a complete operational view.
-- Timeline events are generated automatically.
-- Assignment completion and agent progress are visible.
-- Election Day is driven by actionable queues.
-- Transportation can be assigned and completed reliably.
-- The Dashboard gives supervisors a clear operational picture.
-- Critical workflows pass production build and regression testing.
-
-Until those conditions are met, the architecture is complete but implementation remains in progress.
-
-## License
-
-Private project.
-
-CampaignOps Â© 2026.
-
-## Authentication and access repair â€” 15 October 2026
-
-Sign in with an existing staff email/password. `naappe` resolves to the administrator email `naappe@gmail.com`; other usernames use the staff email domain. A signed-in user must have an active `user_roles` record. Administrator and supervisor permissions are checked in database policies; user-editable metadata does not authorize access.
-
-The migration `supabase/migrations/20261015143000_secure_vote_access.sql` removes public access to Vote tables and unused legacy privileged RPCs. Anonymous assignment links use token-scoped RPCs that validate expiry, permitted residents and the assignee on the server. Supply tables are outside this migration.
-
-Run `npm ci`, `npm test` (Node 24), and `npm run build`. The lockfile pins deployment dependencies. Reports join operational tables, and operational reads use pagination.
-
-Email recovery redirect settings must point to this deployment before offering emailed sign-in or recovery links; password login does not use that redirect.
-
-
-## Resident directory export and loading
-
-The directory defaults to a compact list with an optional photo view. Export CSV downloads all filtered results across pages, including original registration/address values and photo links. CSV output uses a UTF-8 BOM and escapes formula-like text. Filters include Verify party directly.
-
-The caller-scoped `vote_resident_directory` RPC reads only resident identity data and provides count + one page in one request. Filter metadata is aggregated in one request. Directory pages have a 30-second in-memory cache cleared on sign-out. The root AuthGate persists across normal page navigation; shared links continue to use token-scoped access.
+YªçŠx-®éÜj×¢ëiºÚ+Š§j[h‘éÜ¢éíçM9N‹Z–‹­¦ëeŠw¬ÔŒ…µÁ…¥¹=ÁÌƒŠPY¥±±¥µ…³¤€ÈÀÈØ()…µÁ…¥¹=ÁÌ¥Ì„…µÁ…¥¸½Á•É…Ñ¥½¹ÌÁ±…Ñ™½É´™½ÈÉ•Í¥‘•¹ĞÉ•½É‘Ì°½ÕÑÉ•… °™¥•±İ½É¬°…ÍÍ¥¹µ•¹ÑÌ°•±•Ñ¥½¸µ‘…ä½½É‘¥¹…Ñ¥½¸°ÑÉ…¹ÍÁ½ÉÑ…Ñ¥½¸°½¹Ñ…ĞÙ•É¥™¥…Ñ¥½¸°É•µ…É­Ì°…¹É•Á½ÉÑ¥¹œ¸()Q¡”ÁÉ½‘ÕĞ‘¥É•Ñ¥½¸¥Ìİ½É­™±½Üµ™¥ÉÍĞè((øQ¡”ÍåÍÑ•´Í¡½Õ±Ñ•±°•… ÕÍ•Èİ¡…Ğ¹••‘Ì…ÑÑ•¹Ñ¥½¸…¹İ¡…ĞÑ¼‘¼¹•áĞ¸((ŒŒ1¥Ù”…ÁÁ±¥…Ñ¥½¸((´¡ÑÑÁÌè¼½¹……ÁÁ”¹¥Ñ¡Õˆ¹¥¼½Y½Ñ”¼()Q¡”ÍÑ…Ñ¥Œ•áÁ½ÉĞÕÍ•ÌÑ¡”€½Y½Ñ•€‰…Í”Á…Ñ ½¹™¥ÕÉ•¥¸¹•áĞ¹½¹™¥œ¹©Í€¸((ŒŒ5@I•Í¥‘•¹Ğ=Á•É…Ñ¥½¹Ì()Q¡”µ½‰¥±”µ™É¥•¹‘±ä•¹ÑÉäÍÉ••¸İ¥±°‰”…Ù…¥±…‰±”…Ğ¡ÑÑÁÌè¼½¹……ÁÁ”¹¥Ñ¡Õˆ¹¥¼½Y½Ñ”½µ‘À¼…™Ñ•ÈÑ¡¥Ì‰É…¹ ¥Ì‘•Á±½å•¸%ĞÁÉ½Ù¥‘•ÌÍ¡½ÉÑÕÑÌ¥¹Ñ¼Ñ¡”•á¥ÍÑ¥¹œÉ•Í¥‘•¹Ğ‘¥É•Ñ½Éä°…±±Ì°‘½½ÈµÑ¼µ‘½½È°ÑÉ…¹ÍÁ½ÉÑ…Ñ¥½¸°É•µ…É­Ì°É•Á½ÉÑÌ°…¹…‘µ¥¹¥ÍÑÉ…Ñ¥½¸İ½É­™±½İÌ¸%ĞÕÍ•ÌÑ¡”Í…µ”MÕÁ…‰…Í”É•½É‘Ì…¹ÍÑ…™˜…ÕÑ¡½É¥é…Ñ¥½¸…ÌÑ¡”µ…¥¸…ÁÀ¸Y½Ñ¥¹œµ‘…äÑÕÉ¹½ÕĞ¥ÌÉ•½É‘•Í•Á…É…Ñ•±äÁ•È½¹™¥ÕÉ•‘…Ñ”°İ¥Ñ …¸…Õ‘¥Ñ…‰±”Õ¹‘¼…Ñ¥½¸¸Q¡”…‘‘¥Ñ¥Ù”‘…Ñ…‰…Í”µ¥É…Ñ¥½¸µÕÍĞ‰”…ÁÁ±¥•‰•™½É”ÕÍ¥¹œÑ¡”Ù½Ñ¥¹œµ‘…ä…¹ÑÉ…¹ÍÁ½ÉĞµ±¥¹¬ÍÉ••¹Ì¸((ŒŒÕÉÉ•¹Ğ¥µÁ±•µ•¹Ñ…Ñ¥½¸ÍÑ…ÑÕÌ()…µÁ…¥¹=ÁÌ¥Ì¹½Ğ„‰±…¹¬ÁÉ½©•Ğ¸9…Ù¥…Ñ¥½¸°Ñ¡”É•Í¥‘•¹Ğ‘…Ñ„µ½‘•°°½Á•É…Ñ¥½¹…°Ñ…‰±•Ì°½É”Á…•Ì°ÍÑå±¥¹œ°…¹‘•Á±½åµ•¹Ğ…±É•…‘ä•á¥ÍĞ¸!½İ•Ù•È°Ñ¡”™¥¹…°İ½É­™±½Üµ™¥ÉÍĞ…É¡¥Ñ•ÑÕÉ”¥ÌÍÑ¥±°‰•¥¹œ¥µÁ±•µ•¹Ñ•¸()ğÉ•„ğMÑ…ÑÕÌğ)ğ´´µğ´´µğ)ğAÉ½‘ÕĞÙ¥Í¥½¸ğ½µÁ±•Ñ”ğ)ğÁÁ±¥…Ñ¥½¸…É¡¥Ñ•ÑÕÉ”ğ½µÁ±•Ñ”ğ)ğ…Ñ…‰…Í”ÍÑÉÕÑÕÉ”ğ5½ÍÑ±ä½µÁ±•Ñ”ğ)ğ½É”¹…Ù¥…Ñ¥½¸ğ%µÁ±•µ•¹Ñ•ğ)ğ=Á•É…Ñ¥½¹…°Á…•ÌğA…ÉÑ¥…±±ä¥µÁ±•µ•¹Ñ•ğ)ğM¡…É•‘•Í¥¸ÍåÍÑ•´ğA…ÉÑ¥…±±ä¥µÁ±•µ•¹Ñ•ğ)ğ]½É­™±½Üµ™¥ÉÍĞ•áÁ•É¥•¹”ğ%¸ÁÉ½É•ÍÌğ)ğÕÑ½µ…Ñ¥Œ…Ñ¥Ù¥ÑäÑ¥µ•±¥¹”ğA±…¹¹•ğ)ğI•Í¥‘•¹Ğ5¥ÍÍ¥½¸½¹ÑÉ½°ğA±…¹¹•ğ)ğMÕÁ•ÉÙ¥Í½È½µµ…¹•¹Ñ•ÈğA±…¹¹•ğ()AÉ½É•ÍÌÍ¡½Õ±‰”µ•…ÍÕÉ•‰ä½µÁ±•Ñ•İ½É­™±½İÌ°¹½Ğ‰äÑ¡”•á¥ÍÑ•¹”½˜Á…”É½ÕÑ•Ì…±½¹”¸((ŒŒ½É”ÁÉ½‘ÕĞÁÉ¥¹¥Á±•Ì((ŒŒŒ=¹”É•Í¥‘•¹Ğ()Q¡”MÕÁ…‰…Í”I•Í¥‘•¹Ñ€Ñ…‰±”¥ÌÑ¡”Í½ÕÉ”½˜ÑÉÕÑ ™½ÈÉ•Í¥‘•¹Ğ¥‘•¹Ñ¥Ñä¸()I•Í¥‘•¹Ğ¥‘•¹Ñ¥Ñä¥Ì¹½Ğ‘ÕÁ±¥…Ñ•¥¹Í¥‘”½Á•É…Ñ¥½¹…°µ½‘Õ±•Ì¸A¡½¹”½È±¥Ù¥¹œµÁ±…”½ÉÉ•Ñ¥½¹Ì…É”ÍÕ‰µ¥ÑÑ•Ñ¡É½Õ ½¹Ñ…Ñ}Ù•É¥™¥…Ñ¥½¹€…¹É•Ù¥•İ•Í•Á…É…Ñ•±ä¸((ŒŒŒ=¹”½Á•É…Ñ¥½¹…°¡¥ÍÑ½Éä()…±±Ì°Ù¥Í¥ÑÌ°Ù•É¥™¥…Ñ¥½¸¡…¹•Ì°…ÍÍ¥¹µ•¹ÑÌ°ÑÉ…¹ÍÁ½ÉÑ…Ñ¥½¸…Ñ¥½¹Ì°•±•Ñ¥½¸µ‘…äÕÁ‘…Ñ•Ì°…¹É•µ…É­ÌÍ¡½Õ±½¹ÑÉ¥‰ÕÑ”Ñ¼½¹”¡É½¹½±½¥…°É•Í¥‘•¹ĞÑ¥µ•±¥¹”¸()É•”µÑ•áĞ¹½Ñ•ÌÍ¡½Õ±¹½Ğ‰”‘ÕÁ±¥…Ñ•…É½ÍÌİ½É­™±½İÌ¸UÍ•Èµ•¹Ñ•É•½µµ•¹ÑÌ‰•±½¹œ¥¸Ñ¡”•¹ÑÉ…°I•µ…É­ÌÍåÍÑ•´°İ¡¥±”ÍÑÉÕÑÕÉ•İ½É­™±½Ü…Ñ¥½¹ÌÍ¡½Õ±•¹•É…Ñ”…ÕÑ½µ…Ñ¥ŒÑ¥µ•±¥¹”•Ù•¹ÑÌ¸((ŒŒŒ=¹”±•…È…Ñ¥½¸()… ½Á•É…Ñ¥½¹…°ÍÉ••¸Í¡½Õ±ÁÉ¥½É¥Ñ¥é”Ñ¡”¹•áĞÕÍ•™Õ°…Ñ¥½¸É…Ñ¡•ÈÑ¡…¸‘¥ÍÁ±…å¥¹œ‘…Ñ„İ¥Ñ¡½ÕĞ½¹Ñ•áĞ¸()á…µÁ±•Ìè((´…±°•¹Ñ•Èè…±°°Í…Ù”°µ½Ù”Ñ¼Ñ¡”¹•áĞÉ•Í¥‘•¹Ğ¸(´½½ÈµÑ¼µ½½ÈèÙ¥Í¥Ğ°Í…Ù”°µ½Ù”Ñ¼Ñ¡”¹•áĞÉ•Í¥‘•¹Ğ½È¡½ÕÍ”¸(´±•Ñ¥½¸…äè½Á•¸…¸…Ñ¥½¹…‰±”ÅÕ•Õ”°…ÍÍ¥¸¥Ğ°½ÈÍ¡…É”¥Ğ¸(´QÉ…¹ÍÁ½ÉÑ…Ñ¥½¸è…ÍÍ¥¸„‘É¥Ù•È½ÈÙ•¡¥±”…¹½µÁ±•Ñ”Ñ¡”Á¥­ÕÀ¸((ŒŒÑ¥Ù”É½ÕÑ•Ì()ğM•Ñ¥½¸ğI½ÕÑ”ğÕÉÉ•¹ĞÉ•ÍÁ½¹Í¥‰¥±¥Ñäğ)ğ´´µğ´´µğ´´µğ)ğ…Í¡‰½…Éğ€½Y½Ñ”½€ğ…µÁ…¥¸½Ù•ÉÙ¥•ÜìÁ±…¹¹••Ù½±ÕÑ¥½¸¥¹Ñ¼Ñ¡”ÍÕÁ•ÉÙ¥Í½È½µµ…¹•¹Ñ•Èğ)ğI•Í¥‘•¹ÑÌğ€½Y½Ñ”½É•Í¥‘•¹ÑÌ½€ğM•…É¡…‰±”É•Í¥‘•¹Ğ¥‘•¹Ñ¥Ñä‘¥É•Ñ½Éä…¹•¹ÑÉäÁ½¥¹ĞÑ¼É•Í¥‘•¹ĞÁÉ½™¥±•Ìğ)ğI•Í¥‘•¹ĞAÉ½™¥±”ğ€½Y½Ñ”½É•Í¥‘•¹ĞµÁÉ½™¥±”¼ı¥ôñÉ•Í¥‘•¹Ñ}¥ù€ğI•Í¥‘•¹Ğ‘•Ñ…¥±ÌìÁ±…¹¹••Ù½±ÕÑ¥½¸¥¹Ñ¼5¥ÍÍ¥½¸½¹ÑÉ½°ğ)ğ…±°•¹Ñ•Èğ€½Y½Ñ”½…±°µ•¹Ñ•È½€ğ…±°½ÕÑ½µ•Ì°Ù½Ñ”¥¹Ñ•¹Ñ¥½¸°ÍÕÁÁ½ÉĞ°…±±‰…¬°…¹…•¹Ğİ½É­™±½Üğ)ğ½½ÈµÑ¼µ½½Èğ€½Y½Ñ”½‘½½ÈµÑ¼µ‘½½È½€ğ¥•±Ù¥Í¥Ğ½ÕÑ½µ•Ì…¹É•Í¥‘•¹Ğ½ÕÑÉ•… ğ)ğÍÍ¥¹µ•¹ÑÌğ€½Y½Ñ”½…ÍÍ¥¹µ•¹ÑÌ½€ğÍÍ¥¹µ•¹ĞÉ•…Ñ¥½¸°Í¡…É¥¹œ°½İ¹•ÉÍ¡¥À°…¹Á±…¹¹•ÁÉ½É•ÍÌÑÉ…­¥¹œğ)ğI•µ…É­Ìğ€½Y½Ñ”½É•µ…É­Ì½€ğ•¹ÑÉ…±¥é•½Á•É…Ñ¥½¹…°É•µ…É­Ìğ)ğ±•Ñ¥½¸…äğ€½Y½Ñ”½•±•Ñ¥½¸µ‘…ä½€ğQÕÉ¹½ÕĞ½Á•É…Ñ¥½¹Ì…¹…Ñ¥½¹…‰±”É•Í¥‘•¹ĞÅÕ•Õ•Ìğ)ğQÉ…¹ÍÁ½ÉÑ…Ñ¥½¸ğ€½Y½Ñ”½ÑÉ…¹ÍÁ½ÉÑ…Ñ¥½¸½€ğ±•Ñ¥½¸µ‰½àÑÉ…¹ÍÁ½ÉĞÁ±…¹¹¥¹œ…¹½µÁ±•Ñ¥½¸ÑÉ…­¥¹œğ)ğ½¹Ñ…ĞY•É¥™¥…Ñ¥½¸ğ€½Y½Ñ”½½¹Ñ…ĞµÙ•É¥™¥…Ñ¥½¸½€ğI•Ù¥•ÜÁ¡½¹”…¹±¥Ù¥¹œµÁ±…”½ÉÉ•Ñ¥½¸É•ÅÕ•ÍÑÌğ)ğI•Á½ÉÑÌğ€½Y½Ñ”½É•Á½ÉÑÌ½€ğI•…µ½¹±ä…µÁ…¥¸É•Á½ÉÑ¥¹œğ)ğM¡…É•]½É­™±½Üğ€½Y½Ñ”½Í¡…É”¼ıÑ½­•¸ôñÑ½­•¸ù€ğI•ÍÑÉ¥Ñ•É•Í¥‘•¹ĞÍÕ‰Í•ĞÉ•…Ñ•™É½´„İ½É­™±½ÜÍ¡…É”ğ()¼¹½ĞÉ•ÍÑ½É”½È‘½Õµ•¹Ğ±•…äÉ½ÕÑ•ÌÑ¡…Ğ…É”…‰Í•¹Ğ™É½´Ñ¡”ÕÉÉ•¹Ğ…ÁÀ½€ÍÑÉÕÑÕÉ”…¹Í¥‘•‰…È¸((ŒŒ…Ñ„µ½‘•°((ŒŒŒI•Í¥‘•¹Ğ¥‘•¹Ñ¥Ñäµ…ÍÑ•È()Q¡”I•Í¥‘•¹Ñ€Ñ…‰±”½¹Ñ…¥¹ÌÉ•Í¥‘•¹Ğ¥‘•¹Ñ¥Ñä…¹É•™•É•¹”¥¹™½Éµ…Ñ¥½¸¸()=Á•É…Ñ¥½¹…°Á…•ÌµÕÍĞ¹½Ğ½Ù•ÉİÉ¥Ñ”É•Í¥‘•¹Ğ¥‘•¹Ñ¥Ñä‘¥É•Ñ±äÕ¹±•ÍÌÑ¡”…ÁÁ±¥…Ñ¥½¸•áÁ±¥¥Ñ±äÍÕÁÁ½ÉÑÌ…¸…ÁÁÉ½Ù•…‘µ¥¹¥ÍÑÉ…Ñ¥Ù”½ÉÉ•Ñ¥½¸İ½É­™±½Ü¸((ŒŒŒ=Á•É…Ñ¥½¹…°Ñ…‰±•Ì()]½É­™±½Ü‘…Ñ„¥ÌÍÑ½É•¥¸‘•‘¥…Ñ•Ñ…‰±•Ìè((´…±±}•¹Ñ•É€(´‘½½É}Ñ½}‘½½É€(´…ÍÍ¥¹µ•¹ÑÍ€(´É•µ…É­Í€(´•±•Ñ¥½¹}‘…å€(´ÑÉ…¹ÍÁ½ÉÑ…Ñ¥½¹€(´½¹Ñ…Ñ}Ù•É¥™¥…Ñ¥½¹€(´İ½É­™±½İ}Í¡…É•Í€()±°½Á•É…Ñ¥½¹…°É•½É‘ÌÍ¡½Õ±É•™•É•¹”É•Í¥‘•¹Ñ}¥‘€¸((ŒŒQ…É•Ğ½Á•É…Ñ¥¹œµ½‘•°((ŒŒŒ…Í¡‰½…ÉƒŠPMÕÁ•ÉÙ¥Í½È½µµ…¹•¹Ñ•È()Q¡”…Í¡‰½…ÉÍ¡½Õ±…¹Íİ•ÈÑ¡É•”ÅÕ•ÍÑ¥½¹Ìè((Ä¸]¡…Ğ¹••‘Ì…ÑÑ•¹Ñ¥½¸¹½Üü(È¸]¡¼¥Ìİ½É­¥¹œü(Ì¸]¡•É”…É”½Á•É…Ñ¥½¹Ì‰•¡¥¹ü()Q…É•ĞÍ•Ñ¥½¹Ìè((´É¥Ñ¥…°ÅÕ•Õ•Ì(´…±±Ì…¹Ù¥Í¥ÑÌ¥¸ÁÉ½É•ÍÌ(´áÁ•Ñ•Ù½Ñ•Ì¹½Ğå•ĞÉ•½É‘•(´QÉ…¹ÍÁ½ÉĞÁ•¹‘¥¹œ(´ÍÍ¥¹µ•¹Ğ½µÁ±•Ñ¥½¸(´•¹Ğ…Ñ¥Ù¥Ñä(´1¥Ù”…Ñ¥Ù¥Ñä™••()Q¡”…Í¡‰½…É¥ÌÉ•…µ½¹±ä¸=Á•É…Ñ¥½¹…°ÕÁ‘…Ñ•Ì¡…ÁÁ•¸¥¸Ñ¡•¥ÈÉ•±•Ù…¹Ğİ½É­™±½İÌ¸((ŒŒŒI•Í¥‘•¹ÑÌƒŠP½µµ…¹M•…É ()I•Í¥‘•¹ÑÌÉ•µ…¥¹ÌÑ¡”µ…ÍÑ•È‘¥É•Ñ½Éä…¹‰•½µ•ÌÑ¡”±½‰…°…µÁ…¥¸Í•…É •áÁ•É¥•¹”¸()M•…É Ñ…É•ÑÌè((´9…µ”(´9…Ñ¥½¹…°%(´A¡½¹”(´I•Í¥‘•¹Ğ%(´=™™¥¥…°…‘‘É•ÍÌ(´ÕÉÉ•¹Ğ±¥Ù¥¹œÁ±…”(´±•Ñ¥½¸‰½à(´ÍÍ¥¹•”()Q¡”Á…”Í¡½Õ±ÕÍ”Í¡…É•™¥±Ñ•ÉÌ°Í¡…É•Á…¥¹…Ñ¥½¸°…¹Ñ¡”ÍÑ…¹‘…É‘¥é•I•Í¥‘•¹Ğ…É¸((ŒŒŒI•Í¥‘•¹ĞAÉ½™¥±”ƒŠP5¥ÍÍ¥½¸½¹ÑÉ½°()Q¡”I•Í¥‘•¹ĞAÉ½™¥±”¥ÌÑ¡”•¹ÑÉ…°İ½É­ÍÁ…”™½È½¹”É•Í¥‘•¹Ğ¸()Q…É•ĞÍ•Ñ¥½¹Ìè((´=Ù•ÉÙ¥•Ü(´Q¥µ•±¥¹”(´…±°•¹Ñ•È(´½½ÈµÑ¼µ½½È(´½¹Ñ…ĞY•É¥™¥…Ñ¥½¸(´ÍÍ¥¹µ•¹ÑÌ(´±•Ñ¥½¸…ä(´QÉ…¹ÍÁ½ÉÑ…Ñ¥½¸(´I•µ…É­Ì()Q¡”ÕÍ•ÈÍ¡½Õ±‰”…‰±”Ñ¼Õ¹‘•ÉÍÑ…¹Ñ¡”É•Í¥‘•¹ĞÌ½µÁ±•Ñ”…µÁ…¥¸¡¥ÍÑ½Éäİ¥Ñ¡½ÕĞ½Á•¹¥¹œµÕ±Ñ¥Á±”Õ¹É•±…Ñ•Á…•Ì¸((ŒŒŒÕÑ½µ…Ñ¥ŒÑ¥µ•±¥¹”()Ù•Éäµ•…¹¥¹™Õ°ÍÑÉÕÑÕÉ•…Ñ¥½¸Í¡½Õ±É•…Ñ”…¸…Ñ¥Ù¥Ñä•Ù•¹Ğ…ÕÑ½µ…Ñ¥…±±ä¸()á…µÁ±•Ìè((´…±°½µÁ±•Ñ•(´Y½Ñ”¥¹Ñ•¹Ñ¥½¸¡…¹•(´½½ÈÙ¥Í¥Ğ½µÁ±•Ñ•(´½¹Ñ…Ğ½ÉÉ•Ñ¥½¸É•ÅÕ•ÍÑ•½ÈÙ•É¥™¥•(´ÍÍ¥¹µ•¹ĞÉ•…Ñ•½È½µÁ±•Ñ•(´QÉ…¹ÍÁ½ÉĞÉ•ÅÕ•ÍÑ•°…ÍÍ¥¹•°½È½µÁ±•Ñ•(´I•Í¥‘•¹Ğµ…É­•Ù½Ñ•(´I•µ…É¬…‘‘•()Ñ¥µ•±¥¹”•Ù•¹ĞÍ¡½Õ±¥¹±Õ‘”è((´I•Í¥‘•¹Ğ%(´5½‘Õ±”(´Ñ¥½¸(´MÑÉÕÑÕÉ•ÍÕµµ…Éä(´Ñ¥¹œÕÍ•È½È…•¹Ğ(´Q¥µ•ÍÑ…µÀ(´=ÁÑ¥½¹…°É•±…Ñ•É•½É%((ŒŒŒÍÍ¥¹µ•¹ÑÌƒŠP=Á•É…Ñ¥½¹Ì…¹ÁÉ½É•ÍÌ()ÍÍ¥¹µ•¹ÑÌÍ¡½Õ±Í¡½Üµ½É”Ñ¡…¸Í¡…É”µ±¥¹¬É•…Ñ¥½¸¸()Q…É•Ğ…•¹Ğµ•ÑÉ¥Ìè((´ÍÍ¥¹•(´½µÁ±•Ñ•(´I•µ…¥¹¥¹œ(´½µÁ±•Ñ¥½¸Á•É•¹Ñ…”(´1…ÍĞ…Ñ¥Ù¥Ñä(´=Á•¸ÅÕ•Õ”(´M¡…É”É•µ…¥¹¥¹œÅÕ•Õ”()Q¡”Í…µ”É•Í¥‘•¹Ğµ…ä‰”…ÍÍ¥¹•Ñ¼‘¥™™•É•¹Ğ…ÍÍ¥¹••Ì¸ÕÁ±¥…Ñ”…ÍÍ¥¹µ•¹ĞÁÉ•Ù•¹Ñ¥½¸…ÁÁ±¥•Ìİ¥Ñ¡¥¸Ñ¡”Í…µ”…ÍÍ¥¹•”ÌÅÕ•Õ”¸((ŒŒŒ±•Ñ¥½¸…äƒŠPÑ¥½¹…‰±”ÅÕ•Õ•Ì()±•Ñ¥½¸…äÍ¡½Õ±ÁÉ¥½É¥Ñ¥é”É•Í¥‘•¹ÑÌÉ•ÅÕ¥É¥¹œ…Ñ¥½¸¥¹ÍÑ•…½˜Í¡½İ¥¹œÑ¡”™Õ±°É•Í¥‘•¹Ğµ…ÍÑ•È‰ä‘•™…Õ±Ğ¸()AÉ¥µ…ÉäÅÕ•Õ”è((´áÁ•Ñ•Ñ¼Ù½Ñ”(´9½Ğå•ĞÉ•½É‘•…ÌÙ½Ñ•()‘‘¥Ñ¥½¹…°™¥±Ñ•ÉÌè((´A…ÉÑä(´±•Ñ¥½¸‰½à(´!½ÕÍ”(´ÍÍ¥¹•”(´ÍÍ¥¹•½ÈÕ¹…ÍÍ¥¹•(´Y½Ñ”¥¹Ñ•¹Ñ¥½¸(´9••‘ÌÑÉ…¹ÍÁ½ÉĞ(´M•…É ()UÍ”½¹”M¡…É”ÕÉÉ•¹ĞEÕ•Õ•€…Ñ¥½¸Ñ¡…ĞÉ•ÍÁ•ÑÌÑ¡”ÕÉÉ•¹Ğ™¥±Ñ•ÉÌ¸((ŒŒŒQÉ…¹ÍÁ½ÉÑ…Ñ¥½¸ƒŠP1½¥ÍÑ¥Ì()QÉ…¹ÍÁ½ÉÑ…Ñ¥½¸Í¡½Õ±™½ÕÌ½¸É•Í¥‘•¹ÑÌİ¡¼¹••ÑÉ…¹ÍÁ½ÉĞ¸()Q…É•Ğ™¥•±‘Ìè((´I•Í¥‘•¹Ğ(´±•Ñ¥½¸‰½à(´A¥­ÕÀ±½…Ñ¥½¸(´É¥Ù•È(´Y•¡¥±”(´MÑ…Ó›h‘éì¶»§q«^tÑ¥µ”((ŒŒŒI•µ…É­Ì()I•µ…É­Ì¥ÌÑ¡”•¹ÑÉ…°Á±…”™½È™É•”µÑ•áĞ½Á•É…Ñ¥½¹…°½µµ•¹ÑÌ¸()… É•µ…É¬Í¡½Õ±½¹Ñ…¥¸è((´I•Í¥‘•¹Ğ%(´]½É­™±½ÜÍ•Ñ¥½¸(´I•µ…É¬(´I•½É‘•‰ä(´I•½É‘•…Ğ()MÑÉÕÑÕÉ•…Ñ¥½¹ÌÉ•µ…¥¸¥¸Ñ¡•¥È½İ¸İ½É­™±½ÜÑ…‰±•Ì…¹…ÁÁ•…È…ÕÑ½µ…Ñ¥…±±ä¥¸Ñ¡”É•Í¥‘•¹ĞÑ¥µ•±¥¹”¸((ŒŒŒI•Á½ÉÑÌ()I•Á½ÉÑÌ…É”É•…µ½¹±ä¸()A±…¹¹•Ù¥•İÌè((´…¥±ä(´]••­±ä(´=Ù•É…±°(´•¹ĞÁ•É™½Éµ…¹”(´A…ÉÑä(´!½ÕÍ”(´±•Ñ¥½¸‰½à(´…±°•¹Ñ•È(´½½ÈµÑ¼µ½½È(´±•Ñ¥½¸…ä(´QÉ…¹ÍÁ½ÉÑ…Ñ¥½¸()MX•áÁ½ÉĞ¥ÌÑ¡”¥¹¥Ñ¥…°Ñ…É•Ğ¸A•áÁ½ÉĞ…¸‰”…‘‘•±…Ñ•È¸((ŒŒM¡…É•Á±…Ñ™½É´™½Õ¹‘…Ñ¥½¸()	•™½É”…‘‘¥¹œµ½É”ÍÑ…¹‘…±½¹”™•…ÑÕÉ•Ì°½µÁ±•Ñ”Ñ¡”É•ÕÍ…‰±”Á±…Ñ™½É´±…å•È¸((ŒŒŒM¡…É•U$((´I•Í¥‘•¹Ğ…É(´¥±Ñ•È‰…È(´M•…É ¥¹ÁÕĞ(´MÑ…ÑÕÌ‰…‘•Ì(´A…¥¹…Ñ¥½¸(´1½…‘¥¹œÍ­•±•Ñ½¹Ì(´µÁÑäÍÑ…Ñ•Ì(´AÉ¥µ…Éä…¹Í•½¹‘…Éä…Ñ¥½¹Ì((ŒŒŒM¡…É•‘…Ñ„±…å•È((´M•ÉÙ•ÈµÍ¥‘”Á…¥¹…Ñ¥½¸İ¡•É”ÍÕÁÁ½ÉÑ•(´M¡…É•Í•…É …¹™¥±Ñ•ÈÅÕ•Éä¡…¹‘±¥¹œ(´I•ÅÕ•ÍĞ‘•‘ÕÁ±¥…Ñ¥½¸(´M¡½ÉĞµ±¥Ù•…¡”™½ÈÉ•Í¥‘•¹Ğ¥‘•¹Ñ¥Ñä(´I•±¥…‰±”É•™É•Í …™Ñ•ÈİÉ¥Ñ•Ì(´½¹Í¥ÍÑ•¹Ğ•ÉÉ½È¡…¹‘±¥¹œ((ŒŒŒM¡…É•İ½É­™±½Ü‰•¡…Ù¥½È((´AÉ•Í•ÉÙ”™¥±Ñ•ÉÌİ¡•¸½Á•¹¥¹œ„ÁÉ½™¥±”…¹É•ÑÕÉ¹¥¹œ(´MÉ½±°Ñ¼Ñ¡”Ñ½Àİ¡•¸¡…¹¥¹œÁ…•Ì(´Ù½¥™Õ±°µÁ…”É•±½…‘Ì(´UÍ”Ñ¡”½ÉÉ•Ğ€½É•Í¥‘•¹ĞµÁÉ½™¥±”¼ı¥õ€É½ÕÑ”(´•¹•É…Ñ”É•µ…É­Ì…¹Ñ¥µ•±¥¹”±¥¹­Ì½¹Í¥ÍÑ•¹Ñ±ä(´-••ÀÉ•Í¥‘•¹Ğ¥‘•¹Ñ¥ÑäÍ•Á…É…Ñ”™É½´İ½É­™±½ÜÉ•½É‘Ì((ŒŒ%µÁ±•µ•¹Ñ…Ñ¥½¸É½…‘µ…À((ŒŒŒA¡…Í”€ÄƒŠP½Õ¹‘…Ñ¥½¸((Ä¸Y•É¥™ä…¹É•Á…¥È…±°ÕÉÉ•¹Ğ½Á•É…Ñ¥½¹…°½µÁ½¹•¹ÑÌ¸(È¸½µÁ±•Ñ”Á…¥¹…Ñ¥½¸…¹™¥±Ñ•È½¹Í¥ÍÑ•¹ä½¸•Ù•ÉäÉ•Í¥‘•¹Ğµ‰…Í•Á…”¸(Ì¸MÑ…¹‘…É‘¥é”Ñ¡”I•Í¥‘•¹Ğ…É¸(Ğ¸MÑ…¹‘…É‘¥é”±½…‘¥¹œ°•µÁÑä°…¹•ÉÉ½ÈÍÑ…Ñ•Ì¸(Ô¸½µÁ±•Ñ”•¹ÑÉ…±¥é•I•µ…É­Ì¥¹Ñ•É…Ñ¥½¸¸((ŒŒŒA¡…Í”€ÈƒŠP=Á•É…Ñ¥½¹…°İ½É­™±½Ü((Ä¸	Õ¥±Ñ¡”…ÕÑ½µ…Ñ¥ŒÑ¥µ•±¥¹”•¹¥¹”¸(È¸áÁ…¹I•Í¥‘•¹ĞAÉ½™¥±”¥¹Ñ¼5¥ÍÍ¥½¸½¹ÑÉ½°¸(Ì¸‘…ÍÍ¥¹µ•¹Ğ½µÁ±•Ñ¥½¸…¹…•¹ĞÁÉ½É•ÍÌ¸(Ğ¸¥¹…±¥é”±•Ñ¥½¸…ä…Ñ¥½¹…‰±”ÅÕ•Õ•Ì¸(Ô¸½µÁ±•Ñ”ÑÉ…¹ÍÁ½ÉÑ…Ñ¥½¸İ½É­™±½ÜÍÑ…Ñ•Ì¸(Ø¸‘„™½ÕÍ•5ä]½É­€•áÁ•É¥•¹”…™Ñ•ÈÕÍ•È¥‘•¹Ñ¥Ñä…¹É½±•Ì…É”¥µÁ±•µ•¹Ñ•¸((ŒŒŒA¡…Í”€ÌƒŠP5…¹…•µ•¹Ğ((Ä¸UÁÉ…‘”…Í¡‰½…É¥¹Ñ¼Ñ¡”MÕÁ•ÉÙ¥Í½È½µµ…¹•¹Ñ•È¸(È¸‘±¥Ù”…Ñ¥Ù¥Ñä…Ì„…Í¡‰½…Éİ¥‘•Ğ¸(Ì¸‘¹½Ñ¥™¥…Ñ¥½¹ÌÑ¡É½Õ „½µÁ…Ğ±½‰…°¥¹Ñ•É™…”É…Ñ¡•ÈÑ¡…¸…¹½Ñ¡•ÈÍ¥‘•‰…ÈÁ…”¸(Ğ¸‘¡½ÕÍ”…¹•±•Ñ¥½¸µ‰½à½Á•É…Ñ¥½¹…°Ù¥•İÌ¸(Ô¸áÁ…¹É•Á½ÉÑÌ…¹•áÁ½ÉÑÌ¸((ŒŒŒA¡…Í”€ĞƒŠPI•±¥…‰¥±¥Ñä((Ä¸‘É½±”µ‰…Í•…•ÍÌ½¹ÑÉ½°¸(È¸‘…Õ‘¥Ğ…¹É•½Ù•ÉäÁÉ½•‘ÕÉ•Ì¸(Ì¸‘½™™±¥¹”µÍ…™”½ÈÉ•ÑÉå…‰±”±•Ñ¥½¸…äİÉ¥Ñ•Ìİ¡•É”™•…Í¥‰±”¸(Ğ¸‘‘…Ñ…‰…Í”¥¹‘•á•Ì‰…Í•½¸É•…°ÅÕ•ÉäÕÍ…”¸(Ô¸‘É•É•ÍÍ¥½¸Ñ•ÍÑÌ™½ÈÉ¥Ñ¥…°İ½É­™±½İÌ¸((ŒŒ%µµ•‘¥…Ñ”•¹¥¹••É¥¹œÁÉ¥½É¥Ñ¥•Ì()Q¡”¹•áĞ¥µÁ±•µ•¹Ñ…Ñ¥½¸Í•ÅÕ•¹”Í¡½Õ±‰”è((Ä¸Õ‘¥ĞÑ¡”É•Á½Í¥Ñ½Éä™½ÈÑÉÕ¹…Ñ•½È‰É½­•¸½µÁ½¹•¹ÑÌ¸(È¸¥àÉ•Í¥‘•¹Ğµ±¥ÍĞÁ•É™½Éµ…¹”…¹Á…¥¹…Ñ¥½¸¸(Ì¸MÑ…¹‘…É‘¥é”I•Í¥‘•¹Ğ…ÉÕÍ…”¸(Ğ¸½µÁ±•Ñ”I•µ…É­Ì±¥¹­Ì…¹É•µ½Ù”‘ÕÁ±¥…Ñ”¹½Ñ”™¥•±‘Ì¸(Ô¸%µÁ±•µ•¹ĞÑ¡”…ÕÑ½µ…Ñ¥ŒÑ¥µ•±¥¹”‘…Ñ„µ½‘•°…¹İÉ¥Ñ•È¸(Ø¸	Õ¥±I•Í¥‘•¹Ğ5¥ÍÍ¥½¸½¹ÑÉ½°¸(Ü¸‘…ÍÍ¥¹µ•¹ĞÁÉ½É•ÍÌ¸(à¸¥¹…±¥é”±•Ñ¥½¸…äÅÕ•Õ•Ì¸(ä¸UÁÉ…‘”Ñ¡”…Í¡‰½…É¸()-¹½İ¸™¥±•ÌÉ•ÅÕ¥É¥¹œÙ•É¥™¥…Ñ¥½¸‰•™½É”™ÕÉÑ¡•È™•…ÑÕÉ”İ½É¬è((´½µÁ½¹•¹ÑÌ½…±±•¹Ñ•É½¹Ñ•¹Ğ¹ÑÍá€(´½µÁ½¹•¹ÑÌ½=Á•É…Ñ¥½¹Í1¥ÍÑ½¹Ñ•¹Ğ¹ÑÍá€(´ÍÑå±•Ì½Ñ…¥±İ¥¹¹ÍÍ€()¼¹½ĞÑÉ•…Ğ„ÍÕ•ÍÍ™Õ°½µµ¥Ğ…ÌÁÉ½½˜Ñ¡…Ğ„İ¡½±”µ™¥±”É•Á±…•µ•¹Ğ¥Ì½µÁ±•Ñ”¸•Ñ …¹¥¹ÍÁ•Ğ¡…¹•™¥±•Ì…™Ñ•È½¹¹•Ñ½Èµ‰…Í•ÕÁ‘…Ñ•Ì¸((ŒŒQ•¡¹½±½ä((´9•áĞ¹©Ì€ÄÔÍÑ…Ñ¥Œ•áÁ½ÉĞ(´I•…Ğ€Ää(´QåÁ•MÉ¥ÁĞ(´Q…¥±İ¥¹ML(´MÕÁ…‰…Í”(´¥Ñ!ÕˆA…•Ì(´¥Ñ!ÕˆÑ¥½¹Ì((ŒŒ-•äÍ½ÕÉ”™¥±•Ì()ğÉ•„ğ¥±”ğ)ğ´´µğ´´µğ)ğI½½Ğ…Í¡‰½…Éğ…ÁÀ½Á…”¹ÑÍá€ğ)ğM¡…É•…ÁÁ±¥…Ñ¥½¸±…å½ÕĞğ±…å½ÕĞ½ÁÁ1…å½ÕĞ¹ÑÍá€ğ)ğÕÉÉ•¹Ğ¹…Ù¥…Ñ¥½¸ğ±…å½ÕĞ½M¥‘•‰…È¹ÑÍá€ğ)ğI•Í¥‘•¹ÑÌğ½µÁ½¹•¹ÑÌ½Y½Ñ•É5…¹…•µ•¹Ñ½¹Ñ•¹Ğ¹ÑÍá€ğ)ğ…±°•¹Ñ•Èğ½µÁ½¹•¹ÑÌ½…±±•¹Ñ•É½¹Ñ•¹Ğ¹ÑÍá€ğ)ğ½½ÈµÑ¼µ½½È…¹Í¡…É•½Á•É…Ñ¥½¹Ìğ½µÁ½¹•¹ÑÌ½=Á•É…Ñ¥½¹Í1¥ÍÑ½¹Ñ•¹Ğ¹ÑÍá€ğ)ğQÉ…¹ÍÁ½ÉÑ…Ñ¥½¸ğ½µÁ½¹•¹ÑÌ½QÉ…¹ÍÁ½ÉÑ…Ñ¥½¹½¹Ñ•¹Ğ¹ÑÍá€ğ)ğI•Í¥‘•¹Ğ…¹…±°‘…Ñ„…•ÍÌğ±¥ˆ½ÍÕÁ…‰…Í”¹ÑÍ€ğ)ğ±•Ñ¥½¸°ÑÉ…¹ÍÁ½ÉĞ°…ÍÍ¥¹µ•¹ÑÌ°…¹Í¡…É¥¹œğ±¥ˆ½½Á•É…Ñ¥½¹Ì¹ÑÍ€ğ)ğMÑ…Ñ¥Œ•áÁ½ÉĞ½¹™¥ÕÉ…Ñ¥½¸ğ¹•áĞ¹½¹™¥œ¹©Í€ğ)ğ¥Ñ!ÕˆA…•Ì‘•Á±½åµ•¹Ğğ€¹¥Ñ¡Õˆ½İ½É­™±½İÌ½‘•Á±½ä¹åµ±€ğ((ŒŒ•Á±½åµ•¹Ğ()Ù•ÉäÁÕÍ Ñ¼µ…¥¹€ÉÕ¹Ì€¹¥Ñ¡Õˆ½İ½É­™±½İÌ½‘•Á±½ä¹åµ±€¸()Q¡”İ½É­™±½ÜÍ¡½Õ±è((Ä¸¡•¬½ÕĞÑ¡”±…Ñ•ÍĞµ…¥¹€‰É…¹ ¸(È¸UÍ”9½‘”¹©Ì€ÈÀ¸(Ì¸%¹ÍÑ…±°‘•Á•¹‘•¹¥•Ì¸(Ğ¸IÕ¸Ñ¡”ÁÉ½‘ÕÑ¥½¸‰Õ¥±¸(Ô¸Y•É¥™ä½ÕĞ½¥¹‘•à¹¡Ñµ±€¸(Ø¸UÁ±½…Ñ¡”ÍÑ…Ñ¥Œ•áÁ½ÉĞÑ¼¥Ñ!ÕˆA…•Ì¸()I•ÅÕ¥É•É•Á½Í¥Ñ½ÉäÍ•É•ÑÌè((´9aQ}AU	1%}MUA	M}UI1€(´9aQ}AU	1%}MUA	M}9=9}-e€()1½…°Ù•É¥™¥…Ñ¥½¸è()‰…Í )¹Á´¥¹ÍÑ…±°)¹Á´ÉÕ¸‰Õ¥±)€((ŒŒ½Õµ•¹Ñ…Ñ¥½¸µ…¥¹Ñ•¹…¹”()™Ñ•È„ÍÑÉÕÑÕÉ…°¡…¹”è((Ä¸I•µ½Ù”±¥¹­ÌÑ¼‘•±•Ñ•É½ÕÑ•Ì¸(È¸UÁ‘…Ñ”Ñ¡”…Ñ¥Ù”É½ÕÑ”Ñ…‰±”™É½´±…å½ÕĞ½M¥‘•‰…È¹ÑÍá€¸(Ì¸UÁ‘…Ñ”É•±•Ù…¹Ğ…É¡¥Ñ•ÑÕÉ”…¹İ½É­™±½Ü‘½Õµ•¹Ñ…Ñ¥½¸¸(Ğ¸I•½É¥µÁ½ÉÑ…¹ĞÉ•ÍÑ½É”½Èµ¥É…Ñ¥½¸½µµ¥ÑÌ¥¸M!L¹µ‘€¸(Ô¸IÕ¸¹Á´ÉÕ¸‰Õ¥±‘€‰•™½É”ÑÉ•…Ñ¥¹œÑ¡”¡…¹”…Ì‘•Á±½å…‰±”¸()Ù½¥µ…¥¹Ñ…¥¹¥¹œµÕÑ…‰±”™¥±”‰±½ˆM!Ì¥¹Í¥‘”Ñ¡¥ÌI5¸UÍ”M!L¹µ‘€™½ÈÉ•½Ù•Éä‰…Í•±¥¹•Ì¸((ŒŒAÉ½©•ĞÍÑ…ÑÕÌ‘•™¥¹¥Ñ¥½¸()…µÁ…¥¹=ÁÌØÄ¸À¥Ì½µÁ±•Ñ”İ¡•¸è((´±°½Á•É…Ñ¥½¹…°Á…•ÌÕÍ”½¹Í¥ÍÑ•¹ĞÉ•Í¥‘•¹Ğ…É‘Ì°™¥±Ñ•ÉÌ°Á…¥¹…Ñ¥½¸°±½…‘¥¹œ°…¹•ÉÉ½ÈÍÑ…Ñ•Ì¸(´I•Í¥‘•¹ĞAÉ½™¥±”ÁÉ½Ù¥‘•Ì„½µÁ±•Ñ”½Á•É…Ñ¥½¹…°Ù¥•Ü¸(´Q¥µ•±¥¹”•Ù•¹ÑÌ…É”•¹•É…Ñ•…ÕÑ½µ…Ñ¥…±±ä¸(´ÍÍ¥¹µ•¹Ğ½µÁ±•Ñ¥½¸…¹…•¹ĞÁÉ½É•ÍÌ…É”Ù¥Í¥‰±”¸(´±•Ñ¥½¸…ä¥Ì‘É¥Ù•¸‰ä…Ñ¥½¹…‰±”ÅÕ•Õ•Ì¸(´QÉ…¹ÍÁ½ÉÑ…Ñ¥½¸…¸‰”…ÍÍ¥¹•…¹½µÁ±•Ñ•É•±¥…‰±ä¸(´Q¡”…Í¡‰½…É¥Ù•ÌÍÕÁ•ÉÙ¥Í½ÉÌ„±•…È½Á•É…Ñ¥½¹…°Á¥ÑÕÉ”¸(´É¥Ñ¥…°İ½É­™±½İÌÁ…ÍÌÁÉ½‘ÕÑ¥½¸‰Õ¥±…¹É•É•ÍÍ¥½¸Ñ•ÍÑ¥¹œ¸()U¹Ñ¥°Ñ¡½Í”½¹‘¥Ñ¥½¹Ì…É”µ•Ğ°Ñ¡”…É¡¥Ñ•ÑÕÉ”¥Ì½µÁ±•Ñ”‰ÕĞ¥µÁ±•µ•¹Ñ…Ñ¥½¸É•µ…¥¹Ì¥¸ÁÉ½É•ÍÌ¸((ŒŒ1¥•¹Í”()AÉ¥Ù…Ñ”ÁÉ½©•Ğ¸()…µÁ…¥¹=ÁÌƒ
+¤€ÈÀÈØ¸((ŒŒÕÑ¡•¹Ñ¥…Ñ¥½¸…¹…•ÍÌÉ•Á…¥ÈƒŠP€ÄÔ=Ñ½‰•È€ÈÀÈØ()M¥¸¥¸İ¥Ñ …¸•á¥ÍÑ¥¹œÍÑ…™˜•µ…¥°½Á…ÍÍİ½É¸¹……ÁÁ•€É•Í½±Ù•ÌÑ¼Ñ¡”…‘µ¥¹¥ÍÑÉ…Ñ½È•µ…¥°¹……ÁÁ•µ…¥°¹½µ€ì½Ñ¡•ÈÕÍ•É¹…µ•ÌÕÍ”Ñ¡”ÍÑ…™˜•µ…¥°‘½µ…¥¸¸Í¥¹•µ¥¸ÕÍ•ÈµÕÍĞ¡…Ù”…¸…Ñ¥Ù”ÕÍ•É}É½±•Í€É•½É¸‘µ¥¹¥ÍÑÉ…Ñ½È…¹ÍÕÁ•ÉÙ¥Í½ÈÁ•Éµ¥ÍÍ¥½¹Ì…É”¡•­•¥¸‘…Ñ…‰…Í”Á½±¥¥•ÌìÕÍ•Èµ•‘¥Ñ…‰±”µ•Ñ…‘…Ñ„‘½•Ì¹½Ğ…ÕÑ¡½É¥é”…•ÍÌ¸()Q¡”µ¥É…Ñ¥½¸ÍÕÁ…‰…Í”½µ¥É…Ñ¥½¹Ì¼ÈÀÈØÄÀÄÔÄĞÌÀÀÁ}Í•ÕÉ•}Ù½Ñ•}…•ÍÌ¹ÍÅ±€É•µ½Ù•ÌÁÕ‰±¥Œ…•ÍÌÑ¼Y½Ñ”Ñ…‰±•Ì…¹Õ¹ÕÍ•±•…äÁÉ¥Ù¥±••IAÌ¸¹½¹åµ½ÕÌ…ÍÍ¥¹µ•¹Ğ±¥¹­ÌÕÍ”Ñ½­•¸µÍ½Á•IAÌÑ¡…ĞÙ…±¥‘…Ñ”•áÁ¥Éä°Á•Éµ¥ÑÑ•É•Í¥‘•¹ÑÌ…¹Ñ¡”…ÍÍ¥¹•”½¸Ñ¡”Í•ÉÙ•È¸MÕÁÁ±äÑ…‰±•Ì…É”½ÕÑÍ¥‘”Ñ¡¥Ìµ¥É…Ñ¥½¸¸()IÕ¸¹Á´¥€°¹Á´Ñ•ÍÑ€€¡9½‘”€ÈĞ¤°…¹¹Á´ÉÕ¸‰Õ¥±‘€¸Q¡”±½­™¥±”Á¥¹Ì‘•Á±½åµ•¹Ğ‘•Á•¹‘•¹¥•Ì¸I•Á½ÉÑÌ©½¥¸½Á•É…Ñ¥½¹…°Ñ…‰±•Ì°…¹½Á•É…Ñ¥½¹…°É•…‘ÌÕÍ”Á…¥¹…Ñ¥½¸¸()µ…¥°É•½Ù•ÉäÉ•‘¥É•ĞÍ•ÑÑ¥¹ÌµÕÍĞÁ½¥¹ĞÑ¼Ñ¡¥Ì‘•Á±½åµ•¹Ğ‰•™½É”½™™•É¥¹œ•µ…¥±•Í¥¸µ¥¸½ÈÉ•½Ù•Éä±¥¹­ÌìÁ…ÍÍİ½É±½¥¸‘½•Ì¹½ĞÕÍ”Ñ¡…ĞÉ•‘¥É•Ğ¸(((ŒŒI•Í¥‘•¹Ğ‘¥É•Ñ½Éä•áÁ½ÉĞ…¹±½…‘¥¹œ()Q¡”‘¥É•Ñ½Éä‘•™…Õ±ÑÌÑ¼„½µÁ…Ğ±¥ÍĞİ¥Ñ …¸½ÁÑ¥½¹…°Á¡½Ñ¼Ù¥•Ü¸áÁ½ÉĞMX‘½İ¹±½…‘Ì…±°™¥±Ñ•É•É•ÍÕ±ÑÌ…É½ÍÌÁ…•Ì°¥¹±Õ‘¥¹œ½É¥¥¹…°É•¥ÍÑÉ…Ñ¥½¸½…‘‘É•ÍÌÙ…±Õ•Ì…¹Á¡½Ñ¼±¥¹­Ì¸MX½ÕÑÁÕĞÕÍ•Ì„UQ´à	=4…¹•Í…Á•Ì™½ÉµÕ±„µ±¥­”Ñ•áĞ¸¥±Ñ•ÉÌ¥¹±Õ‘”Y•É¥™äÁ…ÉÑä‘¥É•Ñ±ä¸()Q¡”…±±•ÈµÍ½Á•Ù½Ñ•}É•Í¥‘•¹Ñ}‘¥É•Ñ½Éå€IAÉ•…‘Ì½¹±äÉ•Í¥‘•¹Ğ¥‘•¹Ñ¥Ñä‘…Ñ„…¹ÁÉ½Ù¥‘•Ì½Õ¹Ğ€¬½¹”Á…”¥¸½¹”É•ÅÕ•ÍĞ¸¥±Ñ•Èµ•Ñ…‘…Ñ„¥Ì…É•…Ñ•¥¸½¹”É•ÅÕ•ÍĞ¸¥É•Ñ½ÉäÁ…•Ì¡…Ù”„€ÌÀµÍ•½¹¥¸µµ•µ½Éä…¡”±•…É•½¸Í¥¸µ½ÕĞ¸Q¡”É½½ĞÕÑ¡…Ñ”Á•ÉÍ¥ÍÑÌ…É½ÍÌ¹½Éµ…°Á…”¹…Ù¥…Ñ¥½¸ìÍ¡…É•±¥¹­Ì½¹Ñ¥¹Õ”Ñ¼ÕÍ”Ñ½­•¸µÍ½Á•…•ÍÌ¸(
