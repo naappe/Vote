@@ -71,10 +71,11 @@ The requested multi-day behavior conflicts with the original “database schema 
 
 - `voting_days`: admin-managed date entries.
 - `resident_voting_status`: one status per resident and voting day, unique on `(resident_id, voting_day_id)`.
+- `resident_voting_status_events`: append-only mark/undo audit events with resident, voting day, prior/new status, actor, and timestamp.
 - `transport_request_links`: optional links from a transport request to a voting day or door-to-door visit.
 - Extend `remarks` with optional context and context-record ID, if equivalent columns do not already exist.
 
-Record every vote mark and undo with actor and timestamp using the existing activity log, so undo does not erase the audit trail. Preserve all existing resident rows and authentication. Existing one-day turnout rows must be retained and explicitly associated or kept as legacy; never discard them silently.
+Record every vote mark and undo in `resident_voting_status_events` with actor and timestamp, so undo does not erase the audit trail. The existing activity logger records page views and logins, so it is not the voting audit source. Preserve all existing resident rows and authentication. Existing one-day turnout rows must be retained and explicitly associated or kept as legacy; never discard them silently.
 
 If Option 2 is not approved, the requirements must be reduced to one voting day and transportation cannot be linked to voting-day/visit records. No implementation or migration should begin until the schema decision is approved.
 
@@ -85,7 +86,8 @@ Keep current policies for existing tables. For new or extended data, apply row-l
 - Active staff roles: `admin`, `supervisor`, `call_agent`, `field_agent`, `election_operator`.
 - All active staff may read resident and operational records as allowed by current policies.
 - `admin` and `supervisor` may manage voting-day definitions and perform supervisor-level writes.
-- `election_operator` may record or undo turnout and manage transport requests/links, matching current `election_day` and `transportation` permissions.
+- `election_operator` may record or undo turnout, append voting-status audit events, and manage transport requests/links, matching current `election_day` and `transportation` permissions.
+- Voting-status audit events are append-only; staff may read them under existing operational read permissions, and no client role may update or delete them.
 - `field_agent` may create/update door-to-door records under the existing field-agent policy.
 - `call_agent` may write call records under the existing call-agent policy.
 - Remarks retain role-specific write permissions; context does not grant additional access.
@@ -100,7 +102,7 @@ Keep current policies for existing tables. For new or extended data, apply row-l
 - Non-admin staff remain blocked from existing admin-only screens.
 - Migration validation confirms existing resident rows are unchanged. Opening the MDN route does not require a resident-table backfill.
 - Marking a resident voted on Day A does not change Day B.
-- Mark and undo actions retain actor and timestamp in the activity audit.
+- Mark and undo actions append actor, timestamp, day, and status change to `resident_voting_status_events`.
 - Door-to-door outcomes cannot be written to call records, and call outcomes cannot be written to door-to-door records.
 - RLS tests cover each named role and the new tables/links.
 - No migration is applied until Option 2 receives explicit approval.
