@@ -1,5 +1,6 @@
 import type {Metadata} from 'next';
 import MDPWorkspaceLayout from '../../layout/MDPWorkspaceLayout';
+import '../../styles/mdp-workspace.css';
 
 export const metadata:Metadata={title:'Maldivian Democratic Party (MDP) Resident Operations',description:'Resident operations workspace'};
 
