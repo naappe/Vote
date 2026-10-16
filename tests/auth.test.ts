@@ -9,6 +9,6 @@ test('administrator username resolves to the existing email account',()=>{
 });
 test('network failures give a useful retry message without exposing credentials',()=>{
  assert.match(authErrorMessage(new TypeError('Failed to fetch')),/connection/i);
- assert.match(authErrorMessage({message:'Invalid login credentials'}),/email or password/i);
+ assert.match(authErrorMessage({message:'Invalid login credentials'}),/Forgot password/i);
  assert.equal(authErrorMessage({message:'Account is disabled.'}),'Account is disabled.');
 });

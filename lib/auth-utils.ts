@@ -8,6 +8,6 @@ export function authErrorMessage(error:unknown){
  if(/too many requests|rate limit|over_request_rate_limit/i.test(message))return 'Too many sign-in attempts. Wait a few minutes before trying again.';
  if(/email not confirmed/i.test(message))return 'Confirm your email address before signing in.';
  if(/jwt expired|refresh token not found|invalid refresh token/i.test(message))return 'Your session has expired. Sign in again.';
- if(/invalid login credentials/i.test(message))return 'The email or password is incorrect. Use naappe@gmail.com for your administrator account.';
+ if(/invalid login credentials/i.test(message))return 'The email or password is incorrect. Check the spelling or use Forgot password to reset it.';
  return message;
 }
