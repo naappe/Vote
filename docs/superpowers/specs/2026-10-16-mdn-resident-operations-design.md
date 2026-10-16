@@ -67,7 +67,7 @@ For MDN CSV export, select an explicit allowlist of named resident columns; neve
 
 The requested multi-day behavior conflicts with the original “database schema unchanged” requirement. The current app saves election-day status with `resident_id` as the upsert conflict key, so it supports one turnout row per resident. Transportation is also upserted by `resident_id`, so it cannot hold separately linked requests per voting day or visit.
 
-**Recommended decision: Option 2 — permit the smallest additive migration. Status: awaiting explicit approval before implementation.** Proposed additive structures:
+**Decision (2026-10-16): Option 2 approved — permit the smallest additive migration.** Proposed additive structures:
 
 - `voting_days`: admin-managed date entries.
 - `resident_voting_status`: one status per resident and voting day, unique on `(resident_id, voting_day_id)`.
@@ -77,7 +77,7 @@ The requested multi-day behavior conflicts with the original “database schema 
 
 Record every vote mark and undo in `resident_voting_status_events` with actor and timestamp, so undo does not erase the audit trail. The existing activity logger records page views and logins, so it is not the voting audit source. Preserve all existing resident rows and authentication. Existing one-day turnout rows must be retained and explicitly associated or kept as legacy; never discard them silently.
 
-If Option 2 is not approved, the requirements must be reduced to one voting day and transportation cannot be linked to voting-day/visit records. No implementation or migration should begin until the schema decision is approved.
+Implementation must retain the multi-day and linked-transport requirements using the approved additive schema changes. Preserve current role-based access; review the generated migration and RLS policies before applying them to the connected Supabase project.
 
 ## RLS roles
 
@@ -105,7 +105,7 @@ Keep current policies for existing tables. For new or extended data, apply row-l
 - Mark and undo actions append actor, timestamp, day, and status change to `resident_voting_status_events`.
 - Door-to-door outcomes cannot be written to call records, and call outcomes cannot be written to door-to-door records.
 - RLS tests cover each named role and the new tables/links.
-- No migration is applied until Option 2 receives explicit approval.
+- Migration uses additive changes only and is reviewed against the connected Supabase project's actual schema before application.
 
 ## Data-scope assumption
 
