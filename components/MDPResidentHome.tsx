@@ -1,21 +1,40 @@
 import Link from 'next/link';
 
-const actions=[
- {title:'Residents',detail:'Search the resident directory, open profiles, and export results.',href:'/mdp/residents/',icon:'01'},
- {title:'Calls and visits',detail:'Record call outcomes and follow-up actions.',href:'/mdp/calls/',icon:'02'},
- {title:'Door-to-door',detail:'Log household visits and field outcomes.',href:'/mdp/door-to-door/',icon:'03'},
- {title:'Voting days',detail:'Choose a voting day and record or undo turnout.',href:'/mdp/voting-days/',icon:'04'},
- {title:'Transportation',detail:'Review requests or link them to a voting day or door-to-door visit.',href:'/mdp/transportation/',icon:'05'},
- {title:'Link transport',detail:'Connect an existing transport request to a voting day or field visit.',href:'/mdp/transport-links/',icon:'06'},
- {title:'Remarks',detail:'Add resident notes and review their history.',href:'/mdp/remarks/',icon:'07'},
- {title:'Reports',detail:'Open operational reports and exports.',href:'/mdp/reports/',icon:'08'},
- {title:'Assignments',detail:'Assign resident follow-up work to staff.',href:'/mdp/assignments/',icon:'09'},
- {title:'Administration',detail:'Staff, verification, and backup tools remain role-restricted.',href:'/contact-verification/',icon:'10',admin:true},
+const tasks = [
+ {title:'Find a resident',detail:'Search the list or export residents.',href:'/mdp/residents/',mark:'01'},
+ {title:'Record a call',detail:'Save the call result and follow-up.',href:'/mdp/calls/',mark:'02'},
+ {title:'Log a home visit',detail:'Record a door-to-door visit.',href:'/mdp/door-to-door/',mark:'03'},
+ {title:'Record voting',detail:'Mark voted or undo by voting day.',href:'/mdp/voting-days/',mark:'04'},
+ {title:'Manage transport',detail:'Review and update resident requests.',href:'/mdp/transportation/',mark:'05'},
+];
+
+const moreTasks = [
+ {title:'Resident remarks',href:'/mdp/remarks/'},
+ {title:'Staff assignments',href:'/mdp/assignments/'},
+ {title:'Link transport requests',href:'/mdp/transport-links/'},
+ {title:'Reports',href:'/mdp/reports/'},
+ {title:'Staff and verification',href:'/contact-verification/'},
+ {title:'Staff accounts and backup',href:'/users/'},
 ];
 
 export default function MDPResidentHome(){
- return <div className="space-y-5">
-  <section className="panel !p-5 sm:!p-7"><p className="eyebrow">Resident operations</p><h1 className="mt-2 text-2xl sm:text-3xl">What would you like to do?</h1><p className="mt-2 max-w-2xl text-sm text-body">Choose a task. Your work uses the same resident records and secure staff access as the main app.</p><div className="mt-5 grid gap-3 sm:grid-cols-2">{actions.map(item=><Link key={item.title} prefetch={false} href={item.href} className="group flex min-h-24 items-start gap-4 rounded-xl border border-border bg-white p-4 transition hover:border-primary hover:shadow-card"><span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-primary-light text-sm font-extrabold text-primary">{item.icon}</span><span className="min-w-0"><strong className="block text-navy group-hover:text-primary">{item.title}</strong><small className="mt-1 block leading-5 text-body">{item.detail}</small></span><span aria-hidden="true" className="ml-auto text-lg text-body">›</span></Link>)}</div></section>
-  <p className="px-1 text-xs leading-5 text-body">Only staff accounts already authorized in the main app can open resident records or perform role-restricted actions.</p>
+ return <div className="mdp-home">
+  <section className="mdp-task-panel" aria-labelledby="mdp-task-heading">
+   <div className="mdp-home-heading">
+    <div><p className="mdp-eyebrow">Resident operations</p><h1 id="mdp-task-heading">Choose a task</h1></div>
+    <span className="mdp-task-count">5 main tasks</span>
+   </div>
+   <div className="mdp-task-list">
+    {tasks.map(task=><Link key={task.title} prefetch={false} href={task.href} className="mdp-task-card">
+     <span className="mdp-task-mark" aria-hidden="true">{task.mark}</span>
+     <span className="mdp-task-copy"><strong>{task.title}</strong><small>{task.detail}</small></span>
+     <span className="mdp-task-arrow" aria-hidden="true">›</span>
+    </Link>)}
+   </div>
+  </section>
+  <details className="mdp-more-tasks">
+   <summary>More tasks</summary>
+   <div className="mdp-more-grid">{moreTasks.map(task=><Link key={task.title} prefetch={false} href={task.href}>{task.title}<span aria-hidden="true">›</span></Link>)}</div>
+  </details>
  </div>
 }
