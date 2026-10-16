@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {residentsCsv,collectDirectoryPages} from '../lib/directory-utils.ts';
+import {mdpResidentsCsv,residentsCsv,collectDirectoryPages} from '../lib/directory-utils.ts';
 
 test('CSV retains registration numbers, handles commas and neutralizes spreadsheet formulas',()=>{
  const csv=residentsCsv([{id:7,name:'=HYPERLINK("bad")',national_id:'A012345',house:'No RS 1172',lives_in:'House, flat 2',phone:'0777777',party:'Verify party'}]);
@@ -9,6 +9,13 @@ test('CSV retains registration numbers, handles commas and neutralizes spreadshe
  assert.ok(csv.includes('"House, flat 2"'));
  assert.ok(csv.includes("\"'=HYPERLINK"));
  assert.ok(csv.includes('0777777'));
+});
+test('MDP CSV uses an explicit allowlist without party or photo fields',()=>{
+ const csv=mdpResidentsCsv([{id:9,name:'Resident',national_id:'A123456',house:'House 1',party:'MDP',photo_url:'https://example.test/photo'}]);
+ const header=csv.split('\r\n')[0];
+ assert.match(header,/Record ID,National ID,Name/);
+ assert.doesNotMatch(header,/Party|Photo/i);
+ assert.doesNotMatch(csv,/MDP|example\.test/i);
 });
 test('filtered export collects all result pages rather than only the visible page',async()=>{
  const calls:number[]=[];

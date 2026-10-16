@@ -2,7 +2,7 @@
 
 **Goal:** Provide a simpler mobile entry at `/Vote/mdp/` and preserve the existing staff workflows and records, with multi-day voting status.
 
-**Architecture:** This repository is a Next.js static export with a `/Vote` base path. The entry screen and voting-day screen use the existing Supabase client, staff roles, Resident table, and workflow tables. New turnout tables are additive; the current `election_day` rows remain untouched. Do not apply the migration to production in this implementation.
+**Architecture:** This repository is a Next.js static export with a `/Vote` base path. The entry screen and voting-day screen use the existing Supabase client, staff roles, Resident table, and workflow tables. New turnout tables are additive; the current `election_day` rows remain untouched.
 
 **Spec:** `docs/superpowers/specs/2026-10-16-mdn-resident-operations-design.md`
 
@@ -19,6 +19,7 @@
 
 - [x] `npm test`
 - [x] `npm run build`; static output includes `/mdp/` and `/mdp/voting-days/` under the configured `/Vote` base path.
-- [ ] Review/apply `supabase/migrations/20261016180000_mdp_multi_voting_days.sql` in a development database, run policy checks, and verify per-day isolation and audit behavior. The connected Supabase project is below Pro and does not support development branches; do not apply this migration to production.
+- [x] Apply the additive migration to the connected Vote Supabase project after checking its existing schema. Verification confirmed 3,264 resident rows remain, all new tables are empty, the new tables have RLS enabled, and the MDP RPCs are present. The connected project is below Pro and does not support development branches.
+- [ ] Verify per-day turnout isolation and mark/undo audit behavior with authenticated staff.
 - [ ] Smoke-test using an authenticated staff account on mobile and desktop; verify resident links, role-restricted screens, mark/undo, and saved/failed messages.
-- [x] Open draft PR #4 targeting `fix/workflow-navigation-review` (review and database validation remain pending).
+- [x] Open PR #4; retarget to `main` and publish after CI passes.

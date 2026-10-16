@@ -1,3 +1,3 @@
 import OperationsListContent from '../../../components/OperationsListContent';
 
-export default function Page(){return <OperationsListContent mode="visits"/>}
+export default function Page(){return <OperationsListContent mode="visits" partyControls={false}/>}

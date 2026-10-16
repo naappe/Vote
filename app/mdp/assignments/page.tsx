@@ -1,3 +1,3 @@
 import AssignmentsContent from '../../../components/AssignmentsContent';
 
-export default function Page(){return <AssignmentsContent/>}
+export default function Page(){return <AssignmentsContent partyControls={false}/>}
