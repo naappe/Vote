@@ -8,10 +8,17 @@ import StatusBadge from '../shared/StatusBadge';
 import {PartyFilter,ResidentIdentity,matchesParty} from '../shared/ResidentIdentity';
 
 type Mode='calls'|'visits'|'election'|'reports'|'notifications'|'settings';
+const PAGE_SIZE=12;
 export default function OperationsListContent({mode,partyControls=true}:{mode:Mode;partyControls?:boolean}){
  const [rows,setRows]=useState<Resident[]>([]),[count,setCount]=useState(0),[loading,setLoading]=useState(true),[error,setError]=useState(''),[party,setParty]=useState('all');
  useEffect(()=>{let active=true;setLoading(true);setError('');
-  Promise.all([getResidents(),readOperationalRows('door_to_door'),readOperationalRows('election_day'),readOperationalRows('transportation'),readOperationalRows('assignments')]).then(([residents,visits,elections,transports,assignments])=>{
+  const residentRows=getResidents();
+  const needsAllWorkflow=mode==='reports'||mode==='election';
+  const visitRows=mode==='visits'||needsAllWorkflow?readOperationalRows('door_to_door','resident_id,visit_status'):Promise.resolve([]);
+  const electionRows=needsAllWorkflow?readOperationalRows('election_day','resident_id,has_voted'):Promise.resolve([]);
+  const transportRows=needsAllWorkflow?readOperationalRows('transportation','resident_id,transport_status'):Promise.resolve([]);
+  const assignmentRows=needsAllWorkflow?readOperationalRows('assignments','resident_id,status'):Promise.resolve([]);
+  Promise.all([residentRows,visitRows,electionRows,transportRows,assignmentRows]).then(([residents,visits,elections,transports,assignments])=>{
    const visitMap=new Map(visits.map(row=>[String(row.resident_id),row]));
    const electionMap=new Map(elections.map(row=>[String(row.resident_id),row]));
    const transportMap=new Map(transports.map(row=>[String(row.resident_id),row]));
@@ -26,7 +33,7 @@ export default function OperationsListContent({mode,partyControls=true}:{mode:Mo
  const visible=useMemo(()=>rows.filter(r=>(!partyControls||matchesParty(r,party))&&config.filter(r)),[rows,party,partyControls,config,mode]);
  if(mode==='settings')return <div className="panel"><h1>Settings</h1><p className="mt-2 text-sm text-body">Connected to public.Resident · {rows.length.toLocaleString()} residents.</p></div>;
  if(mode==='reports')return <ReportsView rows={visible} party={party} setParty={setParty} partyControls={partyControls} loading={loading} error={error}/>;
- return <div className="space-y-4"><section className="page-hero"><p className="eyebrow">Campaign operations</p><h1 className="mt-2">{config.title}</h1><p className="mt-2 text-sm text-body">{config.description}</p>{partyControls&&<div className="mt-4"><PartyFilter value={party} onChange={setParty}/></div>}</section>{error&&<div className="error-banner">{error}</div>}<section className="panel overflow-hidden p-0"><div className="border-b border-border px-5 py-4"><b className="text-navy">{visible.length.toLocaleString()} matching residents</b></div><div className="grid gap-3 p-4 md:grid-cols-2 xl:grid-cols-3">{loading?Array.from({length:6}).map((_,i)=><div key={i} className="h-48 animate-pulse rounded-xl bg-primary-light"/>):visible.slice((page-1)*60,page*60).map(r=><WorkCard key={String(r.id)} resident={r} mode={mode} partyControls={partyControls}/>)}</div><div className="flex items-center justify-between border-t border-border p-4"><button className="btn-secondary" disabled={page<=1} onClick={()=>setPage(p=>p-1)}>Previous</button><span>Page {page} of {Math.max(1,Math.ceil(visible.length/60))}</span><button className="btn-secondary" disabled={page*60>=visible.length} onClick={()=>setPage(p=>p+1)}>Next</button></div></section></div>
+ return <div className="space-y-4"><section className="page-hero"><p className="eyebrow">Campaign operations</p><h1 className="mt-2">{config.title}</h1><p className="mt-2 text-sm text-body">{config.description}</p>{partyControls&&<div className="mt-4"><PartyFilter value={party} onChange={setParty}/></div>}</section>{error&&<div className="error-banner">{error}</div>}<section className="panel overflow-hidden p-0"><div className="border-b border-border px-5 py-4"><b className="text-navy">{visible.length.toLocaleString()} matching residents</b></div><div className="grid min-h-[320px] gap-3 p-4 md:grid-cols-2 xl:grid-cols-3">{loading?Array.from({length:PAGE_SIZE}).map((_,i)=><div key={i} aria-hidden="true" className="soft-card min-h-[292px] animate-pulse self-start bg-slate-100"/>):visible.slice((page-1)*PAGE_SIZE,page*PAGE_SIZE).map(r=><WorkCard key={String(r.id)} resident={r} mode={mode} partyControls={partyControls}/>)}</div><div className="flex items-center justify-between border-t border-border p-4"><button className="btn-secondary" disabled={loading||page<=1} onClick={()=>setPage(p=>p-1)}>Previous</button><span>Page {page} of {Math.max(1,Math.ceil(visible.length/PAGE_SIZE))}</span><button className="btn-secondary" disabled={loading||page*PAGE_SIZE>=visible.length} onClick={()=>setPage(p=>p+1)}>Next</button></div></section></div>
 }
 
 function ReportsView({rows,party,setParty,partyControls,loading,error}:{rows:Resident[];party:string;setParty:(value:string)=>void;partyControls:boolean;loading:boolean;error:string}){
