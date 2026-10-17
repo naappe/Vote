@@ -13,7 +13,7 @@ const moreLinks=[
  {label:'Assignments',href:'/mdp/assignments/'},
  {label:'Link transport requests',href:'/mdp/transport-links/'},
  {label:'Reports',href:'/mdp/reports/'},
- {label:'Verification',href:'/contact-verification/'},
+ {label:'Verification',href:'/mdp/verification/'},
  {label:'Staff and backup',href:'/users/'},
 ];
 

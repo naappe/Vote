@@ -16,6 +16,10 @@
 .mdp-nav-menu a:hover{background:var(--mdp-yellow-pale);color:var(--mdp-blue-dark)!important}
 .mdp-nav-menu a[aria-current="page"]{background:var(--mdp-yellow);color:var(--mdp-blue-dark)!important;font-weight:800}
 .mdp-main{width:min(100% - 32px,760px);margin:28px auto 48px}
+.mdp-footer{margin-top:auto;border-top:3px solid var(--mdp-yellow);background:#fff;padding:14px 16px;text-align:center;color:var(--mdp-blue-dark);font-size:12px;font-weight:650}
+.mdp-workspace details.panel>summary{position:relative;padding-right:28px}
+.mdp-workspace details.panel>summary::after{content:'+';position:absolute;top:0;right:2px;color:var(--mdp-blue);font-size:20px;font-weight:800;line-height:1}
+.mdp-workspace details.panel[open]>summary::after{content:'−'}
 .mdp-back-button{display:inline-flex;align-items:center;gap:8px;min-height:40px;margin:0 0 14px;padding:0 12px;border:1px solid #D8E2EE;border-radius:10px;background:#fff;color:var(--mdp-blue-dark);font-size:13px;font-weight:750;cursor:pointer}
 .mdp-back-button:hover{border-color:#E4BD32;background:var(--mdp-yellow-pale)}
 .mdp-back-button:focus-visible{outline:3px solid #F2C533;outline-offset:2px}

@@ -29,7 +29,7 @@ async function getFilterOptions(){const now=Date.now();if(optionCache&&now-optio
 export async function getHouseOptions():Promise<HouseOption[]>{return (await getFilterOptions()).houses}
 export async function getPartyOptions():Promise<PartyOption[]>{return (await getFilterOptions()).parties}
 export async function getElectionBoxOptions():Promise<string[]>{return (await getFilterOptions()).boxes}
-function matchesSearch(r:Resident,search:string){const term=search.trim().toLowerCase();if(!term)return true;return [r.name,r.national_id,r.house,r.lives_in,r.phone,r.election_box].some(v=>String(v||'').toLowerCase().includes(term))}
+function matchesSearch(r:Resident,search:string){const term=search.trim().toLowerCase();if(!term)return true;return [r.id,r.name,r.national_id,r.house,r.lives_in,r.phone,r.election_box].some(v=>String(v||'').toLowerCase().includes(term))}
 function matchesParty(r:Resident,party:string){if(!party||party==='all')return true;const value=normalizeParty(r.party);if(party==='Other')return !['PNC','MDP','Unspecified'].includes(value);return value===party}
 function matchesFilter(r:Resident,filter:string){if(!filter||filter==='all')return true;if(['will-vote','not-decided','not-vote'].includes(filter))return r.vote_status===filter;if(['need-call','called'].includes(filter))return r.phone_status===filter;if(['reached','not-reached'].includes(filter))return r.reach_status===filter;if(['guaranteed','not-guaranteed'].includes(filter))return r.support_level===filter;return true}
 function matchesGender(r:Resident,gender:string){return !gender||gender==='all'||String(r.sex||'').trim().toUpperCase()===gender.toUpperCase()}
@@ -42,7 +42,7 @@ export async function getResidentsPage({page=1,pageSize=25,search='',filter='all
  const size=Math.min(100,Math.max(10,pageSize)),start=(Math.max(1,page)-1)*size,end=start+size-1;
  let query=supabase.from(RESIDENT_TABLE).select('*',{count:'exact'}).order('id',{ascending:true});
  const term=search.trim().replace(/[,%()]/g,' ');
- if(term)query=query.or(`name.ilike.%${term}%,national_id.ilike.%${term}%,house.ilike.%${term}%,lives_in.ilike.%${term}%,election_box.ilike.%${term}%`);
+ if(term){const exactId=/^\d+$/.test(term)?`,id.eq.${term}`:'';query=query.or(`name.ilike.%${term}%,national_id.ilike.%${term}%,phone.ilike.%${term}%,house.ilike.%${term}%,lives_in.ilike.%${term}%,election_box.ilike.%${term}${exactId}`)}
  if(house!=='all')query=query.eq('house',house);
  if(party==='Unspecified')query=query.is('party',null);
  else if(party!=='all')query=query.ilike('party',`%${party}%`);

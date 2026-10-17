@@ -1,11 +1,13 @@
+import {useState} from 'react';
 import type {Resident} from '../lib/types';
 import {PartyBadge} from './PartyIdentity';
 
 export function ResidentPhoto({resident,size='md'}:{resident:Resident;size?:'sm'|'md'|'lg'}){
+ const [failed,setFailed]=useState(false);
  const initials=(resident.name||'?').split(/\s+/).slice(0,2).map(x=>x[0]).join('').toUpperCase();
  const cls=size==='lg'?'h-[110px] w-[110px]':size==='sm'?'h-16 w-16':'h-[72px] w-[72px]';
  const shared=`${cls} resident-photo shrink-0 rounded-2xl border-2 border-white object-cover bg-white shadow-sm transition duration-200`;
- return resident.photo_url?<img src={resident.photo_url} alt={resident.name||'Resident'} loading="lazy" className={shared}/>:<div className={`${shared} grid place-items-center bg-primary-light text-sm font-extrabold text-primary`}>{initials}</div>
+ return resident.photo_url&&!failed?<img src={resident.photo_url} alt={resident.name||'Resident'} loading="lazy" onError={()=>setFailed(true)} className={shared}/>:<div aria-label={`${resident.name||'Resident'} photo unavailable`} className={`${shared} grid place-items-center bg-primary-light text-sm font-extrabold text-primary`}>{initials}</div>
 }
 
 export function ResidentIdentity({resident,compact=false,showParty=true}:{resident:Resident;compact?:boolean;showParty?:boolean}){
