@@ -3,7 +3,6 @@
 import Link from 'next/link';
 import {usePathname} from 'next/navigation';
 import {useEffect,useRef,useState} from 'react';
-import {useMdpLanguage} from './MDPLanguageProvider';
 import {supabase} from '../lib/supabase';
 
 const moreLinks=[
@@ -27,7 +26,6 @@ function isCurrent(pathname:string,href:string){
 }
 
 export default function MDPWorkspaceNavigation(){
- const {language,setLanguage}=useMdpLanguage();
  const [role,setRole]=useState('');
  const pathname=usePathname()||'/mdp/';
  const moreRef=useRef<HTMLDetailsElement>(null);
@@ -46,9 +44,5 @@ export default function MDPWorkspaceNavigation(){
    <summary aria-current={moreActive?'page':undefined}>More</summary>
    <div className="mdp-nav-menu">{visibleMoreLinks.map(item=><Link key={item.href} href={item.href} onClick={()=>{if(moreRef.current)moreRef.current.open=false}} aria-current={isCurrent(pathname,item.href)?'page':undefined}>{item.label}</Link>)}</div>
   </details>
-  <div className="mdp-lang-toggle" role="group" aria-label="Language">
-   <button type="button" aria-pressed={language==='en'} aria-label="English" onClick={()=>setLanguage('en')}>EN</button>
-   <button type="button" aria-pressed={language==='dv'} aria-label="Dhivehi" onClick={()=>setLanguage('dv')}>ދި</button>
-  </div>
  </nav>
 }
