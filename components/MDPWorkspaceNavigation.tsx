@@ -7,13 +7,13 @@ import {supabase} from '../lib/supabase';
 import AuthControl from './AuthControl';
 
 const moreLinks=[
- {label:'Calls',href:'/mdp/calls/'},
+ {label:'Calls',href:'/mdp/calls/',roles:['admin','supervisor','call_agent']},
  {label:'Door-to-door',href:'/mdp/door-to-door/'},
- {label:'Voting days',href:'/mdp/voting-days/'},
- {label:'Transportation',href:'/mdp/transportation/'},
+ {label:'Voting days',href:'/mdp/voting-days/',roles:['admin','supervisor','election_operator']},
+ {label:'Transportation',href:'/mdp/transportation/',roles:['admin','supervisor','election_operator']},
  {label:'Remarks',href:'/mdp/remarks/'},
- {label:'Assignments',href:'/mdp/assignments/'},
- {label:'Link transport requests',href:'/mdp/transport-links/'},
+ {label:'Assignments',href:'/mdp/assignments/',roles:['admin','supervisor']},
+ {label:'Link transport requests',href:'/mdp/transport-links/',roles:['admin','supervisor','election_operator']},
  {label:'Reports',href:'/mdp/reports/'},
  {label:'Verification',href:'/mdp/verification/',roles:['admin','supervisor']},
  {label:'Staff and backup',href:'/users/',roles:['admin']},
