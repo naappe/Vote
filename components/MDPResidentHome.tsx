@@ -25,7 +25,7 @@ export default function MDPResidentHome(){
     <span className="mdp-task-count">5 main tasks</span>
    </div>
    <div className="mdp-task-list">
-    {tasks.map(task=><Link key={task.title} prefetch={false} href={task.href} className="mdp-task-card">
+    {tasks.map(task=><Link key={task.title} prefetch href={task.href} className="mdp-task-card">
      <span className="mdp-task-mark" aria-hidden="true">{task.mark}</span>
      <span className="mdp-task-copy"><strong>{task.title}</strong><small>{task.detail}</small></span>
      <span className="mdp-task-arrow" aria-hidden="true">›</span>
@@ -34,7 +34,7 @@ export default function MDPResidentHome(){
   </section>
   <details className="mdp-more-tasks">
    <summary>More tasks</summary>
-   <div className="mdp-more-grid">{moreTasks.map(task=><Link key={task.title} prefetch={false} href={task.href}>{task.title}<span aria-hidden="true">›</span></Link>)}</div>
+   <div className="mdp-more-grid">{moreTasks.map(task=><Link key={task.title} href={task.href}>{task.title}<span aria-hidden="true">›</span></Link>)}</div>
   </details>
  </div>
 }

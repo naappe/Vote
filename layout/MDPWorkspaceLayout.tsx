@@ -1,5 +1,6 @@
 import type {ReactNode} from 'react';
 import Link from 'next/link';
+import MDPBackButton from '../components/MDPBackButton';
 
 const moreLinks=[
  {label:'Calls',href:'/mdp/calls/'},
@@ -24,15 +25,15 @@ export default function MDPWorkspaceLayout({children}:{children:ReactNode}){
      <span className="mdp-brand-name">MDP Resident Operations</span>
     </Link>
     <nav aria-label="Main navigation" className="mdp-nav">
-     <Link href="/mdp/" className="mdp-nav-link">Home</Link>
-     <Link href="/mdp/residents/" className="mdp-nav-link">Residents</Link>
+     <Link prefetch href="/mdp/" className="mdp-nav-link">Home</Link>
+     <Link prefetch href="/mdp/residents/" className="mdp-nav-link">Residents</Link>
      <details className="mdp-nav-more">
       <summary>More</summary>
-      <div className="mdp-nav-menu">{moreLinks.map(item=><Link key={item.href} prefetch={false} href={item.href}>{item.label}</Link>)}</div>
+      <div className="mdp-nav-menu">{moreLinks.map(item=><Link key={item.href} href={item.href}>{item.label}</Link>)}</div>
      </details>
     </nav>
    </div>
   </header>
-  <main className="mdp-main">{children}</main>
+  <main className="mdp-main"><MDPBackButton/>{children}</main>
  </div>
 }
