@@ -10,6 +10,10 @@ export interface MDPVotingResident{
  election_box:string|null;
  has_voted:boolean;
  voted_at:string|null;
+ transport_status:string|null;
+ latest_remark:string|null;
+ latest_remark_section:string|null;
+ latest_remark_at:string|null;
 }
 
 export function votingStatusLabel(hasVoted:boolean):string{
