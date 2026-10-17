@@ -1,7 +1,7 @@
 export type VoteStatus='will-vote'|'not-decided'|'not-vote';
 export type PhoneStatus='need-call'|'called';
 export type ReachStatus='reached'|'not-reached';
-export type D2DStatus='reach'|'not-home'|'live-in-another-place'|'not-visited';
+export type D2DStatus='reach'|'visited'|'not-home'|'live-in-another-place'|'not-visited'|'access-issue'|'address-not-found'|'visit-postponed';
 export type SupportLevel='guaranteed'|'not-guaranteed';
 export type CallOutcome='pending'|'connected'|'busy'|'not-answer'|'disconnected'|'out-of-coverage'|'wrong-number';
 
@@ -29,6 +29,8 @@ export interface Resident{
  call_outcome?:CallOutcome|null;
  call_attempts?:number|null;
  call_notes?:string|null;
+ visit_notes?:string|null;
+ last_visit_at?:string|null;
  callback_scheduled_at?:string|null;
  last_call_at?:string|null;
  recorded_by?:string|null;
