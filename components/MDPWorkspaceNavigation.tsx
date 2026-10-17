@@ -4,6 +4,7 @@ import Link from 'next/link';
 import {usePathname} from 'next/navigation';
 import {useEffect,useRef,useState} from 'react';
 import {supabase} from '../lib/supabase';
+import AuthControl from './AuthControl';
 
 const moreLinks=[
  {label:'Calls',href:'/mdp/calls/'},
@@ -42,7 +43,7 @@ export default function MDPWorkspaceNavigation(){
   <Link prefetch href="/mdp/residents/" aria-current={residents?'page':undefined} className={`mdp-nav-link${residents?' is-active':''}`}>Residents</Link>
   <details ref={moreRef} className={`mdp-nav-more${moreActive?' is-active':''}`}>
    <summary aria-current={moreActive?'page':undefined}>More</summary>
-   <div className="mdp-nav-menu">{visibleMoreLinks.map(item=><Link key={item.href} href={item.href} onClick={()=>{if(moreRef.current)moreRef.current.open=false}} aria-current={isCurrent(pathname,item.href)?'page':undefined}>{item.label}</Link>)}</div>
+   <div className="mdp-nav-menu">{visibleMoreLinks.map(item=><Link key={item.href} href={item.href} onClick={()=>{if(moreRef.current)moreRef.current.open=false}} aria-current={isCurrent(pathname,item.href)?'page':undefined}>{item.label}</Link>)}<div className="mdp-nav-account"><AuthControl/></div></div>
   </details>
  </nav>
 }

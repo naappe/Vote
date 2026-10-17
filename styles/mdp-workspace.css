@@ -15,6 +15,9 @@
 .mdp-nav-menu a{padding:10px 11px;border-radius:8px;color:var(--mdp-ink)!important;font-size:13px;font-weight:600;text-decoration:none}
 .mdp-nav-menu a:hover{background:var(--mdp-yellow-pale);color:var(--mdp-blue-dark)!important}
 .mdp-nav-menu a[aria-current="page"]{background:var(--mdp-yellow);color:var(--mdp-blue-dark)!important;font-weight:800}
+.mdp-nav-account{margin-top:5px;padding:9px 5px 3px;border-top:1px solid #E2E9F3}
+.mdp-nav-account .user-profile{justify-content:flex-end}
+.mdp-nav-account .btn-secondary{min-height:38px;padding:0 12px;color:var(--mdp-blue-dark)}
 .mdp-main{width:min(100% - 32px,760px);margin:28px auto 48px}
 .mdp-footer{margin-top:auto;border-top:3px solid var(--mdp-yellow);background:#fff;padding:14px 16px;text-align:center;color:var(--mdp-blue-dark);font-size:12px;font-weight:650}
 .mdp-workspace details.panel>summary{position:relative;padding-right:28px}
