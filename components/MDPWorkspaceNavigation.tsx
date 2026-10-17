@@ -20,7 +20,9 @@ const moreLinks=[
 
 function isCurrent(pathname:string,href:string){
  if(href==='/')return pathname==='/';
- return pathname===href.replace(/\/$/,'')||pathname.startsWith(href);
+ const normalized=href.replace(/\/$/,'');
+ if(href==='/mdp/')return pathname===normalized;
+ return pathname===normalized||pathname.startsWith(`${normalized}/`);
 }
 
 export default function MDPWorkspaceNavigation(){
