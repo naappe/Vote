@@ -15,7 +15,6 @@ const moreLinks=[
  {label:'Reports',href:'/mdp/reports/'},
  {label:'Verification',href:'/contact-verification/'},
  {label:'Staff and backup',href:'/users/'},
- {label:'Main app',href:'/'},
 ];
 
 function isCurrent(pathname:string,href:string){
