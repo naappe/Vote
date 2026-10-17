@@ -1,7 +1,7 @@
 'use client';
 import Link from 'next/link';
 import {useEffect,useMemo,useState} from 'react';
-import {getResidents,saveDoorToDoorResult} from '../lib/supabase';
+import {getDirectoryPage,getResidents,saveDoorToDoorResult,supabase} from '../lib/supabase';
 import {readOperationalRows} from '../lib/operations';
 import type {D2DStatus,Resident} from '../lib/types';
 import StatusBadge from '../shared/StatusBadge';
@@ -11,10 +11,22 @@ type Mode='calls'|'visits'|'election'|'reports'|'notifications'|'settings';
 const PAGE_SIZE=12;
 export default function OperationsListContent({mode,partyControls=true}:{mode:Mode;partyControls?:boolean}){
  const [rows,setRows]=useState<Resident[]>([]),[count,setCount]=useState(0),[loading,setLoading]=useState(true),[error,setError]=useState(''),[party,setParty]=useState('all'),[search,setSearch]=useState('');
- useEffect(()=>{let active=true;setLoading(true);setError('');
+ const [page,setPage]=useState(1),[visitTarget,setVisitTarget]=useState<Resident|null>(null);
+ useEffect(()=>{let active=true;if(mode!=='visits')return()=>{active=false};setLoading(true);setError('');
+  void (async()=>{try{
+   const result=await getDirectoryPage({search,party:partyControls?party:'MDP'},page,PAGE_SIZE);
+   const ids=result.rows.map(row=>row.id);let visitRows:any[]=[];
+   if(ids.length){const response=await supabase.from('door_to_door').select('resident_id,visit_status,visit_notes,last_visit_at').in('resident_id',ids);if(response.error)throw response.error;visitRows=response.data||[]}
+   if(!active)return;
+   const visitMap=new Map(visitRows.map(row=>[String(row.resident_id),row]));
+   const mapped=result.rows.map(r=>{const visit=visitMap.get(String(r.id));return {...r,d2d_status:visit?.visit_status||'not-visited',visit_notes:visit?.visit_notes||null,last_visit_at:visit?.last_visit_at||null} as Resident});
+   setRows(mapped);setCount(result.count);
+  }catch(e){if(active)setError(e instanceof Error?e.message:'Unable to load residents')}finally{if(active)setLoading(false)}})();return()=>{active=false}
+ },[mode,search,party,partyControls,page]);
+ useEffect(()=>{let active=true;if(mode==='visits')return()=>{active=false};setLoading(true);setError('');
   const residentRows=getResidents();
   const needsAllWorkflow=mode==='reports'||mode==='election';
-  const visitRows=mode==='visits'||needsAllWorkflow?readOperationalRows('door_to_door','resident_id,visit_status,visit_notes,last_visit_at'):Promise.resolve([]);
+  const visitRows=needsAllWorkflow?readOperationalRows('door_to_door','resident_id,visit_status,visit_notes,last_visit_at'):Promise.resolve([]);
   const electionRows=needsAllWorkflow?readOperationalRows('election_day','resident_id,has_voted'):Promise.resolve([]);
   const transportRows=needsAllWorkflow?readOperationalRows('transportation','resident_id,transport_status'):Promise.resolve([]);
   const assignmentRows=needsAllWorkflow?readOperationalRows('assignments','resident_id,status'):Promise.resolve([]);
@@ -27,13 +39,14 @@ export default function OperationsListContent({mode,partyControls=true}:{mode:Mo
    if(active){setRows(merged);setCount(merged.length)}
   }).catch(e=>active&&setError(e.message||'Unable to load campaign data')).finally(()=>active&&setLoading(false));return()=>{active=false}
  },[mode]);
- const [page,setPage]=useState(1),[visitTarget,setVisitTarget]=useState<Resident|null>(null);
  useEffect(()=>{setPage(1)},[party,mode,search]);
- const config={calls:{title:'Call Center',description:'Phone contact results and requested follow-up tasks.',filter:(r:Resident)=>!r.phone_status||r.phone_status==='need-call'},visits:{title:'Door-to-Door',description:'Record household visit outcomes separately from call-center work.',filter:(r:Resident)=>!r.d2d_status||r.d2d_status!=='visited'},election:{title:'Election Day',description:'Turnout and readiness.',filter:(_:Resident)=>true},reports:{title:'Reports',description:'Cross-section totals.',filter:(_:Resident)=>true},notifications:{title:'Notifications',description:'Items needing attention.',filter:(r:Resident)=>r.vote_status==='not-decided'||r.phone_status==='need-call'},settings:{title:'Settings',description:'System configuration.',filter:(_:Resident)=>true}}[mode];
+ const config={calls:{title:'Call Center',description:'Phone contact results and requested follow-up tasks.',filter:(r:Resident)=>!r.phone_status||r.phone_status==='need-call'},visits:{title:'Door-to-Door',description:'Search the resident list and record household visit outcomes separately from call-center work.',filter:(_:Resident)=>true},election:{title:'Election Day',description:'Turnout and readiness.',filter:(_:Resident)=>true},reports:{title:'Reports',description:'Cross-section totals.',filter:(_:Resident)=>true},notifications:{title:'Notifications',description:'Items needing attention.',filter:(r:Resident)=>r.vote_status==='not-decided'||r.phone_status==='need-call'},settings:{title:'Settings',description:'System configuration.',filter:(_:Resident)=>true}}[mode];
  const visible=useMemo(()=>rows.filter(r=>{const text=[r.id,r.name,r.national_id,r.house,r.lives_in,r.phone].join(' ').toLowerCase();return matchesParty(r,partyControls?party:'MDP')&&config.filter(r)&&(mode!=='visits'||text.includes(search.trim().toLowerCase()))}),[rows,party,partyControls,config,mode,search]);
+ const pageRows=mode==='visits'?visible:visible.slice((page-1)*PAGE_SIZE,page*PAGE_SIZE);
+ const pageCount=Math.max(1,Math.ceil((mode==='visits'?count:visible.length)/PAGE_SIZE));
  if(mode==='settings')return <div className="panel"><h1>Settings</h1><p className="mt-2 text-sm text-body">Connected to public.Resident · {rows.length.toLocaleString()} residents.</p></div>;
  if(mode==='reports')return <ReportsView rows={visible} party={party} setParty={setParty} partyControls={partyControls} loading={loading} error={error}/>;
- return <div className="space-y-4"><section className="page-hero"><p className="eyebrow">Resident tasks</p><h1 className="mt-2">{config.title}</h1><p className="mt-2 text-sm text-body">{config.description}</p>{partyControls&&<div className="mt-4"><PartyFilter value={party} onChange={setParty}/></div>}</section>{error&&<div className="error-banner">{error}</div>}{mode==='visits'&&<section className="panel"><label className="block"><span className="field-label">Find a resident or house</span><input className="field" type="search" value={search} onChange={event=>setSearch(event.target.value)} placeholder="Name, national ID, record ID, house, or phone"/><span className="mt-2 block text-xs text-body">Searches every matching resident, including later pages.</span></label></section>}<section className="panel overflow-hidden p-0"><div className="border-b border-border px-5 py-4"><b className="text-navy">{visible.length.toLocaleString()} matching residents</b></div><div className="grid min-h-[320px] gap-3 p-4 md:grid-cols-2 xl:grid-cols-3">{loading?Array.from({length:PAGE_SIZE}).map((_,i)=><div key={i} aria-hidden="true" className="soft-card min-h-[292px] animate-pulse self-start bg-slate-100"/>):visible.slice((page-1)*PAGE_SIZE,page*PAGE_SIZE).map(r=><WorkCard key={String(r.id)} resident={r} mode={mode} partyControls={partyControls} onLogVisit={mode==='visits'?()=>setVisitTarget(r):undefined}/>)}</div><div className="flex items-center justify-between border-t border-border p-4"><button className="btn-secondary" disabled={loading||page<=1} onClick={()=>setPage(p=>p-1)}>Previous</button><span>Page {page} of {Math.max(1,Math.ceil(visible.length/PAGE_SIZE))}</span><button className="btn-secondary" disabled={loading||page*PAGE_SIZE>=visible.length} onClick={()=>setPage(p=>p+1)}>Next</button></div></section>{visitTarget&&<DoorVisitForm resident={visitTarget} close={()=>setVisitTarget(null)} saved={(status,note)=>{setRows(current=>current.map(row=>row.id===visitTarget.id?{...row,d2d_status:status,visit_notes:note,last_visit_at:new Date().toISOString()}:row));setVisitTarget(null)}}/>}</div>
+ return <div className="space-y-4"><section className="page-hero"><p className="eyebrow">Resident tasks</p><h1 className="mt-2">{config.title}</h1><p className="mt-2 text-sm text-body">{config.description}</p>{partyControls&&<div className="mt-4"><PartyFilter value={party} onChange={setParty}/></div>}</section>{error&&<div className="error-banner">{error}</div>}{mode==='visits'&&<section className="panel"><label className="block"><span className="field-label">Find a resident or house</span><input className="field" type="search" value={search} onChange={event=>setSearch(event.target.value)} placeholder="Name, national ID, record ID, house, or phone"/><span className="mt-2 block text-xs text-body">Searches every matching resident, including later pages.</span></label></section>}<section className="panel overflow-hidden p-0"><div className="border-b border-border px-5 py-4"><b className="text-navy">{(mode==='visits'?count:visible.length).toLocaleString()} matching residents</b></div><div className="grid min-h-[320px] gap-3 p-4 md:grid-cols-2 xl:grid-cols-3">{loading?Array.from({length:PAGE_SIZE}).map((_,i)=><div key={i} aria-hidden="true" className="soft-card min-h-[292px] animate-pulse self-start bg-slate-100"/>):pageRows.map(r=><WorkCard key={String(r.id)} resident={r} mode={mode} partyControls={partyControls} onLogVisit={mode==='visits'?()=>setVisitTarget(r):undefined}/>)}</div><div className="flex items-center justify-between border-t border-border p-4"><button className="btn-secondary" disabled={loading||page<=1} onClick={()=>setPage(p=>p-1)}>Previous</button><span>Page {page} of {pageCount}</span><button className="btn-secondary" disabled={loading||page>=pageCount} onClick={()=>setPage(p=>p+1)}>Next</button></div></section>{visitTarget&&<DoorVisitForm resident={visitTarget} close={()=>setVisitTarget(null)} saved={(status,note)=>{setRows(current=>current.map(row=>row.id===visitTarget.id?{...row,d2d_status:status,visit_notes:note,last_visit_at:new Date().toISOString()}:row));setVisitTarget(null)}}/>}</div>
 }
 
 function ReportsView({rows,party,setParty,partyControls,loading,error}:{rows:Resident[];party:string;setParty:(value:string)=>void;partyControls:boolean;loading:boolean;error:string}){
