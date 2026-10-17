@@ -2,9 +2,10 @@ import type {ReactNode} from 'react';
 import Link from 'next/link';
 import MDPBackButton from '../components/MDPBackButton';
 import MDPWorkspaceNavigation from '../components/MDPWorkspaceNavigation';
+import {MDPLanguageProvider} from '../components/MDPLanguageProvider';
 
 export default function MDPWorkspaceLayout({children}:{children:ReactNode}){
- return <div className="mdp-workspace flex min-h-screen flex-col">
+ return <MDPLanguageProvider><div className="mdp-workspace flex min-h-screen flex-col">
   <header className="mdp-header">
    <div className="mdp-header-inner">
     <Link href="/mdp/" className="mdp-brand" aria-label="MDP Resident Operations home">
@@ -16,5 +17,5 @@ export default function MDPWorkspaceLayout({children}:{children:ReactNode}){
   </header>
   <main className="mdp-main flex-1"><MDPBackButton/>{children}</main>
   <footer className="mdp-footer">MDP Resident Operations · Maldivian Democratic Party</footer>
- </div>
+ </div></MDPLanguageProvider>
 }
