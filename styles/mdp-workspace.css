@@ -15,9 +15,9 @@
 .mdp-nav-menu a{padding:10px 11px;border-radius:8px;color:var(--mdp-ink)!important;font-size:13px;font-weight:600;text-decoration:none}
 .mdp-nav-menu a:hover{background:var(--mdp-yellow-pale);color:var(--mdp-blue-dark)!important}
 .mdp-nav-menu a[aria-current="page"]{background:var(--mdp-yellow);color:var(--mdp-blue-dark)!important;font-weight:800}
-.mdp-nav-account{margin-top:5px;padding:9px 5px 3px;border-top:1px solid #E2E9F3}
+.mdp-nav-account{flex:none}
 .mdp-nav-account .user-profile{justify-content:flex-end}
-.mdp-nav-account .btn-secondary{min-height:38px;padding:0 12px;color:var(--mdp-blue-dark)}
+.mdp-nav-account .btn-secondary{min-height:38px;padding:0 10px;color:var(--mdp-blue-dark);font-size:12px}
 .mdp-main{width:min(100% - 32px,760px);margin:28px auto 48px}
 .mdp-footer{margin-top:auto;border-top:3px solid var(--mdp-yellow);background:#fff;padding:14px 16px;text-align:center;color:var(--mdp-blue-dark);font-size:12px;font-weight:650}
 .mdp-workspace details.panel>summary{position:relative;padding-right:28px}
@@ -50,4 +50,5 @@
 .mdp-more-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:7px;padding:12px}
 .mdp-more-grid a{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:11px 12px;border:1px solid #E3EAF3;border-radius:10px;color:var(--mdp-blue-dark)!important;font-size:12px;font-weight:700;text-decoration:none}
 .mdp-more-grid a:hover{border-color:#E4BD32;background:var(--mdp-yellow-pale)}
-@media(max-width:600px){.mdp-header-inner{width:calc(100% - 24px);min-height:60px;gap:6px}.mdp-brand{gap:6px}.mdp-brand-mark{width:34px;height:32px;font-size:10px}.mdp-brand-name{max-width:92px;font-size:11px}.mdp-nav{gap:1px}.mdp-nav-home{display:none}.mdp-nav-link,.mdp-nav-more>summary{min-height:38px;padding:0 8px;font-size:12px}.mdp-nav-more>summary::after{margin-left:4px}.mdp-nav-menu{width:min(230px,calc(100vw - 24px))}.mdp-main{width:calc(100% - 24px);margin:17px auto 32px}.mdp-task-panel{padding:16px 13px;border-radius:15px}.mdp-home-heading h1{font-size:22px}.mdp-task-count{padding:6px 8px;font-size:10px}.mdp-task-card{min-height:64px;padding:10px}.mdp-task-copy strong{font-size:13px}.mdp-task-copy small{font-size:11px}.mdp-more-grid{grid-template-columns:1fr}}
+@media(max-width:600px){.mdp-header-inner{width:calc(100% - 24px);min-height:60px;gap:5px}.mdp-brand{gap:6px}.mdp-brand-mark{width:34px;height:32px;font-size:10px}.mdp-brand-name{max-width:92px;font-size:11px}.mdp-nav{gap:1px}.mdp-nav-home{display:none}.mdp-nav-link,.mdp-nav-more>summary{min-height:38px;padding:0 8px;font-size:12px}.mdp-nav-more>summary::after{margin-left:4px}.mdp-nav-menu{width:min(230px,calc(100vw - 24px))}.mdp-nav-account .btn-secondary{min-height:36px;padding:0 7px;font-size:11px}.mdp-main{width:calc(100% - 24px);margin:17px auto 32px}.mdp-task-panel{padding:16px 13px;border-radius:15px}.mdp-home-heading h1{font-size:22px}.mdp-task-count{padding:6px 8px;font-size:10px}.mdp-task-card{min-height:64px;padding:10px}.mdp-task-copy strong{font-size:13px}.mdp-task-copy small{font-size:11px}.mdp-more-grid{grid-template-columns:1fr}}
+@media(max-width:380px){.mdp-header-inner{width:calc(100% - 16px);gap:3px}.mdp-brand{gap:4px}.mdp-brand-name{max-width:64px;font-size:10px}.mdp-nav-link,.mdp-nav-more>summary{padding:0 6px;font-size:11px}.mdp-nav-account .btn-secondary{padding:0 5px;font-size:10px}}

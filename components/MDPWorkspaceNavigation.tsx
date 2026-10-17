@@ -43,7 +43,8 @@ export default function MDPWorkspaceNavigation(){
   <Link prefetch href="/mdp/residents/" aria-current={residents?'page':undefined} className={`mdp-nav-link${residents?' is-active':''}`}>Residents</Link>
   <details ref={moreRef} className={`mdp-nav-more${moreActive?' is-active':''}`}>
    <summary aria-current={moreActive?'page':undefined}>More</summary>
-   <div className="mdp-nav-menu">{visibleMoreLinks.map(item=><Link key={item.href} href={item.href} onClick={()=>{if(moreRef.current)moreRef.current.open=false}} aria-current={isCurrent(pathname,item.href)?'page':undefined}>{item.label}</Link>)}<div className="mdp-nav-account"><AuthControl/></div></div>
+   <div className="mdp-nav-menu">{visibleMoreLinks.map(item=><Link key={item.href} href={item.href} onClick={()=>{if(moreRef.current)moreRef.current.open=false}} aria-current={isCurrent(pathname,item.href)?'page':undefined}>{item.label}</Link>)}</div>
   </details>
+  <div className="mdp-nav-account"><AuthControl/></div>
  </nav>
 }
