@@ -7,11 +7,11 @@ import {supabase} from '../lib/supabase';
 import AuthControl from './AuthControl';
 
 const moreLinks=[
- {label:'Calls',href:'/mdp/calls/',roles:['admin','supervisor','call_agent']},
  {label:'Door-to-door',href:'/mdp/door-to-door/'},
- {label:'Voting days',href:'/mdp/voting-days/',roles:['admin','supervisor','election_operator']},
- {label:'Transportation',href:'/mdp/transportation/',roles:['admin','supervisor','election_operator']},
+ {label:'Calls',href:'/mdp/calls/',roles:['admin','supervisor','call_agent']},
  {label:'Remarks',href:'/mdp/remarks/'},
+ {label:'Transportation',href:'/mdp/transportation/',roles:['admin','supervisor','election_operator']},
+ {label:'Voting days',href:'/mdp/voting-days/',roles:['admin','supervisor','election_operator']},
  {label:'Assignments',href:'/mdp/assignments/',roles:['admin','supervisor']},
  {label:'Link transport requests',href:'/mdp/transport-links/',roles:['admin','supervisor','election_operator']},
  {label:'Reports',href:'/mdp/reports/'},
