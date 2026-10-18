@@ -11,6 +11,7 @@ test('unrecorded resident tasks show Pending and no completion tick',()=>{
 test('saved outcomes show clear status and completed tasks get a check',()=>{
  const cards=residentTaskCards({callAttempts:1,callOutcome:'connected',voteStatus:'not-decided',hasVoteIntention:true,visitStatus:'visited',hasInPersonMeeting:true,transportStatus:'completed',hasRemarks:true});
  assert.deepEqual(cards.map(card=>card.done),[true,true,true,true,true,true]);
+ assert.equal(cards.find(card=>card.id==='call')?.label,'Call result');
  assert.equal(cards.find(card=>card.id==='call')?.status,'Connected · 1 attempt');
  assert.equal(cards.find(card=>card.id==='transport')?.status,'Completed');
 });
