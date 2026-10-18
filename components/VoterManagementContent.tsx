@@ -47,10 +47,10 @@ export default function VoterManagementContent({profilePath='/resident-profile/'
   }catch(e){setError(e instanceof Error?e.message:'Export failed')}finally{setExporting(false);setExportProgress('')}
  }
  return <div className="space-y-4">
-  <section className="flex flex-wrap items-center justify-between gap-3"><div><h1 className="text-2xl">Resident directory</h1><p className="mt-1 text-sm text-body">{loading?'Loading results…':`${count.toLocaleString()} residents`} · {houses.length} houses</p></div><button className="btn-primary" onClick={exportResults} disabled={exporting||loading} title="Download all matching residents, across every page">{exporting?`Exporting ${exportProgress}`:'Export CSV'}</button></section>
+  <section className="flex flex-col items-stretch justify-between gap-3 sm:flex-row sm:items-center"><div><h1 className="text-2xl">Resident directory</h1><p className="mt-1 text-sm text-body">{loading?'Loading results…':`${count.toLocaleString()} residents`} · {houses.length} houses</p></div><button className="btn-primary w-full sm:w-auto" onClick={exportResults} disabled={exporting||loading} title="Download all matching residents, across every page">{exporting?`Exporting ${exportProgress}`:'Export CSV'}</button></section>
   <section className="panel space-y-3 !p-4">
    <div className={`grid gap-3 ${partyControls?'md:grid-cols-[minmax(260px,2fr)_minmax(170px,1fr)_minmax(170px,1fr)]':'md:grid-cols-[minmax(260px,2fr)_minmax(170px,1fr)]'}`}>
-    <Field label="Search residents"><input className="field" value={query} onChange={e=>{setQuery(e.target.value);setPage(1)}} placeholder="Name, national ID, record ID, phone or address" type="search"/></Field>
+    <Field label="Search residents"><input className="field min-w-0 w-full" value={query} onChange={e=>{setQuery(e.target.value);setPage(1)}} placeholder={partyControls?'Name, ID, phone or address':'Name, ID, house or phone'} type="search"/></Field>
     <HousePicker houses={houses} value={house} onChange={v=>changeFilter(setHouse,v)}/>
     {partyControls&&<Select label="Party" value={party} onChange={v=>changeFilter(setParty,v)} options={[["all","All parties"],...parties.map(p=>[p.name,`${p.name==='Unspecified'?'No party':p.name} (${p.count})`])]}/>}
    </div>

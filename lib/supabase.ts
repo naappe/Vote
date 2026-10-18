@@ -6,11 +6,16 @@ const key=process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY||'sb_publishable_xP8z74zcMuC
 export const supabase=createClient(url,key,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}});
 const RESIDENT_TABLE='Resident';
 const RESIDENT_CACHE_TTL=5*60*1000;
+const RESIDENT_PAGE_CACHE_TTL=15000;
 let residentCache:{data:Resident[];timestamp:number}|null=null;
 let residentRequest:Promise<Resident[]>|null=null;
+const residentPageCache=new Map<string,{data:ResidentPage;expires:number}>();
+const residentPageRequests=new Map<string,Promise<ResidentPage>>();
+let residentPageEpoch=0;
 let optionCache:{houses:HouseOption[];parties:PartyOption[];boxes:string[];timestamp:number}|null=null;
 let optionRequest:Promise<{houses:HouseOption[];parties:PartyOption[];boxes:string[]}>|null=null;
-export function invalidateResidentCache(){directoryEpoch++;directoryPages.clear();directoryRequests.clear();directoryOptions=null;residentCache=null;residentRequest=null;optionCache=null;optionRequest=null}
+export function invalidateResidentCache(){directoryEpoch++;residentPageEpoch++;directoryPages.clear();directoryRequests.clear();residentPageCache.clear();residentPageRequests.clear();directoryOptions=null;residentCache=null;residentRequest=null;optionCache=null;optionRequest=null}
+supabase.auth.onAuthStateChange(event=>{if(event==='SIGNED_IN'||event==='SIGNED_OUT'||event==='USER_UPDATED')invalidateResidentCache()});
 export interface ResidentPage{rows:Resident[];count:number}
 export interface HouseOption{name:string;count:number}
 export interface PartyOption{name:string;count:number}
@@ -36,7 +41,8 @@ function matchesGender(r:Resident,gender:string){return !gender||gender==='all'|
 function matchesAge(r:Resident,age:string){if(!age||age==='all')return true;const value=Number(r.age);if(!Number.isFinite(value))return false;if(age==='18-25')return value>=18&&value<=25;if(age==='26-35')return value>=26&&value<=35;if(age==='36-45')return value>=36&&value<=45;if(age==='46-60')return value>=46&&value<=60;if(age==='61+')return value>=61;return true}
 function matchesBox(r:Resident,box:string){return !box||box==='all'||String(r.election_box||'').trim()===box}
 function ageBounds(age:string):[number|null,number|null]{if(age==='18-25')return[18,25];if(age==='26-35')return[26,35];if(age==='36-45')return[36,45];if(age==='46-60')return[46,60];if(age==='61+')return[61,null];return[null,null]}
-export async function getResidentsPage({page=1,pageSize=25,search='',filter='all',house='all',party='all',gender='all',age='all',box='all'}:{page?:number;pageSize?:number;search?:string;filter?:string;house?:string;party?:string;gender?:string;age?:string;box?:string}):Promise<ResidentPage>{
+interface ResidentPageOptions{page?:number;pageSize?:number;search?:string;filter?:string;house?:string;party?:string;gender?:string;age?:string;box?:string}
+async function fetchResidentsPage({page=1,pageSize=25,search='',filter='all',house='all',party='all',gender='all',age='all',box='all'}:ResidentPageOptions):Promise<ResidentPage>{
  const requiresClientFallback=filter!=='all'||party==='Other'||house==='Dhafthar'||house==='Sina Malé';
  if(requiresClientFallback){const all=await getResidents();const filtered=all.filter(r=>matchesSearch(r,search)&&matchesParty(r,party)&&matchesFilter(r,filter)&&matchesGender(r,gender)&&matchesAge(r,age)&&matchesBox(r,box)&&(house==='all'||normalizeHouse(r.house)===house));const safeSize=Math.min(100,Math.max(10,pageSize)),start=(Math.max(1,page)-1)*safeSize;return {rows:filtered.slice(start,start+safeSize),count:filtered.length}}
  const size=Math.min(100,Math.max(10,pageSize)),start=(Math.max(1,page)-1)*size,end=start+size-1;
@@ -51,6 +57,16 @@ export async function getResidentsPage({page=1,pageSize=25,search='',filter='all
  const[minAge,maxAge]=ageBounds(age);if(minAge!==null)query=query.gte('age',minAge);if(maxAge!==null)query=query.lte('age',maxAge);
  const {data,error,count}=await query.range(start,end);if(error)throw new Error(`Resident page load failed: ${error.message}`);
  const masters=(data||[]).map(normalizeResident),calls=await loadCallMap(masters.map(r=>r.id));return {rows:masters.map(r=>mergeCall(r,calls.get(String(r.id)))),count:count||0}
+}
+export async function getResidentsPage(options:ResidentPageOptions={}):Promise<ResidentPage>{
+ const normalized={page:options.page??1,pageSize:options.pageSize??25,search:options.search?.trim()??'',filter:options.filter??'all',house:options.house??'all',party:options.party??'all',gender:options.gender??'all',age:options.age??'all',box:options.box??'all'};
+ const key=JSON.stringify(normalized),cached=residentPageCache.get(key);
+ if(cached&&cached.expires>Date.now())return cached.data;
+ if(residentPageRequests.has(key))return residentPageRequests.get(key)!;
+ const epoch=residentPageEpoch;
+ const request=fetchResidentsPage(normalized).then(data=>{if(epoch===residentPageEpoch){if(residentPageCache.size>=30)residentPageCache.clear();residentPageCache.set(key,{data,expires:Date.now()+RESIDENT_PAGE_CACHE_TTL})}return data});
+ residentPageRequests.set(key,request);
+ try{return await request}finally{if(residentPageRequests.get(key)===request)residentPageRequests.delete(key)}
 }
 export async function getResidentById(id:Resident['id']):Promise<Resident>{if(residentCache&&Date.now()-residentCache.timestamp<RESIDENT_CACHE_TTL){const cached=residentCache.data.find(r=>String(r.id)===String(id));if(cached)return cached}const {data,error}=await supabase.from(RESIDENT_TABLE).select('*').eq('id',id).maybeSingle();if(error)throw new Error(`Resident load failed: ${error.message}`);if(!data)throw new Error('Resident record not found.');const calls=await loadCallMap([id]);return mergeCall(normalizeResident(data),calls.get(String(id)))}
 export async function getNextResidentId(id:Resident['id']):Promise<Resident['id']>{const cached=residentCache?.data;if(cached?.length){const index=cached.findIndex(r=>String(r.id)===String(id));return cached[(index+1+cached.length)%cached.length].id}const next=await supabase.from(RESIDENT_TABLE).select('id').gt('id',id).order('id',{ascending:true}).limit(1).maybeSingle();if(next.error)throw new Error(`Next resident lookup failed: ${next.error.message}`);if(next.data?.id!==undefined)return next.data.id;const first=await supabase.from(RESIDENT_TABLE).select('id').order('id',{ascending:true}).limit(1).maybeSingle();if(first.error)throw new Error(`Resident lookup failed: ${first.error.message}`);if(first.data?.id===undefined)throw new Error('No resident records are available.');return first.data.id}

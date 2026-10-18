@@ -37,11 +37,11 @@ export default function MDPWorkspaceNavigation(){
  const visibleMoreLinks=moreLinks.filter(item=>!('roles'in item)||!item.roles||item.roles.includes(role));
 
  return <nav aria-label="Main navigation" className="mdp-nav">
-  <Link prefetch={false} href="/mdp/" onPointerEnter={()=>router.prefetch('/mdp/')} onFocus={()=>router.prefetch('/mdp/')} aria-current={home?'page':undefined} className={`mdp-nav-link mdp-nav-home${home?' is-active':''}`}>Home</Link>
-  <Link prefetch={false} href="/mdp/residents/" onPointerEnter={()=>router.prefetch('/mdp/residents/')} onFocus={()=>router.prefetch('/mdp/residents/')} aria-current={residents?'page':undefined} className={`mdp-nav-link${residents?' is-active':''}`}>Residents</Link>
+  <Link href="/mdp/" onPointerEnter={()=>router.prefetch('/mdp/')} onFocus={()=>router.prefetch('/mdp/')} onTouchStart={()=>router.prefetch('/mdp/')} aria-current={home?'page':undefined} className={`mdp-nav-link mdp-nav-home${home?' is-active':''}`}>Home</Link>
+  <Link href="/mdp/residents/" onPointerEnter={()=>router.prefetch('/mdp/residents/')} onFocus={()=>router.prefetch('/mdp/residents/')} onTouchStart={()=>router.prefetch('/mdp/residents/')} aria-current={residents?'page':undefined} className={`mdp-nav-link${residents?' is-active':''}`}>Residents</Link>
   <details ref={moreRef} className={`mdp-nav-more${moreActive?' is-active':''}`}>
    <summary aria-current={moreActive?'page':undefined}>More</summary>
-   <div className="mdp-nav-menu">{visibleMoreLinks.map(item=><Link key={item.href} prefetch={false} href={item.href} onPointerEnter={()=>router.prefetch(item.href)} onFocus={()=>router.prefetch(item.href)} onClick={()=>{if(moreRef.current)moreRef.current.open=false}} aria-current={isCurrent(pathname,item.href)?'page':undefined}>{item.label}</Link>)}</div>
+   <div className="mdp-nav-menu">{visibleMoreLinks.map(item=><Link key={item.href} href={item.href} onPointerEnter={()=>router.prefetch(item.href)} onFocus={()=>router.prefetch(item.href)} onTouchStart={()=>router.prefetch(item.href)} onClick={()=>{if(moreRef.current)moreRef.current.open=false}} aria-current={isCurrent(pathname,item.href)?'page':undefined}>{item.label}</Link>)}</div>
   </details>
   <div className="mdp-nav-account"><AuthControl/></div>
  </nav>
