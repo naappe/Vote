@@ -4,7 +4,7 @@ import {clampPage,pageCount,votingStatusLabel} from '../lib/mdp-voting-utils.ts'
 
 test('turnout labels are neutral',()=>{
  assert.equal(votingStatusLabel(true),'Voted');
- assert.equal(votingStatusLabel(false),'Not yet recorded');
+ assert.equal(votingStatusLabel(false),'Pending · not yet recorded');
 });
 
 test('voting-day pagination clamps to available pages',()=>{
