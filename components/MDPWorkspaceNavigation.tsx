@@ -15,8 +15,6 @@ const moreLinks=[
  {label:'Assignments',href:'/mdp/assignments/',roles:['admin','supervisor']},
  {label:'Link transport requests',href:'/mdp/transport-links/',roles:['admin','supervisor','election_operator']},
  {label:'Reports',href:'/mdp/reports/'},
- {label:'Verification',href:'/mdp/verification/',roles:['admin','supervisor']},
- {label:'Staff and backup',href:'/users/',roles:['admin']},
 ];
 
 function isCurrent(pathname:string,href:string){
