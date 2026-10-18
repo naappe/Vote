@@ -13,8 +13,6 @@ const moreTasks = [
  {title:'Staff assignments',href:'/mdp/assignments/'},
  {title:'Link transport requests',href:'/mdp/transport-links/'},
  {title:'Reports',href:'/mdp/reports/'},
- {title:'Staff and verification',href:'/contact-verification/'},
- {title:'Staff accounts and backup',href:'/users/'},
 ];
 
 export default function MDPResidentHome(){

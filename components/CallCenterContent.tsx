@@ -13,9 +13,10 @@ const phoneHref=(value?:string|null)=>{const digits=phoneDigits(value);if(!digit
 export default function CallCenterContent({partyControls=true}:{partyControls?:boolean}){
  const [rows,setRows]=useState<Resident[]>([]),[count,setCount]=useState(0),[page,setPage]=useState(1),[loading,setLoading]=useState(true),[error,setError]=useState('');
  const [searchInput,setSearchInput]=useState(''),[partyInput,setPartyInput]=useState('all'),[statusInput,setStatusInput]=useState('all'),[outcomeInput,setOutcomeInput]=useState('all');
- const [search,setSearch]=useState(''),[party,setParty]=useState('all'),[status,setStatus]=useState('all'),[outcome,setOutcome]=useState('all'),[selected,setSelected]=useState<Resident|null>(null);
+ const [search,setSearch]=useState(''),[party,setParty]=useState('all'),[status,setStatus]=useState('all'),[outcome,setOutcome]=useState('all'),[selected,setSelected]=useState<Resident|null>(null),[queryReady,setQueryReady]=useState(false);
+ useEffect(()=>{const params=new URLSearchParams(window.location.search),requestedStatus=params.get('status'),requestedOutcome=params.get('outcome');if(['need-call','called'].includes(requestedStatus||'')){setStatus(requestedStatus!);setStatusInput(requestedStatus!)}if(outcomes.includes(requestedOutcome as CallOutcome)){setOutcome(requestedOutcome!);setOutcomeInput(requestedOutcome!)}setQueryReady(true)},[]);
  function load(){setLoading(true);getCallCenterQueue({page,pageSize:30,search,party:partyControls?party:'MDP',phoneStatus:status,outcome}).then(r=>{setRows(r.rows);setCount(r.count);setError('')}).catch(e=>setError(e.message)).finally(()=>setLoading(false))}
- useEffect(()=>{load()},[search,party,partyControls,status,outcome,page]);
+ useEffect(()=>{if(queryReady)load()},[search,party,partyControls,status,outcome,page,queryReady]);
  function applySearch(){setPage(1);setSearch(searchInput.trim());setParty(partyInput);setStatus(statusInput);setOutcome(outcomeInput)}
  function reset(){setSearchInput('');setPartyInput('all');setStatusInput('all');setOutcomeInput('all');setSearch('');setParty('all');setStatus('all');setOutcome('all');setPage(1)}
  return <div className="space-y-4">

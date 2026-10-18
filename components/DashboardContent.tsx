@@ -80,8 +80,19 @@ export default function DashboardContent(){
    ].map(([label,value,detail,href])=><Link key={String(label)} href={String(href)} className="dashboard-work-link"><span><b className="block text-navy">{label}</b><small>{detail}</small></span><strong>{Number(value).toLocaleString()}</strong></Link>)}</div></article>
    <article className="panel"><div className="section-heading"><div><p className="eyebrow">Quick stats</p><h2 className="mt-1">Campaign pulse</h2></div></div><div className="space-y-4">{quick.map(item=><div key={item.label}><div className="flex items-center justify-between gap-3 text-sm"><span className="text-body">{item.label}</span><b className="text-xl text-navy">{item.value.toLocaleString()}</b></div><div className="mt-2 h-2 overflow-hidden rounded-full bg-slate-100"><div className={`h-full rounded-full ${item.tone}`} style={{width:`${Math.max(4,Math.min(100,percentage(item.value)))}%`}}/></div></div>)}</div></article>
   </section>
+  <section className="panel">
+   <div className="section-heading"><div><p className="eyebrow">Administrator tools</p><h2 className="mt-1">Review and manage the system</h2><p className="mt-1 text-sm text-body">These controls are available only in the admin app.</p></div></div>
+   <div className="grid gap-3 sm:grid-cols-3">
+    <AdminTool href="/contact-verification/" title="Contact verification" detail="Review resident contact corrections and missing phone details."/>
+    <AdminTool href="/users/" title="Staff accounts" detail="Manage staff access and roles."/>
+    <AdminTool href="/backup/" title="Backup and export" detail="Review backup tables and export records."/>
+   </div>
+  </section>
  </div>;
 }
 function ProgressPanel({title,action,href,rows}:{title:string;action:string;href:string;rows:[string,number,number,string][]}){
  return <article className="panel"><div className="section-heading"><h2>{title}</h2><Link href={href} className="text-sm font-semibold text-primary">{action} →</Link></div><div className="space-y-4">{rows.map(([label,value,pct,tone])=><div key={label}><div className="mb-1.5 flex items-center justify-between gap-3 text-sm"><span className="text-body">{label}</span><b className="text-navy">{value.toLocaleString()} <span className="text-body">({pct}%)</span></b></div><div className="progress-bar h-2 overflow-hidden rounded-full bg-slate-100"><div className={`h-full rounded-full ${tone}`} style={{width:`${Math.max(3,Math.min(100,pct))}%`}}/></div></div>)}</div></article>
+}
+function AdminTool({href,title,detail}:{href:string;title:string;detail:string}){
+ return <Link prefetch={false} href={href} className="dashboard-work-link min-h-24"><span><b className="block text-navy">{title}</b><small>{detail}</small></span><span aria-hidden="true" className="text-xl font-bold text-primary">→</span></Link>
 }

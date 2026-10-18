@@ -9,7 +9,7 @@ import {authErrorMessage} from '../lib/auth-utils';
 
 type Access={user:User;role:string;partyScope:string|null}|null;
 export default function AuthGate({children}:{children:React.ReactNode}){
- const [access,setAccess]=useState<Access>(null),[ready,setReady]=useState(false),[error,setError]=useState(''),[attempt,setAttempt]=useState(0),[recovery,setRecovery]=useState(false),[mdpAccess,setMdpAccess]=useState<{route:string;allowed:boolean}|null>(null);
+ const [access,setAccess]=useState<Access>(null),[ready,setReady]=useState(false),[error,setError]=useState(''),[attempt,setAttempt]=useState(0),[recovery,setRecovery]=useState(false),[mdpAccess,setMdpAccess]=useState<{userId:string;allowed:boolean}|null>(null);
  const pathname=usePathname();
  useEffect(()=>{
   let active=true,generation=0;
@@ -47,18 +47,19 @@ export default function AuthGate({children}:{children:React.ReactNode}){
  useEffect(()=>{
   let active=true;
   if(!isMdpRoute||!access){return()=>{active=false}}
+  if(mdpAccess?.userId===access.user.id)return()=>{active=false}
   const allowedRoles=['admin','supervisor','call_agent','field_agent','election_operator'];
-  if(!allowedRoles.includes(access.role)||!['MDP','ALL'].includes(access.partyScope||'')){setMdpAccess({route,allowed:false});return()=>{active=false}}
+  if(!allowedRoles.includes(access.role)||!['MDP','ALL'].includes(access.partyScope||'')){setMdpAccess({userId:access.user.id,allowed:false});return()=>{active=false}}
   setMdpAccess(null);
   void supabase.rpc('mdp_has_access').then(({data,error})=>{
-   if(active)setMdpAccess({route,allowed:!error&&data===true});
+   if(active)setMdpAccess({userId:access.user.id,allowed:!error&&data===true});
   });
   return()=>{active=false};
- },[access,route,isMdpRoute]);
+ },[access,isMdpRoute]);
  if(recovery)return <PasswordRecoveryForm onContinue={()=>{window.history.replaceState(null,'',window.location.pathname);setRecovery(false);setAttempt(value=>value+1)}}/>;
  if(!ready)return <div className="grid min-h-screen place-items-center bg-calm-50 p-6"><p role="status">Checking secure access…</p></div>;
  if(!access)return <main className="grid min-h-screen place-items-center bg-calm-50 p-5"><section className="panel w-full max-w-md text-center"><div className="brand-mark mx-auto">VO</div><p className="eyebrow mt-5">Secure campaign access</p><h1 className="mt-2 text-3xl">Login required</h1><p className="mt-3 text-sm text-body">Sign in with your staff account. Administrator: naappe@gmail.com</p>{error&&<p role="alert" className="error-banner mt-4">{error}</p>}<div className="mt-6 flex justify-center gap-3"><AuthControl/><button className="btn-secondary" onClick={()=>setAttempt(value=>value+1)}>Check access again</button></div></section></main>;
- if(isMdpRoute&&(!mdpAccess||mdpAccess.route!==route))return <main className="grid min-h-screen place-items-center p-6"><p role="status">Checking MDP access…</p></main>;
+ if(isMdpRoute&&(!mdpAccess||mdpAccess.userId!==access.user.id))return <main className="grid min-h-screen place-items-center p-6"><p role="status">Checking MDP access…</p></main>;
  if(isMdpRoute&&!mdpAccess?.allowed)return <main className="grid min-h-screen place-items-center bg-calm-50 p-6"><section className="panel max-w-lg"><h1>MDP access required</h1><p className="mt-2 text-sm text-body">This link is limited to staff accounts approved for MDP operations. Ask an administrator to enable MDP access for your account.</p><a className="btn-primary mt-4 inline-flex" href="/Vote/">Return to dashboard</a></section></main>;
  if(['/users','/backup'].includes(route)&&access.role!=='admin')return <main className="p-6"><h1>Administrator access required</h1><a href="/Vote/">Return to dashboard</a></main>;
  const mdpRoleAccess:[string,string[]][]=[
