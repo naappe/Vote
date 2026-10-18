@@ -2,8 +2,8 @@
 
 import Link from 'next/link';
 import {usePathname,useRouter} from 'next/navigation';
-import {useEffect,useRef,useState} from 'react';
-import {supabase} from '../lib/supabase';
+import {useEffect,useRef} from 'react';
+import {useStaffAccess} from './AuthGate';
 import AuthControl from './AuthControl';
 
 const moreLinks=[
@@ -25,7 +25,7 @@ function isCurrent(pathname:string,href:string){
 }
 
 export default function MDPWorkspaceNavigation(){
- const [role,setRole]=useState('');
+ const access=useStaffAccess(),role=access?.role||'';
  const pathname=usePathname()||'/mdp/',router=useRouter();
  const moreRef=useRef<HTMLDetailsElement>(null);
  const home=isCurrent(pathname,'/mdp/');
@@ -33,7 +33,6 @@ export default function MDPWorkspaceNavigation(){
  const moreActive=moreLinks.some(item=>isCurrent(pathname,item.href));
 
  useEffect(()=>{if(moreRef.current)moreRef.current.open=false},[pathname]);
- useEffect(()=>{let active=true;void(async()=>{const {data:{user}}=await supabase.auth.getUser();if(!user)return;const {data}=await supabase.from('user_roles').select('role,active').eq('user_id',user.id).maybeSingle();if(active&&data?.active)setRole(data.role)})();return()=>{active=false}},[]);
  const visibleMoreLinks=moreLinks.filter(item=>!('roles'in item)||!item.roles||item.roles.includes(role));
 
  return <nav aria-label="Main navigation" className="mdp-nav">

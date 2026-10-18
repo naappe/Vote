@@ -11,7 +11,7 @@ function EyeIcon({open}:{open:boolean}){
 
 export default function AuthControl({defaultIdentity='naappe@gmail.com',identityPlaceholder='Username or email'}:{defaultIdentity?:string;identityPlaceholder?:string}){
  const [user,setUser]=useState<User|null>(null),[ready,setReady]=useState(false),[open,setOpen]=useState(false),[resetMode,setResetMode]=useState(false),[showPassword,setShowPassword]=useState(false),[identity,setIdentity]=useState(defaultIdentity),[password,setPassword]=useState(''),[busy,setBusy]=useState(false),[error,setError]=useState(''),[notice,setNotice]=useState('');
- useEffect(()=>{let active=true;supabase.auth.getUser().then(({data})=>{if(active){setUser(data.user);setIdentity(data.user?.user_metadata?.login_name||data.user?.email||defaultIdentity);setReady(true)}}).catch(()=>{if(active)setReady(true)});const {data:{subscription}}=supabase.auth.onAuthStateChange((_event,session)=>{setUser(session?.user||null);setReady(true);if(session?.user)setOpen(false)});return()=>{active=false;subscription.unsubscribe()}},[defaultIdentity]);
+ useEffect(()=>{let active=true;supabase.auth.getSession().then(({data})=>{const current=data.session?.user||null;if(active){setUser(current);setIdentity(current?.user_metadata?.login_name||current?.email||defaultIdentity);setReady(true)}}).catch(()=>{if(active)setReady(true)});const {data:{subscription}}=supabase.auth.onAuthStateChange((_event,session)=>{setUser(session?.user||null);setReady(true);if(session?.user)setOpen(false)});return()=>{active=false;subscription.unsubscribe()}},[defaultIdentity]);
  useEffect(()=>{if(!user)setIdentity(defaultIdentity)},[defaultIdentity,user]);
  const isAdmin=user?.app_metadata?.role==='admin';
  async function login(event:FormEvent){

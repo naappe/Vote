@@ -1,5 +1,5 @@
 'use client';
-import {useEffect,useState} from 'react';
+import {createContext,useContext,useEffect,useState} from 'react';
 import {usePathname} from 'next/navigation';
 import type {User} from '@supabase/supabase-js';
 import {supabase,invalidateResidentCache} from '../lib/supabase';
@@ -8,6 +8,8 @@ import PasswordRecoveryForm from './PasswordRecoveryForm';
 import {authErrorMessage} from '../lib/auth-utils';
 
 type Access={user:User;role:string;partyScope:string|null}|null;
+const StaffAccessContext=createContext<Access>(null);
+export function useStaffAccess(){return useContext(StaffAccessContext)}
 export default function AuthGate({children}:{children:React.ReactNode}){
  const [access,setAccess]=useState<Access>(null),[ready,setReady]=useState(false),[error,setError]=useState(''),[attempt,setAttempt]=useState(0),[recovery,setRecovery]=useState(false),[mdpAccess,setMdpAccess]=useState<{userId:string;allowed:boolean;checkFailed?:boolean}|null>(null),[mdpAttempt,setMdpAttempt]=useState(0);
  const pathname=usePathname();
@@ -22,12 +24,15 @@ export default function AuthGate({children}:{children:React.ReactNode}){
     const {data:{user},error}=await supabase.auth.getUser();
     if(!active||current!==generation)return;
     if(error||!user){setAccess(null);if(error&&error.name!=='AuthSessionMissingError')setError(authErrorMessage(error));return}
-    const {data:membership,error:roleError}=await supabase.from('user_roles').select('role,active').eq('user_id',user.id).maybeSingle();
+    const [membershipResult,partyResult]=await Promise.all([
+     supabase.from('user_roles').select('role,active').eq('user_id',user.id).maybeSingle(),
+     supabase.from('staff_party_access').select('party_scope').eq('user_id',user.id).maybeSingle(),
+    ]);
     if(!active||current!==generation)return;
+    const {data:membership,error:roleError}=membershipResult;
     if(roleError)throw roleError;
     if(!membership?.active){setAccess(null);setError('No active staff access was found for this account. Ask an administrator to verify your account permissions.');return}
-    const {data:partyAccess,error:partyError}=await supabase.from('staff_party_access').select('party_scope').eq('user_id',user.id).maybeSingle();
-    if(!active||current!==generation)return;
+    const {data:partyAccess,error:partyError}=partyResult;
     if(partyError)throw partyError;
     setAccess({user,role:membership.role,partyScope:membership.role==='admin'?'ALL':partyAccess?.party_scope||null});
    }catch(error){if(active&&current===generation){setAccess(null);setError(authErrorMessage(error))}}
@@ -85,5 +90,5 @@ export default function AuthGate({children}:{children:React.ReactNode}){
  if(isMdpRoute&&roleRule&&!roleRule[1].includes(access.role))return <main className="grid min-h-screen place-items-center bg-calm-50 p-6"><section className="panel max-w-lg"><h1>Task access required</h1><p className="mt-2 text-sm text-body">This task is not enabled for your staff role. Return to the MDP workspace to see the tasks available to you.</p><a className="btn-primary mt-4 inline-flex" href="/Vote/mdp/">Return to MDP home</a></section></main>;
  if(!isMdpRoute&&access.role!=='admin')return <main className="grid min-h-screen place-items-center bg-calm-50 p-6"><section className="panel max-w-lg"><h1>Administrator access required</h1><p className="mt-2 text-sm text-body">The main Vote app is for administrators. Staff approved for MDP operations should use the separate MDP workspace link.</p><a className="btn-primary mt-4 inline-flex" href="/Vote/mdp/">Open MDP workspace</a></section></main>;
  if(route==='/contact-verification'&&!['admin','supervisor'].includes(access.role))return <main className="p-6"><h1>Supervisor access required</h1><a href="/Vote/">Return to dashboard</a></main>;
- return <>{children}</>;
+ return <StaffAccessContext.Provider value={access}>{children}</StaffAccessContext.Provider>;
 }
