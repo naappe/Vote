@@ -9,7 +9,7 @@ import {authErrorMessage} from '../lib/auth-utils';
 
 type Access={user:User;role:string;partyScope:string|null}|null;
 export default function AuthGate({children}:{children:React.ReactNode}){
- const [access,setAccess]=useState<Access>(null),[ready,setReady]=useState(false),[error,setError]=useState(''),[attempt,setAttempt]=useState(0),[recovery,setRecovery]=useState(false),[mdpAccess,setMdpAccess]=useState<{userId:string;allowed:boolean}|null>(null);
+ const [access,setAccess]=useState<Access>(null),[ready,setReady]=useState(false),[error,setError]=useState(''),[attempt,setAttempt]=useState(0),[recovery,setRecovery]=useState(false),[mdpAccess,setMdpAccess]=useState<{userId:string;allowed:boolean}|null>(null),[mdpAttempt,setMdpAttempt]=useState(0);
  const pathname=usePathname();
  useEffect(()=>{
   let active=true,generation=0;
@@ -55,12 +55,12 @@ export default function AuthGate({children}:{children:React.ReactNode}){
    if(active)setMdpAccess({userId:access.user.id,allowed:!error&&data===true});
   });
   return()=>{active=false};
- },[access,isMdpRoute]);
+ },[access,isMdpRoute,mdpAttempt]);
  if(recovery)return <PasswordRecoveryForm onContinue={()=>{window.history.replaceState(null,'',window.location.pathname);setRecovery(false);setAttempt(value=>value+1)}}/>;
  if(!ready)return <div className="grid min-h-screen place-items-center bg-calm-50 p-6"><p role="status">Checking secure access…</p></div>;
  if(!access)return <main className="grid min-h-screen place-items-center bg-calm-50 p-5"><section className="panel w-full max-w-md text-center"><div className="brand-mark mx-auto">{isMdpRoute?'MDP':'VO'}</div><p className="eyebrow mt-5">{isMdpRoute?'MDP Resident Operations':'Secure administrator access'}</p><h1 className="mt-2 text-3xl">{isMdpRoute?'Sign in to MDP operations':'Administrator login required'}</h1><p className="mt-3 text-sm text-body">{isMdpRoute?'Use the staff account that an administrator has approved for MDP operations. Access is checked after sign-in.':'Sign in with an active administrator account to open the main Vote app.'}</p>{error&&<p role="alert" className="error-banner mt-4">{error}</p>}<div className="mt-6 flex justify-center gap-3"><AuthControl defaultIdentity={isMdpRoute?'':''} identityPlaceholder={isMdpRoute?'MDP staff username or email':'Administrator username or email'}/><button className="btn-secondary" onClick={()=>setAttempt(value=>value+1)}>Check access again</button></div></section></main>;
  if(isMdpRoute&&(!mdpAccess||mdpAccess.userId!==access.user.id))return <main className="grid min-h-screen place-items-center p-6"><p role="status">Checking MDP access…</p></main>;
- if(isMdpRoute&&!mdpAccess?.allowed)return <main className="grid min-h-screen place-items-center bg-calm-50 p-6"><section className="panel w-full max-w-lg"><p className="eyebrow">MDP Resident Operations</p><h1 className="mt-2">MDP access is not enabled</h1><p className="mt-2 text-sm text-body">You are signed in, but this account has not been approved for MDP operations. Ask an administrator to enable MDP access for this account, or sign out and use an approved staff account.</p><div className="mt-5"><AuthControl/></div></section></main>;
+ if(isMdpRoute&&!mdpAccess?.allowed)return <main className="grid min-h-screen place-items-center bg-calm-50 p-6"><section className="panel w-full max-w-lg"><p className="eyebrow">MDP Resident Operations</p><h1 className="mt-2">MDP access is not enabled</h1><p className="mt-2 text-sm text-body">You are signed in as <strong>{access.user.email||'this account'}</strong>, but MDP access was not confirmed for this account.</p><p className="mt-3 text-sm text-body">Ask an administrator to check this exact account in User Management. It must be active, have an allowed staff role, be assigned <strong>MDP residents</strong>, and have the <strong>MDP link</strong> set to Allowed.</p><div className="mt-5 flex flex-wrap items-center gap-3"><button className="btn-primary" onClick={()=>{setMdpAccess(null);setMdpAttempt(value=>value+1)}}>Check access again</button><AuthControl/></div></section></main>;
  if(['/users','/backup'].includes(route)&&access.role!=='admin')return <main className="p-6"><h1>Administrator access required</h1><a href="/Vote/">Return to dashboard</a></main>;
  const mdpRoleAccess:[string,string[]][]=[
   ['/mdp/calls',['admin','supervisor','call_agent']],
