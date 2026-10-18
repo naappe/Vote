@@ -17,7 +17,7 @@ export interface MDPVotingResident{
 }
 
 export function votingStatusLabel(hasVoted:boolean):string{
- return hasVoted?'Voted':'Not yet recorded';
+ return hasVoted?'Voted':'Pending · not yet recorded';
 }
 
 export function pageCount(total:number,pageSize:number):number{
