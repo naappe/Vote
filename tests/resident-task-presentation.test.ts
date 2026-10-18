@@ -40,3 +40,9 @@ test('an unattempted door-to-door task remains pending and incomplete',()=>{
  assert.equal(task?.status,'Pending');
  assert.equal(task?.done,false);
 });
+
+test('a call reset to pending stays incomplete even when earlier attempts exist',()=>{
+ const task=residentTaskCards({callAttempts:2,callOutcome:'pending',voteStatus:null,visitStatus:null,transportStatus:null,hasRemarks:false}).find(item=>item.id==='call');
+ assert.equal(task?.status,'Pending · follow-up needed');
+ assert.equal(task?.done,false);
+});
