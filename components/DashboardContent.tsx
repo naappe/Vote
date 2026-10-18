@@ -20,7 +20,7 @@ async function loadDashboardSnapshot():Promise<DashboardSnapshot>{
   supabase.from('call_center').select('resident_id',{count:'exact',head:true}).eq('vote_status','will-vote'),
   supabase.from('call_center').select('resident_id',{count:'exact',head:true}).eq('vote_status','not-vote'),
   supabase.from('call_center').select('resident_id',{count:'exact',head:true}).eq('phone_status','called'),
-  supabase.from('call_center').select('resident_id',{count:'exact',head:true}).or('reach_status.eq.reached,phone_status.eq.called,vote_status.eq.will-vote,vote_status.eq.not-vote,support_level.eq.guaranteed'),
+  supabase.from('call_center').select('resident_id',{count:'exact',head:true}).eq('reach_status','reached'),
   supabase.from('door_to_door').select('resident_id',{count:'exact',head:true}).neq('visit_status','not-visited'),
   supabase.from('assignments').select('resident_id',{count:'exact',head:true}).neq('status','inactive'),
   supabase.from('transportation').select('resident_id',{count:'exact',head:true}).eq('transport_status','need-transport'),
