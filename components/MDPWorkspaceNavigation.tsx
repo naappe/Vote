@@ -7,10 +7,6 @@ import {useStaffAccess} from './AuthGate';
 import AuthControl from './AuthControl';
 
 const moreLinks=[
- {label:'Door-to-door',href:'/mdp/door-to-door/'},
- {label:'Calls',href:'/mdp/calls/',roles:['admin','supervisor','call_agent']},
- {label:'Remarks',href:'/mdp/remarks/'},
- {label:'Transportation',href:'/mdp/transportation/',roles:['admin','supervisor','election_operator']},
  {label:'Voting days',href:'/mdp/voting-days/',roles:['admin','supervisor','election_operator']},
  {label:'Assignments',href:'/mdp/assignments/',roles:['admin','supervisor']},
  {label:'Link transport requests',href:'/mdp/transport-links/',roles:['admin','supervisor','election_operator']},
