@@ -6,6 +6,8 @@ import {getDirectoryFilterOptions,getDirectoryPage,supabase} from '../lib/supaba
 import {collectDirectoryPages,mdpResidentsCsv,residentsCsv} from '../lib/directory-utils';
 import type {HouseOption,PartyOption} from '../lib/supabase';
 import type {Resident} from '../lib/types';
+import {residentTaskCards} from '../lib/resident-task-presentation';
+import {ResidentTaskIcon} from './ResidentTaskIcon';
 
 type ViewMode='list'|'gallery';
 type Props={profilePath?:string;partyControls?:boolean};
@@ -92,19 +94,8 @@ function Info({label,value}:{label:string;value?:string|null}){return <div class
 function WorkflowStatus({summary,unavailable}:{summary?:WorkflowSummary;unavailable:boolean}){
  if(unavailable)return <div className="border-t border-border bg-amber-50 px-4 py-3 text-xs font-semibold text-amber-900">Task history unavailable — refresh before repeating work.</div>;
  if(!summary)return <div className="border-t border-border px-4 py-3 text-xs text-body">Loading task history…</div>;
- const call=summary.callAttempts?friendly(summary.callOutcome||'pending'):`Not called${summary.hasCallRecord?' yet':''}`;
- const visit=summary.visitStatus?friendly(summary.visitStatus):'Not visited';
- const intention=summary.voteStatus?friendly(summary.voteStatus):'Not recorded';
- const transport=summary.transportStatus?transportLabel(summary.transportStatus):'No request';
- const notes=summary.hasRemarks?'Notes saved':'No notes';
- const items:{label:string;value:string;done:boolean}[]=[
-  {label:'Call',value:summary.callAttempts?`${call} · ${summary.callAttempts} ${summary.callAttempts===1?'attempt':'attempts'}`:call,done:summary.callAttempts>0},
-  {label:'Door-to-door',value:visit,done:Boolean(summary.visitStatus&&summary.visitStatus!=='not-visited')},
-  {label:'Voting intention',value:intention,done:Boolean(summary.voteStatus)},
-  {label:'Remarks',value:notes,done:summary.hasRemarks},
-  {label:'Transport',value:transport,done:['completed','picked-up'].includes(summary.transportStatus||'')},
- ];
- return <section aria-label="Previously recorded task status" className="mt-4 rounded-xl border border-border bg-slate-50/70 p-3 sm:p-4"><h4 className="mb-2.5 text-[10px] font-bold uppercase tracking-wider text-slate-500">Already recorded</h4><dl className="grid grid-cols-2 gap-2 sm:grid-cols-3">{items.map(({label,value,done})=><div key={label} className="min-w-0 rounded-lg border border-border/70 bg-white px-3 py-2.5"><dt className="text-[10px] font-semibold uppercase tracking-wide text-slate-500">{label}</dt><dd className="mt-1 flex items-center gap-1.5 text-xs font-semibold text-navy sm:text-sm"><span className="min-w-0 truncate" title={value}>{value}</span>{done&&<span role="img" aria-label="Completed" title="Completed" className="ml-auto grid h-5 w-5 shrink-0 place-items-center rounded-full bg-emerald-100 text-xs font-black text-emerald-700">✓</span>}</dd></div>)}</dl></section>
+ const items=residentTaskCards(summary);
+ return <section aria-label="Resident task status" className="mt-4 rounded-xl border border-border bg-slate-50/70 p-4 sm:p-5"><h4 className="mb-3 text-xs font-bold uppercase tracking-wider text-slate-600">Task status</h4><dl className="grid grid-cols-2 gap-3 sm:grid-cols-3">{items.map(item=><div key={item.id} className={['min-w-0 rounded-xl border px-3 py-3',item.done?'border-emerald-200 bg-emerald-50/60':'border-slate-200 bg-white'].join(' ')}><dt className="flex items-center gap-2 text-xs font-bold text-navy"><span className={['grid h-8 w-8 shrink-0 place-items-center rounded-lg',item.done?'bg-emerald-100 text-emerald-700':'bg-yellow-100 text-blue-800'].join(' ')}><ResidentTaskIcon name={item.icon} className="h-4 w-4"/></span><span className="min-w-0 truncate">{item.label}</span></dt><dd className="mt-2 flex min-h-6 items-center justify-between gap-2 text-xs font-semibold text-slate-600"><span className="min-w-0 truncate" title={item.status}>{item.status}</span>{item.done&&<span role="img" aria-label="Completed" title="Completed" className="grid h-5 w-5 shrink-0 place-items-center rounded-full bg-emerald-600 text-xs font-black text-white">✓</span>}</dd></div>)}</dl></section>
 }
 function friendly(value:string){const labels:Record<string,string>={'will-vote':'Plans to vote','not-vote':'Does not plan to vote','not-decided':'Not decided','not-visited':'Not visited','not-home':'Not home','access-issue':'Could not access home','address-not-found':'Address not found','visit-postponed':'Visit postponed','live-in-another-place':'Lives elsewhere','connected':'Reached resident','not-answer':'No answer','wrong-number':'Wrong number','out-of-coverage':'Out of coverage','disconnected':'Disconnected','busy':'Line busy','pending':'Pending'};return labels[value]||value.replaceAll('-',' ').replace(/^./,c=>c.toUpperCase())}
 function transportLabel(value:string){if(value==='not-needed')return 'Not requested';if(['need-transport','needed','requested'].includes(value))return 'Requested';if(value==='picked-up')return 'Picked up';return friendly(value)}
