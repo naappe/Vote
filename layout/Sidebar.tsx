@@ -1,8 +1,6 @@
 'use client';
 import Link from 'next/link';
-import {usePathname} from 'next/navigation';
-import {useEffect,useState} from 'react';
-import {supabase} from '../lib/supabase';
+import {usePathname,useRouter} from 'next/navigation';
 
 function NavGlyph({name}:{name:string}){
  const common={viewBox:'0 0 24 24',fill:'none',stroke:'currentColor',strokeWidth:1.9,strokeLinecap:'round' as const,strokeLinejoin:'round' as const};
@@ -50,11 +48,10 @@ const groups=[
 ];
 
 export default function Sidebar(){
- const pathname=usePathname(),[isAdmin,setIsAdmin]=useState(false);
- useEffect(()=>{let active=true;supabase.functions.invoke('manage-users',{body:{action:'admin_status'}}).then(({data,error})=>{if(active&&!error&&data?.is_admin)setIsAdmin(true)}).catch(()=>{});return()=>{active=false}},[]);
+ const pathname=usePathname(),router=useRouter();
  const normalized=(value:string)=>{const clean=value.replace(/^\/Vote(?=\/|$)/i,'')||'/';return clean==='/'?'/':clean.replace(/\/$/,'')};
  return <aside className="sticky top-0 hidden h-screen w-[272px] shrink-0 flex-col border-r border-border bg-card lg:flex">
   <div className="border-b border-border px-6 py-6"><div className="flex items-center gap-3"><div className="brand-mark">VM</div><div><strong className="block text-base text-navy">Vote Operations</strong><span className="text-[11px] font-semibold uppercase tracking-[.14em] text-body">Villimalé 2026</span></div></div></div>
-  <nav className="flex-1 space-y-7 overflow-y-auto px-4 py-6">{groups.map(group=><section key={group.label}><p className="nav-group-label">{group.label}</p><div className="mt-2 space-y-1">{group.items.filter(item=>item.href!=='/users/'||isAdmin).map(item=>{const active=normalized(pathname)===normalized(item.href);return <Link prefetch={false} key={item.href} href={item.href} aria-current={active?'page':undefined} className={`nav-item ${active?'nav-item-active':''}`}><span className="nav-icon" aria-hidden="true"><NavGlyph name={item.icon}/></span><span className="truncate">{item.label}</span></Link>})}</div></section>)}</nav>
+  <nav className="flex-1 space-y-7 overflow-y-auto px-4 py-6">{groups.map(group=><section key={group.label}><p className="nav-group-label">{group.label}</p><div className="mt-2 space-y-1">{group.items.map(item=>{const active=normalized(pathname)===normalized(item.href);return <Link prefetch={false} key={item.href} href={item.href} onPointerEnter={()=>router.prefetch(item.href)} onFocus={()=>router.prefetch(item.href)} aria-current={active?'page':undefined} className={`nav-item ${active?'nav-item-active':''}`}><span className="nav-icon" aria-hidden="true"><NavGlyph name={item.icon}/></span><span className="truncate">{item.label}</span></Link>})}</div></section>)}</nav>
  </aside>
 }

@@ -1,20 +1,14 @@
 import Link from 'next/link';
 
 const tasks = [
- {title:'Find a resident',detail:'Search the list or export residents.',href:'/mdp/residents/',mark:'01'},
- {title:'Record a call',detail:'Save the call result and follow-up.',href:'/mdp/calls/',mark:'02'},
- {title:'Log a home visit',detail:'Record a door-to-door visit.',href:'/mdp/door-to-door/',mark:'03'},
- {title:'Record voting',detail:'Mark voted or undo by voting day.',href:'/mdp/voting-days/',mark:'04'},
- {title:'Manage transport',detail:'Review and update resident requests.',href:'/mdp/transportation/',mark:'05'},
+ {title:'Find a resident',detail:'Open one resident to record a call, visit, voting intention, remark, or transport request.',href:'/mdp/residents/',mark:'01'},
+ {title:'Record election-day turnout',detail:'Choose a voting day, then mark residents voted or undo.',href:'/mdp/voting-days/',mark:'02'},
 ];
 
 const moreTasks = [
- {title:'Resident remarks',href:'/mdp/remarks/'},
  {title:'Staff assignments',href:'/mdp/assignments/'},
  {title:'Link transport requests',href:'/mdp/transport-links/'},
  {title:'Reports',href:'/mdp/reports/'},
- {title:'Staff and verification',href:'/contact-verification/'},
- {title:'Staff accounts and backup',href:'/users/'},
 ];
 
 export default function MDPResidentHome(){
@@ -22,7 +16,7 @@ export default function MDPResidentHome(){
   <section className="mdp-task-panel" aria-labelledby="mdp-task-heading">
    <div className="mdp-home-heading">
     <div><p className="mdp-eyebrow">Resident operations</p><h1 id="mdp-task-heading">Choose a task</h1></div>
-    <span className="mdp-task-count">5 main tasks</span>
+    <span className="mdp-task-count">2 main tasks</span>
    </div>
    <div className="mdp-task-list">
     {tasks.map(task=><Link key={task.title} prefetch href={task.href} className="mdp-task-card">
