@@ -31,6 +31,12 @@ test('a default not-decided value is not shown as a completed intention',()=>{
 
 test('a door visit marked not home stays pending because nobody was reached',()=>{
  const card=residentTaskCards({callAttempts:0,callOutcome:null,voteStatus:null,visitStatus:'not-home',transportStatus:null,hasRemarks:false}).find(item=>item.id==='door-to-door');
- assert.equal(card?.status,'Not reached · Not home');
+ assert.equal(card?.status,'Pending · Not reached — Not home');
  assert.equal(card?.done,false);
+});
+
+test('an unattempted door-to-door task remains pending and incomplete',()=>{
+ const task=residentTaskCards({callAttempts:0,callOutcome:null,voteStatus:null,visitStatus:'not-visited',transportStatus:null,hasRemarks:false}).find(item=>item.id==='door-to-door');
+ assert.equal(task?.status,'Pending');
+ assert.equal(task?.done,false);
 });
