@@ -94,11 +94,17 @@ function WorkflowStatus({summary,unavailable}:{summary?:WorkflowSummary;unavaila
  if(!summary)return <div className="border-t border-border px-4 py-3 text-xs text-body">Loading task history…</div>;
  const call=summary.callAttempts?friendly(summary.callOutcome||'pending'):`Not called${summary.hasCallRecord?' yet':''}`;
  const visit=summary.visitStatus?friendly(summary.visitStatus):'Not visited';
- const intention=!summary.hasCallRecord?'Not recorded':friendly(summary.voteStatus||'not-decided');
+ const intention=summary.voteStatus?friendly(summary.voteStatus):'Not recorded';
  const transport=summary.transportStatus?transportLabel(summary.transportStatus):'No request';
  const notes=summary.hasRemarks?'Notes saved':'No notes';
- const items=[['Call',summary.callAttempts?`${call} · ${summary.callAttempts} ${summary.callAttempts===1?'attempt':'attempts'}`:call],['Door-to-door',visit],['Voting intention',intention],['Remarks',notes],['Transport',transport]];
- return <section aria-label="Previously recorded task status" className="mt-4 rounded-xl border border-border bg-slate-50/70 p-3 sm:p-4"><h4 className="mb-2.5 text-[10px] font-bold uppercase tracking-wider text-slate-500">Already recorded</h4><dl className="grid grid-cols-2 gap-2 sm:grid-cols-3">{items.map(([label,value])=><div key={label} className="min-w-0 rounded-lg border border-border/70 bg-white px-3 py-2.5"><dt className="text-[10px] font-semibold uppercase tracking-wide text-slate-500">{label}</dt><dd className="mt-1 truncate text-xs font-semibold text-navy sm:text-sm" title={value}>{value}</dd></div>)}</dl></section>
+ const items:{label:string;value:string;done:boolean}[]=[
+  {label:'Call',value:summary.callAttempts?`${call} · ${summary.callAttempts} ${summary.callAttempts===1?'attempt':'attempts'}`:call,done:summary.callAttempts>0},
+  {label:'Door-to-door',value:visit,done:Boolean(summary.visitStatus&&summary.visitStatus!=='not-visited')},
+  {label:'Voting intention',value:intention,done:Boolean(summary.voteStatus)},
+  {label:'Remarks',value:notes,done:summary.hasRemarks},
+  {label:'Transport',value:transport,done:['completed','picked-up'].includes(summary.transportStatus||'')},
+ ];
+ return <section aria-label="Previously recorded task status" className="mt-4 rounded-xl border border-border bg-slate-50/70 p-3 sm:p-4"><h4 className="mb-2.5 text-[10px] font-bold uppercase tracking-wider text-slate-500">Already recorded</h4><dl className="grid grid-cols-2 gap-2 sm:grid-cols-3">{items.map(({label,value,done})=><div key={label} className="min-w-0 rounded-lg border border-border/70 bg-white px-3 py-2.5"><dt className="text-[10px] font-semibold uppercase tracking-wide text-slate-500">{label}</dt><dd className="mt-1 flex items-center gap-1.5 text-xs font-semibold text-navy sm:text-sm"><span className="min-w-0 truncate" title={value}>{value}</span>{done&&<span role="img" aria-label="Completed" title="Completed" className="ml-auto grid h-5 w-5 shrink-0 place-items-center rounded-full bg-emerald-100 text-xs font-black text-emerald-700">✓</span>}</dd></div>)}</dl></section>
 }
 function friendly(value:string){const labels:Record<string,string>={'will-vote':'Plans to vote','not-vote':'Does not plan to vote','not-decided':'Not decided','not-visited':'Not visited','not-home':'Not home','access-issue':'Could not access home','address-not-found':'Address not found','visit-postponed':'Visit postponed','live-in-another-place':'Lives elsewhere','connected':'Reached resident','not-answer':'No answer','wrong-number':'Wrong number','out-of-coverage':'Out of coverage','disconnected':'Disconnected','busy':'Line busy','pending':'Pending'};return labels[value]||value.replaceAll('-',' ').replace(/^./,c=>c.toUpperCase())}
 function transportLabel(value:string){if(value==='not-needed')return 'Not requested';if(['need-transport','needed','requested'].includes(value))return 'Requested';if(value==='picked-up')return 'Picked up';return friendly(value)}
