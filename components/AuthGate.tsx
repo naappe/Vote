@@ -68,10 +68,11 @@ export default function AuthGate({children}:{children:React.ReactNode}){
   ['/mdp/transportation',['admin','supervisor','election_operator']],
   ['/mdp/transport-links',['admin','supervisor','election_operator']],
   ['/mdp/assignments',['admin','supervisor']],
+  ['/mdp/verification',['admin']],
  ];
  const roleRule=mdpRoleAccess.find(([path])=>route===path||route.startsWith(`${path}/`));
  if(isMdpRoute&&roleRule&&!roleRule[1].includes(access.role))return <main className="grid min-h-screen place-items-center bg-calm-50 p-6"><section className="panel max-w-lg"><h1>Task access required</h1><p className="mt-2 text-sm text-body">This task is not enabled for your staff role. Return to the MDP workspace to see the tasks available to you.</p><a className="btn-primary mt-4 inline-flex" href="/Vote/mdp/">Return to MDP home</a></section></main>;
- if(!isMdpRoute&&access.role!=='admin'&&!access.partyScope)return <main className="grid min-h-screen place-items-center bg-calm-50 p-6"><section className="panel max-w-lg"><h1>Resident access not assigned</h1><p className="mt-2 text-sm text-body">An administrator must assign this account to MDP or PNC and allow main app access. Resident records stay hidden until then.</p><a className="btn-primary mt-4 inline-flex" href="/Vote/">Check access again</a></section></main>;
+ if(!isMdpRoute&&access.role!=='admin')return <main className="grid min-h-screen place-items-center bg-calm-50 p-6"><section className="panel max-w-lg"><h1>Administrator access required</h1><p className="mt-2 text-sm text-body">The main Vote app is for administrators. Staff approved for MDP operations should use the separate MDP workspace link.</p><a className="btn-primary mt-4 inline-flex" href="/Vote/mdp/">Open MDP workspace</a></section></main>;
  if(route==='/contact-verification'&&!['admin','supervisor'].includes(access.role))return <main className="p-6"><h1>Supervisor access required</h1><a href="/Vote/">Return to dashboard</a></main>;
  return <>{children}</>;
 }
