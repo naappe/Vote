@@ -6,7 +6,6 @@ import type {Resident} from '../lib/types';
 
 type Activity={call:string;visit:string;vote:string;remark:string;remarkAt:string;transport:string;transportNote:string;updated:string};
 type Row={resident:Resident;activity:Activity};
-const empty:Activity={call:'Pending',visit:'Pending',vote:'Unknown',remark:'',remarkAt:'',transport:'Not recorded',transportNote:'',updated:''};
 const pretty=(value:string)=>value.replaceAll('-',' ').replace(/\\b\\w/g,c=>c.toUpperCase());
 const filters=[['all','All activities'],['call-pending','Calls pending'],['call-done','Calls recorded'],['visit-pending','Visits pending'],['visit-done','Visits recorded'],['will-vote','Will vote'],['not-vote','Will not vote'],['unsure','Undecided / unknown'],['remarks','With remarks'],['transport','Transport needed']] as const;
 export default function TaskMonitoringContent(){
