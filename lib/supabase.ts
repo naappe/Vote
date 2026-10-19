@@ -45,18 +45,9 @@ interface ResidentPageOptions{page?:number;pageSize?:number;search?:string;filte
 async function fetchResidentsPage({page=1,pageSize=25,search='',filter='all',house='all',party='all',gender='all',age='all',box='all'}:ResidentPageOptions):Promise<ResidentPage>{
  const requiresClientFallback=filter!=='all'||party==='Other'||house==='Dhafthar'||house==='Sina Malé';
  if(requiresClientFallback){const all=await getResidents();const filtered=all.filter(r=>matchesSearch(r,search)&&matchesParty(r,party)&&matchesFilter(r,filter)&&matchesGender(r,gender)&&matchesAge(r,age)&&matchesBox(r,box)&&(house==='all'||normalizeHouse(r.house)===house));const safeSize=Math.min(100,Math.max(10,pageSize)),start=(Math.max(1,page)-1)*safeSize;return {rows:filtered.slice(start,start+safeSize),count:filtered.length}}
- const size=Math.min(100,Math.max(10,pageSize)),start=(Math.max(1,page)-1)*size,end=start+size-1;
- let query=supabase.from(RESIDENT_TABLE).select('*',{count:'exact'}).order('id',{ascending:true});
- const term=search.trim().replace(/[,%()]/g,' ');
- if(term){const exactId=/^\d+$/.test(term)?`,id.eq.${term}`:'';query=query.or(`name.ilike.%${term}%,national_id.ilike.%${term}%,phone.ilike.%${term}%,house.ilike.%${term}%,lives_in.ilike.%${term}%,election_box.ilike.%${term}${exactId}`)}
- if(house!=='all')query=query.eq('house',house);
- if(party==='Unspecified')query=query.is('party',null);
- else if(party!=='all')query=query.ilike('party',`%${party}%`);
- if(gender!=='all')query=query.ilike('sex',gender);
- if(box!=='all')query=query.eq('election_box',box);
- const[minAge,maxAge]=ageBounds(age);if(minAge!==null)query=query.gte('age',minAge);if(maxAge!==null)query=query.lte('age',maxAge);
- const {data,error,count}=await query.range(start,end);if(error)throw new Error(`Resident page load failed: ${error.message}`);
- const masters=(data||[]).map(normalizeResident),calls=await loadCallMap(masters.map(r=>r.id));return {rows:masters.map(r=>mergeCall(r,calls.get(String(r.id)))),count:count||0}
+ const result=await getDirectoryPage({search,house,party,gender,age,box},page,Math.min(100,Math.max(10,pageSize)));
+ const calls=await loadCallMap(result.rows.map(r=>r.id));
+ return {rows:result.rows.map(r=>mergeCall(r,calls.get(String(r.id)))),count:result.count}
 }
 export async function getResidentsPage(options:ResidentPageOptions={}):Promise<ResidentPage>{
  const normalized={page:options.page??1,pageSize:options.pageSize??25,search:options.search?.trim()??'',filter:options.filter??'all',house:options.house??'all',party:options.party??'all',gender:options.gender??'all',age:options.age??'all',box:options.box??'all'};
