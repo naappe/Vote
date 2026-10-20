@@ -1,6 +1,6 @@
 'use client';
 import Link from 'next/link';
-import {usePathname,useSearchParams} from 'next/navigation';
+import {usePathname,useRouter,useSearchParams} from 'next/navigation';
 import {useEffect,useMemo,useRef,useState} from 'react';
 import {getDirectoryFilterOptions,getDirectoryPage,getResidents,saveCallCenterResult,saveDoorToDoorResult,supabase} from '../lib/supabase';
 import {readOperationalRows,saveTransportation} from '../lib/operations';
@@ -16,10 +16,14 @@ type WorkflowSummary={hasCallRecord:boolean;callOutcome:string|null;callAttempts
 const focusOptions=[['all','All residents'],['missing-phone','Missing phone'],['need-call','Need call'],['called','Called'],['reached','Reached'],['connected','Connected'],['visited','Visited'],['not-visited','Not visited'],['unassigned','Unassigned'],['remarks','Remarks recorded'],['transport','Transport recorded'],['will-vote','Will vote'],['not-vote','Will not vote'],['undecided','Undecided']] as const;
 const meetingWasCompleted=(remark:string)=>/^Meeting result:\s*Met resident in person\b|^Met resident in person\b/i.test(remark.trim());
 export default function VoterManagementContent({profilePath='/resident-profile/',partyControls=true}:Props={}){
- const pathname=usePathname(),params=useSearchParams(),resultsRef=useRef<HTMLElement>(null);
+ const pathname=usePathname(),router=useRouter(),params=useSearchParams(),resultsRef=useRef<HTMLElement>(null);
  const initial=(key:string)=>params.get(key)||'all';
  const [rows,setRows]=useState<Resident[]>([]),[workflow,setWorkflow]=useState<Record<string,WorkflowSummary>>({}),[workflowError,setWorkflowError]=useState(''),[houses,setHouses]=useState<HouseOption[]>([]),[parties,setParties]=useState<PartyOption[]>([]),[boxes,setBoxes]=useState<string[]>([]),[loading,setLoading]=useState(true),[filtersLoading,setFiltersLoading]=useState(false),[filtersLoaded,setFiltersLoaded]=useState(false),[error,setError]=useState(''),[message,setMessage]=useState('');
  const [focus,setFocus]=useState(()=>params.get('focus')||'all');
+ // Next.js preserves the component when navigating between query-only task links.
+ // Synchronize the selected task before updating the URL again.
+ const incomingFocus=params.get('focus')||'all';
+ useEffect(()=>{setFocus(current=>current===incomingFocus?current:incomingFocus);setPage(1)},[incomingFocus]);
  const [query,setQuery]=useState(()=>params.get('q')||''),[debouncedQuery,setDebouncedQuery]=useState(()=>params.get('q')||''),[house,setHouse]=useState(()=>initial('house')),[party,setParty]=useState(()=>partyControls?initial('party'):'all'),[gender,setGender]=useState(()=>initial('gender')),[age,setAge]=useState(()=>initial('age')),[box,setBox]=useState(()=>initial('box')),[page,setPage]=useState(()=>Math.max(1,Number(params.get('page'))||1)),[count,setCount]=useState(0),[view,setView]=useState<ViewMode>(()=>params.get('view')==='gallery'?'gallery':'list'),[pageSize,setPageSize]=useState(50),[exporting,setExporting]=useState(false),[exportProgress,setExportProgress]=useState('');
  const filters=useMemo(()=>({search:debouncedQuery,house,party:partyControls?party:'MDP',gender,age,box:partyControls?box:'all'}),[debouncedQuery,house,party,partyControls,gender,age,box]);
  function loadFilters(){if(filtersLoaded||filtersLoading)return;setFiltersLoading(true);getDirectoryFilterOptions().then(data=>{setHouses(data.houses);if(partyControls)setParties(data.parties);setBoxes(data.boxes);setFiltersLoaded(true)}).catch(e=>setError(e.message)).finally(()=>setFiltersLoading(false))}
@@ -28,10 +32,11 @@ export default function VoterManagementContent({profilePath='/resident-profile/'
  useEffect(()=>{
   const next=new URLSearchParams();if(debouncedQuery)next.set('q',debouncedQuery);
   for(const [key,value] of Object.entries({house,party:partyControls?party:'all',gender,age,box:partyControls?box:'all'}))if(value!=='all')next.set(key,value);
+  if(focus!==incomingFocus)return;
   if(focus!=='all')next.set('focus',focus);if(page>1)next.set('page',String(page));if(view==='gallery')next.set('view','gallery');
   const base=pathname.startsWith('/Vote')?pathname:`/Vote${pathname}`;
   window.history.replaceState(null,'',`${base}${next.size?'?'+next.toString():''}`);
- },[debouncedQuery,house,party,partyControls,gender,age,box,focus,page,view,pathname]);
+ },[debouncedQuery,house,party,partyControls,gender,age,box,focus,incomingFocus,page,view,pathname]);
  useEffect(()=>{let active=true;setLoading(true);setError('');setWorkflowError('');if(!partyControls)setWorkflow({});
   void(async()=>{try{const result=focus==='all'?await getDirectoryPage(filters,page,pageSize):await (async()=>{const all=await getResidents();const operational=focus==='visited'||focus==='not-visited'?await readOperationalRows('door_to_door','resident_id,visit_status'):focus==='unassigned'?await readOperationalRows('assignments','resident_id,status'):focus==='remarks'?await readOperationalRows('remarks','resident_id,section,remark'):focus==='transport'?await readOperationalRows('transportation','resident_id,transport_status'):[];const opMap=new Map(operational.filter(row=>focus!=='remarks'||!row.section||row.section==='general').map(row=>[String(row.resident_id),row]));const matches=(r:Resident)=>{const op=opMap.get(String(r.id));switch(focus){case 'missing-phone':return !String(r.phone||'').trim();case 'need-call':return r.phone_status!=='called';case 'called':return r.phone_status==='called';case 'reached':return r.reach_status==='reached';case 'connected':return r.call_outcome==='connected';case 'visited':return op?.visit_status==='visited';case 'not-visited':return op?.visit_status!=='visited';case 'unassigned':return !op||op.status==='inactive';case 'remarks':return Boolean(op?.remark);case 'transport':return Boolean(op?.transport_status);case 'will-vote':return r.vote_status==='will-vote';case 'not-vote':return r.vote_status==='not-vote';case 'undecided':return !r.vote_status||r.vote_status==='not-decided';default:return true}};const term=filters.search.trim().toLowerCase();const filtered=all.filter(r=>(partyControls||r.party==='MDP')&&(filters.party==='all'||r.party===filters.party)&&(filters.house==='all'||r.house===filters.house)&&(filters.gender==='all'||String(r.sex||'').toUpperCase()===filters.gender)&&(filters.age==='all'||(filters.age==='61+'?Number(r.age)>=61:(()=>{const [lo,hi]=filters.age.split('-').map(Number);return Number(r.age)>=lo&&Number(r.age)<=hi})()))&&(filters.box==='all'||r.election_box===filters.box)&&(!term||[r.id,r.name,r.national_id,r.house,r.phone,r.lives_in].some(v=>String(v||'').toLowerCase().includes(term)))&&matches(r));return {rows:filtered.slice((page-1)*pageSize,page*pageSize),count:filtered.length}})();if(!active)return;setRows(result.rows);setCount(result.count);setLoading(false);const max=Math.max(1,Math.ceil(result.count/pageSize));if(page>max)setPage(max);
    if(!partyControls&&result.rows.length){const ids=result.rows.map(row=>row.id);const [callRows,visitRows,transportRows,remarkRows]=await Promise.all([
@@ -47,7 +52,7 @@ export default function VoterManagementContent({profilePath='/resident-profile/'
  const pages=Math.max(1,Math.ceil(count/pageSize)),range=count?`${(page-1)*pageSize+1}–${Math.min(page*pageSize,count)}`:'0';
  const hasFilters=Boolean(focus!=='all'||query||house!=='all'||(partyControls&&party!=='all')||gender!=='all'||age!=='all'||(partyControls&&box!=='all'));
  function changeFilter(setter:(value:string)=>void,value:string){setter(value);setPage(1)}
- function clearFilters(){setFocus('all');setQuery('');setDebouncedQuery('');setHouse('all');setParty('all');setGender('all');setAge('all');setBox('all');setPage(1)}
+ function clearFilters(){router.push(pathname);setFocus('all');setQuery('');setDebouncedQuery('');setHouse('all');setParty('all');setGender('all');setAge('all');setBox('all');setPage(1)}
  function changePage(next:number){setPage(Math.min(pages,Math.max(1,next)));resultsRef.current?.scrollIntoView({behavior:'smooth',block:'start'})}
  async function exportResults(){
   setExporting(true);setError('');setMessage('');setExportProgress('Preparing…');
@@ -64,7 +69,7 @@ export default function VoterManagementContent({profilePath='/resident-profile/'
  }
  return <div className="space-y-4">
   <section className="flex flex-col items-stretch justify-between gap-3 sm:flex-row sm:items-center"><div><h1 className="text-2xl">Resident directory</h1><p className="mt-1 text-sm text-body">{loading?'Loading results…':`${count.toLocaleString()} residents`}</p>{!partyControls&&<p className="mt-1 max-w-2xl text-sm text-body">Search and open a resident to record a call, door-to-door visit, voting intention, remark, or transport request.</p>}</div><button className="btn-primary w-full sm:w-auto" onClick={exportResults} disabled={exporting||loading||focus!=='all'} title={focus==='all'?'Download all matching residents across every page':'Clear the task status filter to export the full directory'}>{exporting?`Exporting ${exportProgress}`:'Export CSV'}</button></section>
-  <section className="panel space-y-3 !p-4"><label className="block"><span className="field-label">Report / task status</span><select className="field" value={focus} onChange={e=>{setFocus(e.target.value);setPage(1)}}>{focusOptions.map(([value,label])=><option key={value} value={value}>{label}</option>)}</select></label>
+  <section className="panel space-y-3 !p-4"><label className="block"><span className="field-label">Report / task status</span><select className="field" value={focus} onChange={e=>{const next=new URLSearchParams(window.location.search);if(e.target.value==='all')next.delete('focus');else next.set('focus',e.target.value);next.delete('page');router.push(pathname+(next.size?'?'+next.toString():''));setFocus(e.target.value);setPage(1)}}>{focusOptions.map(([value,label])=><option key={value} value={value}>{label}</option>)}</select></label>
    <div className={`grid gap-3 ${partyControls?'md:grid-cols-[minmax(260px,2fr)_minmax(170px,1fr)]':'grid-cols-1'}`}>
     <Field label="Search residents"><input className="field min-w-0 w-full" value={query} onChange={e=>{setQuery(e.target.value);setPage(1)}} placeholder={partyControls?'Name, ID, phone or address':'Name, ID, house or phone'} type="search"/></Field>
     {partyControls&&<Select label="Party" value={party} onChange={v=>changeFilter(setParty,v)} options={[["all","All parties"],...parties.map(p=>[p.name,`${p.name==='Unspecified'?'No party':p.name} (${p.count})`])]}/>}
