@@ -4,7 +4,8 @@ import {usePathname,useRouter,useSearchParams} from 'next/navigation';
 import {useEffect,useMemo,useRef,useState} from 'react';
 import {getDirectoryFilterOptions,getDirectoryPage,getResidents,saveCallCenterResult,saveDoorToDoorResult,supabase} from '../lib/supabase';
 import {readOperationalRows,saveTransportation} from '../lib/operations';
-import {collectDirectoryPages,mdpResidentsCsv,residentsCsv} from '../lib/directory-utils';
+import {collectDirectoryPages,residentsCsv} from '../lib/directory-utils';
+import {buildExcelWorkbook,type ExcelSheet} from '../lib/excel-export';
 import type {HouseOption,PartyOption} from '../lib/supabase';
 import type {CallOutcome,Resident,VoteStatus} from '../lib/types';
 import {residentTaskCards} from '../lib/resident-task-presentation';
@@ -62,15 +63,54 @@ export default function VoterManagementContent({profilePath='/resident-profile/'
    const {data:mayExport,error:permissionError}=await supabase.rpc('staff_has_feature_permission',{p_feature:'export'});
    if(permissionError||mayExport!==true)throw new Error(permissionError?'Unable to verify export permission.':'Export permission not granted by Admin.');
    const all=await collectDirectoryPages(p=>getDirectoryPage(selected,p,500,true),(loaded,total)=>setExportProgress(`${loaded.toLocaleString()} / ${total.toLocaleString()}`));
-   const csv=partyControls?residentsCsv(all):mdpResidentsCsv(all);
-   const blob=new Blob([csv],{type:'text/csv;charset=utf-8'}),url=URL.createObjectURL(blob),link=document.createElement('a');
-   link.href=url;link.download=`residents-${partyControls?(selected.party!=='all'?selected.party.toLowerCase().replace(/[^a-z0-9]+/g,'-'):'all'):'mdp'}-${new Date().toISOString().slice(0,10)}.csv`;
+   let blob:Blob, filename:string;
+   if(partyControls){
+    blob=new Blob([residentsCsv(all)],{type:'text/csv;charset=utf-8'});
+    filename=`residents-${selected.party!=='all'?selected.party.toLowerCase().replace(/[^a-z0-9]+/g,'-'):'all'}-${new Date().toISOString().slice(0,10)}.csv`;
+   }else{
+    setExportProgress('Loading authorized task records…');
+    const tables=['call_center','door_to_door','remarks','transportation','election_day','assignments','resident_voting_status'] as const;
+    const taskRows=await Promise.all(tables.map(table=>readOperationalRows(table)));
+    const permitted=new Set(all.map(resident=>String(resident.id)));
+    const datasets=taskRows.map(rows=>rows.filter(row=>permitted.has(String(row.resident_id))));
+    const maps=datasets.map(rows=>new Map(rows.map(row=>[String(row.resident_id),row])));
+    const fields:{name:string;fields:string[];index:number}[]=[
+     {name:'Call Center',index:0,fields:['resident_id','phone_status','reach_status','call_outcome','vote_status','support_level','call_attempts','call_notes','callback_scheduled_at','last_call_at','recorded_by','updated_at','call_duration_seconds','next_action']},
+     {name:'Door to Door',index:1,fields:['resident_id','visit_status','vote_status','support_level','visit_notes','last_visit_at','recorded_by','updated_at']},
+     {name:'Remarks History',index:2,fields:['id','resident_id','section','remark','recorded_by','recorded_at','context','context_record_id']},
+     {name:'Transportation',index:3,fields:['resident_id','transport_status','pickup_location','pickup_time','vehicle','driver_name','driver_phone','passenger_count','special_assistance','notes','assigned_by','completed_at','updated_at']},
+     {name:'Election Day',index:4,fields:['resident_id','vote_status','support_level','transport_status','has_voted','voted_at','voted_marked_by','confirmed','confirmed_at','contact_method','contact_note','updated_at','reach_status','reached_at','reached_by']},
+     {name:'Assignments',index:5,fields:['id','resident_id','assignee_name','assignment_type','status','assigned_by','assigned_at','completed_at','notes']},
+     {name:'Voting Records',index:6,fields:['resident_id','voting_day_id','voted_at','recorded_by']}
+    ];
+    const identity=new Map(all.map(r=>[String(r.id),r]));
+    const value=(item:Record<string,unknown>,field:string)=>{const v=item[field];return typeof v==='string'||typeof v==='number'||typeof v==='boolean'?v:v==null?'':JSON.stringify(v)};
+    const sheets:ExcelSheet[]=[{
+     name:'Residents & Status',
+     headers:['Record ID','National ID','Name','Official address','Living now','Phone','Age','Gender','Election box','Call status','Call result','Door-to-door status','Voting intention','Latest remark','Transport status','Has voted','Assigned staff'],
+     rows:all.map(r=>{const id=String(r.id);const call=maps[0].get(id),door=maps[1].get(id),transport=maps[3].get(id),election=maps[4].get(id);
+      const remarks=datasets[2].filter(x=>String(x.resident_id)===id).sort((a,b)=>String(b.recorded_at||'').localeCompare(String(a.recorded_at||'')));
+      const assignment=datasets[5].filter(x=>String(x.resident_id)===id&&x.status!=='inactive');
+      return [r.id,r.national_id||'',r.name||'',r.house||'',r.lives_in||'',r.phone||'',r.age??'',r.sex||'',r.election_box||'',call?.phone_status||'Pending',call?.call_outcome||'Pending',door?.visit_status||'Pending',call?.vote_status||door?.vote_status||'Not decided',remarks[0]?.remark||'',transport?.transport_status||'Pending',election?.has_voted===true?'Yes':election?.has_voted===false?'No':'Pending',assignment.map(x=>x.assignee_name).filter(Boolean).join('; ')]}
+     )}
+    ];
+    for(const section of fields){
+     const records=datasets[section.index];
+     sheets.push({name:section.name,headers:['Resident name','National ID',...section.fields.map(key=>key.replace(/_/g,' ').replace(/\b\w/g,char=>char.toUpperCase()))],rows:records.map(record=>{const r=identity.get(String(record.resident_id));return [r?.name||'',r?.national_id||'',...section.fields.map(key=>value(record,key))]})});
+    }
+    setExportProgress('Creating Excel workbook…');
+    const bytes=buildExcelWorkbook(sheets);
+    blob=new Blob([new Uint8Array(bytes)],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});
+    filename=`residents-mdp-full-${new Date().toISOString().slice(0,10)}.xlsx`;
+   }
+   const url=URL.createObjectURL(blob),link=document.createElement('a');
+   link.href=url;link.download=filename;
    document.body.appendChild(link);link.click();link.remove();window.setTimeout(()=>URL.revokeObjectURL(url),1000);
-   setMessage(`Exported ${all.length.toLocaleString()} residents matching your filters.`);
+   setMessage(`Exported ${all.length.toLocaleString()} residents matching your filters${partyControls?' as CSV':' with saved task records in Excel'}.`);
   }catch(e){setError(e instanceof Error?e.message:'Export failed')}finally{setExporting(false);setExportProgress('')}
  }
  return <div className="space-y-4">
-  <section className="flex flex-col items-stretch justify-between gap-3 sm:flex-row sm:items-center"><div><h1 className="text-2xl">Resident directory</h1><p className="mt-1 text-sm text-body">{loading?'Loading results…':`${count.toLocaleString()} residents`}</p>{!partyControls&&<p className="mt-1 max-w-2xl text-sm text-body">Search and open a resident to record a call, door-to-door visit, voting intention, remark, or transport request.</p>}</div><button className="btn-primary w-full sm:w-auto" onClick={exportResults} disabled={exporting||loading||focus!=='all'} title={focus==='all'?'Download all matching residents across every page':'Clear the task status filter to export the full directory'}>{exporting?`Exporting ${exportProgress}`:'Export CSV'}</button></section>
+  <section className="flex flex-col items-stretch justify-between gap-3 sm:flex-row sm:items-center"><div><h1 className="text-2xl">Resident directory</h1><p className="mt-1 text-sm text-body">{loading?'Loading results…':`${count.toLocaleString()} residents`}</p>{!partyControls&&<p className="mt-1 max-w-2xl text-sm text-body">Search and open a resident to record a call, door-to-door visit, voting intention, remark, or transport request.</p>}</div><button className="btn-primary w-full sm:w-auto" onClick={exportResults} disabled={exporting||loading||focus!=='all'} title={focus==='all'?'Download all matching residents across every page':'Clear the task status filter to export the full directory'}>{exporting?`Exporting ${exportProgress}`:partyControls?'Export CSV':'Export Excel'}</button></section>
   <section className="panel space-y-3 !p-4"><label className="block"><span className="field-label">Report / task status</span><select className="field" value={focus} onChange={e=>{const next=new URLSearchParams(window.location.search);if(e.target.value==='all')next.delete('focus');else next.set('focus',e.target.value);next.delete('page');router.push(pathname+(next.size?'?'+next.toString():''));setFocus(e.target.value);setPage(1)}}>{focusOptions.map(([value,label])=><option key={value} value={value}>{label}</option>)}</select></label>
    <div className={`grid gap-3 ${partyControls?'md:grid-cols-[minmax(260px,2fr)_minmax(170px,1fr)]':'grid-cols-1'}`}>
     <Field label="Search residents"><input className="field min-w-0 w-full" value={query} onChange={e=>{setQuery(e.target.value);setPage(1)}} placeholder={partyControls?'Name, ID, phone or address':'Name, ID, house or phone'} type="search"/></Field>
