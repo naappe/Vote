@@ -1,6 +1,6 @@
 'use client';
 import Link from 'next/link';
-import {usePathname,useSearchParams} from 'next/navigation';
+import {usePathname,useRouter,useSearchParams} from 'next/navigation';
 import {useEffect,useMemo,useRef,useState} from 'react';
 import {getDirectoryFilterOptions,getDirectoryPage,getResidents,saveCallCenterResult,saveDoorToDoorResult,supabase} from '../lib/supabase';
 import {readOperationalRows,saveTransportation} from '../lib/operations';
@@ -16,7 +16,7 @@ type WorkflowSummary={hasCallRecord:boolean;callOutcome:string|null;callAttempts
 const focusOptions=[['all','All residents'],['missing-phone','Missing phone'],['need-call','Need call'],['called','Called'],['reached','Reached'],['connected','Connected'],['visited','Visited'],['not-visited','Not visited'],['unassigned','Unassigned'],['remarks','Remarks recorded'],['transport','Transport recorded'],['will-vote','Will vote'],['not-vote','Will not vote'],['undecided','Undecided']] as const;
 const meetingWasCompleted=(remark:string)=>/^Meeting result:\s*Met resident in person\b|^Met resident in person\b/i.test(remark.trim());
 export default function VoterManagementContent({profilePath='/resident-profile/',partyControls=true}:Props={}){
- const pathname=usePathname(),params=useSearchParams(),resultsRef=useRef<HTMLElement>(null);
+ const pathname=usePathname(),router=useRouter(),params=useSearchParams(),resultsRef=useRef<HTMLElement>(null);
  const initial=(key:string)=>params.get(key)||'all';
  const [rows,setRows]=useState<Resident[]>([]),[workflow,setWorkflow]=useState<Record<string,WorkflowSummary>>({}),[workflowError,setWorkflowError]=useState(''),[houses,setHouses]=useState<HouseOption[]>([]),[parties,setParties]=useState<PartyOption[]>([]),[boxes,setBoxes]=useState<string[]>([]),[loading,setLoading]=useState(true),[filtersLoading,setFiltersLoading]=useState(false),[filtersLoaded,setFiltersLoaded]=useState(false),[error,setError]=useState(''),[message,setMessage]=useState('');
  const [focus,setFocus]=useState(()=>params.get('focus')||'all');
@@ -52,7 +52,7 @@ export default function VoterManagementContent({profilePath='/resident-profile/'
  const pages=Math.max(1,Math.ceil(count/pageSize)),range=count?`${(page-1)*pageSize+1}–${Math.min(page*pageSize,count)}`:'0';
  const hasFilters=Boolean(focus!=='all'||query||house!=='all'||(partyControls&&party!=='all')||gender!=='all'||age!=='all'||(partyControls&&box!=='all'));
  function changeFilter(setter:(value:string)=>void,value:string){setter(value);setPage(1)}
- function clearFilters(){setFocus('all');setQuery('');setDebouncedQuery('');setHouse('all');setParty('all');setGender('all');setAge('all');setBox('all');setPage(1)}
+ function clearFilters(){router.push(pathname);setFocus('all');setQuery('');setDebouncedQuery('');setHouse('all');setParty('all');setGender('all');setAge('all');setBox('all');setPage(1)}
  function changePage(next:number){setPage(Math.min(pages,Math.max(1,next)));resultsRef.current?.scrollIntoView({behavior:'smooth',block:'start'})}
  async function exportResults(){
   setExporting(true);setError('');setMessage('');setExportProgress('Preparing…');
@@ -69,7 +69,7 @@ export default function VoterManagementContent({profilePath='/resident-profile/'
  }
  return <div className="space-y-4">
   <section className="flex flex-col items-stretch justify-between gap-3 sm:flex-row sm:items-center"><div><h1 className="text-2xl">Resident directory</h1><p className="mt-1 text-sm text-body">{loading?'Loading results…':`${count.toLocaleString()} residents`}</p>{!partyControls&&<p className="mt-1 max-w-2xl text-sm text-body">Search and open a resident to record a call, door-to-door visit, voting intention, remark, or transport request.</p>}</div><button className="btn-primary w-full sm:w-auto" onClick={exportResults} disabled={exporting||loading||focus!=='all'} title={focus==='all'?'Download all matching residents across every page':'Clear the task status filter to export the full directory'}>{exporting?`Exporting ${exportProgress}`:'Export CSV'}</button></section>
-  <section className="panel space-y-3 !p-4"><label className="block"><span className="field-label">Report / task status</span><select className="field" value={focus} onChange={e=>{setFocus(e.target.value);setPage(1)}}>{focusOptions.map(([value,label])=><option key={value} value={value}>{label}</option>)}</select></label>
+  <section className="panel space-y-3 !p-4"><label className="block"><span className="field-label">Report / task status</span><select className="field" value={focus} onChange={e=>{const next=new URLSearchParams(window.location.search);if(e.target.value==='all')next.delete('focus');else next.set('focus',e.target.value);next.delete('page');router.push(pathname+(next.size?'?'+next.toString():''));setFocus(e.target.value);setPage(1)}}>{focusOptions.map(([value,label])=><option key={value} value={value}>{label}</option>)}</select></label>
    <div className={`grid gap-3 ${partyControls?'md:grid-cols-[minmax(260px,2fr)_minmax(170px,1fr)]':'grid-cols-1'}`}>
     <Field label="Search residents"><input className="field min-w-0 w-full" value={query} onChange={e=>{setQuery(e.target.value);setPage(1)}} placeholder={partyControls?'Name, ID, phone or address':'Name, ID, house or phone'} type="search"/></Field>
     {partyControls&&<Select label="Party" value={party} onChange={v=>changeFilter(setParty,v)} options={[["all","All parties"],...parties.map(p=>[p.name,`${p.name==='Unspecified'?'No party':p.name} (${p.count})`])]}/>}
