@@ -96,7 +96,7 @@ export default function VoterManagementContent({profilePath='/resident-profile/'
     ];
     for(const section of fields){
      const records=datasets[section.index];
-     sheets.push({name:section.name,headers:['Resident name','National ID',...section.fields.map(key=>key.replace(/_/g,' ').replace(/\\b\\w/g,char=>char.toUpperCase()))],rows:records.map(record=>{const r=identity.get(String(record.resident_id));return [r?.name||'',r?.national_id||'',...section.fields.map(key=>value(record,key))]})});
+     sheets.push({name:section.name,headers:['Resident name','National ID',...section.fields.map(key=>key.replace(/_/g,' ').replace(/\b\w/g,char=>char.toUpperCase()))],rows:records.map(record=>{const r=identity.get(String(record.resident_id));return [r?.name||'',r?.national_id||'',...section.fields.map(key=>value(record,key))]})});
     }
     setExportProgress('Creating Excel workbook…');
     const bytes=buildExcelWorkbook(sheets);
