@@ -89,11 +89,16 @@ export default function VoterDetailContent({workspaceMode='standard'}:{workspace
    'call':'calls','door-to-door':'door_to_door','in-person-meeting':'remarks',
    'voting-intention':'voting','remarks':'remarks','transport':'transport'
   };
-  void supabase.rpc('staff_has_feature_permission',{p_feature:permissions[task]}).then(({data,error})=>{
-   if(active)setTaskPermission({task,allowed:!error&&data===true,error:error?.message});
-  }).catch(error=>{
-   if(active)setTaskPermission({task,allowed:false,error:error instanceof Error?error.message:'Permission check failed'});
-  }).finally(()=>{if(active)setTaskPermissionLoading(false)});
+  void (async()=>{
+   try{
+    const {data,error}=await supabase.rpc('staff_has_feature_permission',{p_feature:permissions[task]});
+    if(active)setTaskPermission({task,allowed:!error&&data===true,error:error?.message});
+   }catch(error){
+    if(active)setTaskPermission({task,allowed:false,error:error instanceof Error?error.message:'Permission check failed'});
+   }finally{
+    if(active)setTaskPermissionLoading(false);
+   }
+  })();
   return()=>{active=false};
  },[task,workspaceMode,access?.user.id]);
  useEffect(()=>{if(!id||!task)return;let active=true;setTaskStatusLoading(true);setTaskSnapshot(null);setError('');setRemarks([]);setTransportLoaded(false);void(async()=>{try{
