@@ -9,7 +9,7 @@ test('unrecorded resident tasks show Pending and no completion tick',()=>{
 });
 
 test('saved outcomes show clear status and completed tasks get a check',()=>{
- const cards=residentTaskCards({callAttempts:1,callOutcome:'connected',voteStatus:'not-decided',hasVoteIntention:true,visitStatus:'visited',hasInPersonMeeting:true,transportStatus:'completed',hasRemarks:true});
+ const cards=residentTaskCards({callAttempts:1,callOutcome:'connected',voteStatus:'will-vote',hasVoteIntention:true,visitStatus:'visited',hasInPersonMeeting:true,transportStatus:'completed',hasRemarks:true});
  assert.deepEqual(cards.map(card=>card.done),[true,true,true,true,true,true]);
  assert.equal(cards.find(card=>card.id==='call')?.label,'Call');
  assert.equal(cards.find(card=>card.id==='call')?.status,'Connected');
@@ -45,4 +45,11 @@ test('a call reset to pending stays incomplete even when earlier attempts exist'
  const task=residentTaskCards({callAttempts:2,callOutcome:'pending',voteStatus:null,visitStatus:null,transportStatus:null,hasRemarks:false}).find(item=>item.id==='call');
  assert.equal(task?.status,'Follow-up');
  assert.equal(task?.done,false);
+});
+
+test('reset voting intention remains pending despite older saved positive history',()=>{
+ const cards=residentTaskCards({callAttempts:6,callOutcome:'connected',voteStatus:'not-decided',hasVoteIntention:true,visitStatus:'visited',hasInPersonMeeting:false,transportStatus:'picked-up',hasRemarks:true});
+ assert.equal(cards.find(card=>card.id==='voting-intention')?.done,false);
+ assert.equal(cards.find(card=>card.id==='voting-intention')?.status,'Pending');
+ assert.equal(cards.filter(card=>card.done).length,4);
 });
