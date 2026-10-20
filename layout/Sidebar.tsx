@@ -23,6 +23,7 @@ function NavGlyph({name}:{name:string}){
 const groups=[
  {label:'Core',items:[
   {label:'Dashboard',href:'/',icon:'dashboard'},
+  {label:'Task Monitoring',href:'/task-monitoring/',icon:'reports'},
   {label:'Residents',href:'/residents/',icon:'residents'},
  ]},
  {label:'Outreach',items:[
