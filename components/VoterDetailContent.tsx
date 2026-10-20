@@ -35,8 +35,50 @@ export default function VoterDetailContent({workspaceMode='standard'}:{workspace
  const [loading,setLoading]=useState(true),[saving,setSaving]=useState(false),[error,setError]=useState(''),[message,setMessage]=useState('');
  const [task,setTask]=useState<Task|null>(tasks.some(item=>item.id===requestedTask)?requestedTask as Task:null);
  const [visitOutcome,setVisitOutcome]=useState<typeof visitOutcomes[number]|''>('not-visited'),[callOutcome,setCallOutcome]=useState<CallOutcome|''>('pending'),[voteStatus,setVoteStatus]=useState<'pending'|VoteStatus>('pending'),[meetingOutcome,setMeetingOutcome]=useState(''),[transportStatus,setTransportStatus]=useState('');
+ const [mdpSummary,setMdpSummary]=useState<{items:{label:string;icon:'phone'|'home'|'person'|'vote'|'remark'|'transport';status:string;detail:string;done:boolean}[];updated:string}|null>(null),[mdpSummaryLoading,setMdpSummaryLoading]=useState(false),[mdpSummaryError,setMdpSummaryError]=useState('');
  const [note,setNote]=useState(''),[remarks,setRemarks]=useState<Remark[]>([]),[remarksLoading,setRemarksLoading]=useState(false),[transportLoaded,setTransportLoaded]=useState(false),[taskSnapshot,setTaskSnapshot]=useState<TaskSnapshot|null>(null),[taskStatusLoading,setTaskStatusLoading]=useState(false);
  useEffect(()=>{let active=true;if(!id){setLoading(false);return()=>{active=false}};(async()=>{try{const r=await getResidentById(id);if(workspaceMode==='mdp'&&String(r.party||'').trim().toUpperCase()!=='MDP')throw new Error('This resident is not in the MDP operations list.');if(active){setResident(r);setPhone(r.phone||'');setLiving(r.lives_in||'')}}catch(e){if(active)setError(e instanceof Error?e.message:'Unable to load resident')}finally{if(active)setLoading(false)}})();return()=>{active=false}},[id,workspaceMode]);
+ useEffect(()=>{
+  if(workspaceMode!=='mdp'||!id)return;
+  let active=true;setMdpSummary(null);setMdpSummaryError('');setMdpSummaryLoading(true);
+  void(async()=>{
+   try{
+    const [calls,visits,remarksResult,transport,election,turnout]=await Promise.all([
+     supabase.from('call_center').select('*').eq('resident_id',id).maybeSingle(),
+     supabase.from('door_to_door').select('*').eq('resident_id',id).maybeSingle(),
+     supabase.from('remarks').select('id,section,remark,recorded_at,recorded_by').eq('resident_id',id).order('recorded_at',{ascending:false}).limit(100),
+     supabase.from('transportation').select('*').eq('resident_id',id).maybeSingle(),
+     supabase.from('election_day').select('*').eq('resident_id',id).maybeSingle(),
+     supabase.from('resident_voting_status').select('voted_at,voting_day_id').eq('resident_id',id).limit(1),
+    ]);
+    for(const result of [calls,visits,remarksResult,transport,election,turnout])if(result.error)throw result.error;
+    if(!active)return;
+    const call=calls.data,visit=visits.data,logs=remarksResult.data||[],travel=transport.data,day=election.data;
+    const latest=(section:string)=>logs.find(item=>item.section===section);
+    const meeting=latest('in-person-meeting');
+    const met=Boolean(meeting&&meetingWasCompleted(meeting.remark||''));
+    const intent=latest('voting-intention');
+    const recordedVote=Boolean(intent&&!intent.remark?.startsWith('Intention pending:'))||Boolean(call?.vote_status&&call.vote_status!=='not-decided');
+    const callDone=Number(call?.call_attempts||0)>0&&Boolean(call?.call_outcome)&&call.call_outcome!=='pending';
+    const visited=visit?.visit_status==='visited';
+    const transportDone=Boolean(travel&&['completed','picked-up'].includes(travel.transport_status||''));
+    const voted=day?.has_voted===true||(turnout.data||[]).some(item=>Boolean(item.voted_at));
+    const fmt=(value:string|null|undefined)=>value?new Date(value).toLocaleString():'';
+    const items=[
+     {label:'Call Center',icon:'phone' as const,status:callDone?human(call.call_outcome||'Recorded'):Number(call?.call_attempts||0)>0?'Follow-up pending':'Not recorded',detail:[call?.call_attempts?String(call.call_attempts)+' attempts':null,call?.call_notes||null,fmt(call?.last_call_at)].filter(Boolean).join(' · '),done:callDone},
+     {label:'Door-to-Door',icon:'home' as const,status:visited?'Resident reached':visit?.visit_status&&visit.visit_status!=='not-visited'?human(visit.visit_status):'Not recorded',detail:[visit?.visit_notes||null,fmt(visit?.last_visit_at)].filter(Boolean).join(' · '),done:visited},
+     {label:'In-person meeting',icon:'person' as const,status:met?'Met resident':meeting?meeting.remark.replace(/^Meeting result:\\s*/i,'').split('.')[0]:'Not recorded',detail:[meeting?.remark||null,fmt(meeting?.recorded_at)].filter(Boolean).join(' · '),done:met},
+     {label:'Voting intention',icon:'vote' as const,status:recordedVote?human(call?.vote_status||'Recorded'):'Not recorded',detail:[intent?.remark||null,fmt(intent?.recorded_at||call?.updated_at)].filter(Boolean).join(' · '),done:recordedVote},
+     {label:'Remarks',icon:'remark' as const,status:logs.length?`${logs.length} saved ${logs.length===1?'remark':'remarks'}`:'Not recorded',detail:logs[0]?[logs[0].remark,fmt(logs[0].recorded_at)].filter(Boolean).join(' · '):'',done:logs.length>0},
+     {label:'Transportation',icon:'transport' as const,status:travel?human(travel.transport_status||'Pending'):'Not recorded',detail:[travel?.notes||null,travel?.pickup_location||null,fmt(travel?.updated_at)].filter(Boolean).join(' · '),done:transportDone},
+     {label:'Election Day',icon:'vote' as const,status:voted?'Voted':day?.has_voted===false?'Not voted / pending':'Not recorded',detail:[day?.contact_note||null,fmt(day?.voted_at||day?.updated_at)].filter(Boolean).join(' · '),done:voted}
+    ];
+    setMdpSummary({items,updated:new Date().toLocaleTimeString()});
+   }catch(e){if(active)setMdpSummaryError(e instanceof Error?e.message:'Unable to load saved task statuses')}
+   finally{if(active)setMdpSummaryLoading(false)}
+  })();
+  return()=>{active=false};
+ },[workspaceMode,id]);
  useEffect(()=>{if(workspaceMode==='mdp'||!id||!task)return;let active=true;setTaskStatusLoading(true);setTaskSnapshot(null);setError('');setRemarks([]);setTransportLoaded(false);void(async()=>{try{
   if(task==='door-to-door'){const {data,error}=await supabase.from('door_to_door').select('visit_status,visit_notes,last_visit_at,recorded_by').eq('resident_id',id).maybeSingle();if(error)throw error;if(!active)return;const status=data?.visit_status as typeof visitOutcomes[number]|undefined;setVisitOutcome(status||'not-visited');setTaskSnapshot(data?{status:status==='visited'?'Completed · Resident reached':status==='not-visited'?'Pending · Not visited yet':`Pending · Not reached — ${human(status||'visit not recorded')}`,detail:[data.last_visit_at?new Date(data.last_visit_at).toLocaleString():null,data.recorded_by||null,data.visit_notes||null].filter(Boolean).join(' · '),done:status==='visited'}:{status:'Pending · Not visited yet',done:false})}
   if(task==='call'){const {data,error}=await supabase.from('call_center').select('call_outcome,call_attempts,reach_status,last_call_at,recorded_by,call_notes').eq('resident_id',id).maybeSingle();if(error)throw error;if(!active)return;const attempts=Number(data?.call_attempts||0);const outcome=data?.call_outcome as CallOutcome|undefined;setCallOutcome(attempts&&outcome?outcome:'pending');setTaskSnapshot(attempts&&outcome!=='pending'?{status:`Recorded · ${human(outcome||'pending')}`,detail:[`${attempts} ${attempts===1?'attempt':'attempts'}`,data?.reach_status==='reached'?'Resident reached':'Not reached',data?.last_call_at?new Date(data.last_call_at).toLocaleString():null,data?.recorded_by||null,data?.call_notes||null].filter(Boolean).join(' · '),done:true}:{status:attempts?'Pending · Follow-up needed':'Pending · No call recorded',detail:attempts?`${attempts} previous ${attempts===1?'attempt':'attempts'}`:undefined,done:false})}
@@ -63,7 +105,11 @@ export default function VoterDetailContent({workspaceMode='standard'}:{workspace
  return <div className="space-y-4 pb-8">
   <Link prefetch={false} href={workspaceMode==='mdp'?'/mdp/residents/':'/residents/'} className="btn-secondary inline-flex min-h-10 items-center">← Back to residents</Link>
   <section className="panel flex flex-col gap-4 sm:flex-row sm:items-center"><ResidentPhoto resident={resident}/><div className="min-w-0 flex-1"><p className="eyebrow">Resident</p><h1 className="mt-1 text-2xl">{resident.name||'Unnamed resident'}</h1><p className="mt-1 text-sm text-body">{resident.national_id||`Record ${resident.id}`} · {resident.house||resident.lives_in||'House not recorded'}</p><p className="mt-1 text-sm text-body">{resident.phone||'No phone recorded'}</p></div><div className="flex gap-2">{resident.phone&&<a href={`tel:${resident.phone}`} className="btn-primary">Call</a>}{resident.phone&&<a href={`sms:${resident.phone}`} className="btn-secondary">SMS</a>}</div></section>
-  {workspaceMode==='mdp'&&<p className="rounded-xl border border-yellow-200 bg-yellow-50 px-4 py-3 text-sm text-blue-950">Use the resident card’s flip side to record tasks.</p>}
+  {workspaceMode==='mdp'&&<section className="panel !p-5 sm:!p-6" aria-label="Saved resident task statuses">
+   <div className="flex flex-wrap items-start justify-between gap-3"><div><p className="eyebrow">Resident task overview</p><h2 className="mt-1 text-lg font-bold text-navy">All saved task statuses</h2><p className="mt-1 text-sm text-body">Green = completed. Amber = pending or not recorded. Saved results are shown without changing any records.</p></div>{mdpSummary&&<span className="text-xs text-body">Checked at {mdpSummary.updated}</span>}</div>
+   {mdpSummaryLoading?<p role="status" className="mt-4 text-sm text-body">Loading saved task statuses…</p>:mdpSummaryError?<p role="alert" className="error-banner mt-4">Unable to verify task statuses: {mdpSummaryError}. Please reload to retry.</p>:mdpSummary&&<><p className="mt-4 text-sm font-semibold text-navy">{mdpSummary.items.filter(item=>item.done).length} of {mdpSummary.items.length} tasks completed</p><div className="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">{mdpSummary.items.map(item=><article key={item.label} className={`min-w-0 rounded-xl border p-4 ${item.done?'border-emerald-200 bg-emerald-50':'border-amber-200 bg-amber-50'}`}><div className="flex items-center gap-2"><ResidentTaskIcon name={item.icon} className="h-5 w-5"/><h3 className="min-w-0 flex-1 text-sm font-bold text-navy">{item.label}</h3><span className={`rounded-full px-2 py-1 text-xs font-bold ${item.done?'bg-emerald-200 text-emerald-900':'bg-amber-200 text-amber-950'}`}>{item.done?'✓ Done':'Pending'}</span></div><p className="mt-2 text-sm font-semibold text-navy">{item.status}</p>{item.detail&&<p className="mt-1 break-words whitespace-pre-wrap text-xs text-body">{item.detail}</p>}</article>)}</div></>}
+   <p className="mt-4 text-xs text-body">To update a task, open the resident card from the Residents directory and use its task controls.</p>
+  </section>}
   {workspaceMode!=='mdp'&&<>
   <section className="panel !p-5 sm:!p-6"><p className="eyebrow">Resident tasks</p><h2 className="mt-1 text-lg">Choose what you need to record</h2><div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">{availableTasks.map(item=><button key={item.id} type="button" aria-pressed={task===item.id} onClick={()=>openTask(item.id)} className={['flex min-h-28 flex-col items-start justify-between gap-3 rounded-2xl border p-4 text-left transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-yellow-400',task===item.id?'border-primary bg-primary-light text-primary shadow-md':'border-border bg-white text-navy hover:border-yellow-400 hover:bg-yellow-50'].join(' ')}><span className={['grid h-10 w-10 place-items-center rounded-xl',task===item.id?'bg-white/80':'bg-slate-100'].join(' ')}><ResidentTaskIcon name={taskIcon(item.id)} className="h-5 w-5"/></span><span className="text-sm font-bold leading-snug">{item.label}</span></button>)}</div></section>
   {task&&<section className="panel space-y-4"><div className="flex items-start justify-between gap-3"><div><p className="eyebrow">Resident task</p><h2 className="mt-1 text-xl">{tasks.find(item=>item.id===task)?.label}</h2></div><button type="button" className="btn-secondary" onClick={()=>{setTask(null);setError('');setMessage('')}}>Close task</button></div>
