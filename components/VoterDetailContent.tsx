@@ -80,6 +80,21 @@ export default function VoterDetailContent({workspaceMode='standard'}:{workspace
   })();
   return()=>{active=false};
  },[workspaceMode,id,summaryRevision]);
+ useEffect(()=>{
+  if(workspaceMode!=='mdp'||!task)return;
+  let active=true;
+  setTaskPermission(null);setTaskPermissionLoading(true);
+  const permissions:Record<Task,string>={
+   'call':'calls','door-to-door':'door_to_door','in-person-meeting':'remarks',
+   'voting-intention':'voting','remarks':'remarks','transport':'transport'
+  };
+  void supabase.rpc('staff_has_feature_permission',{p_feature:permissions[task]}).then(({data,error})=>{
+   if(active)setTaskPermission({task,allowed:!error&&data===true,error:error?.message});
+  }).catch(error=>{
+   if(active)setTaskPermission({task,allowed:false,error:error instanceof Error?error.message:'Permission check failed'});
+  }).finally(()=>{if(active)setTaskPermissionLoading(false)});
+  return()=>{active=false};
+ },[task,workspaceMode,access?.user.id]);
  useEffect(()=>{if(!id||!task)return;let active=true;setTaskStatusLoading(true);setTaskSnapshot(null);setError('');setRemarks([]);setTransportLoaded(false);void(async()=>{try{
   if(task==='door-to-door'){const {data,error}=await supabase.from('door_to_door').select('visit_status,visit_notes,last_visit_at,recorded_by').eq('resident_id',id).maybeSingle();if(error)throw error;if(!active)return;const status=data?.visit_status as typeof visitOutcomes[number]|undefined;setVisitOutcome(status||'not-visited');setTaskSnapshot(data?{status:status==='visited'?'Completed · Resident reached':status==='not-visited'?'Pending · Not visited yet':`Pending · Not reached — ${human(status||'visit not recorded')}`,detail:[data.last_visit_at?new Date(data.last_visit_at).toLocaleString():null,data.recorded_by||null,data.visit_notes||null].filter(Boolean).join(' · '),done:status==='visited'}:{status:'Pending · Not visited yet',done:false})}
   if(task==='call'){const {data,error}=await supabase.from('call_center').select('call_outcome,call_attempts,reach_status,last_call_at,recorded_by,call_notes').eq('resident_id',id).maybeSingle();if(error)throw error;if(!active)return;const attempts=Number(data?.call_attempts||0);const outcome=data?.call_outcome as CallOutcome|undefined;setCallOutcome(attempts&&outcome?outcome:'pending');setTaskSnapshot(attempts&&outcome!=='pending'?{status:`Recorded · ${human(outcome||'pending')}`,detail:[`${attempts} ${attempts===1?'attempt':'attempts'}`,data?.reach_status==='reached'?'Resident reached':'Not reached',data?.last_call_at?new Date(data.last_call_at).toLocaleString():null,data?.recorded_by||null,data?.call_notes||null].filter(Boolean).join(' · '),done:true}:{status:attempts?'Pending · Follow-up needed':'Pending · No call recorded',detail:attempts?`${attempts} previous ${attempts===1?'attempt':'attempts'}`:undefined,done:false})}
@@ -87,7 +102,7 @@ export default function VoterDetailContent({workspaceMode='standard'}:{workspace
   if(task==='in-person-meeting'){const {data,error}=await supabase.from('remarks').select('remark,recorded_at,recorded_by').eq('resident_id',id).eq('section','in-person-meeting').order('recorded_at',{ascending:false}).limit(1);if(error)throw error;if(!active)return;const latest=data?.[0],met=Boolean(latest&&meetingWasCompleted(String(latest.remark||'')));setMeetingOutcome(latest?(met?'met':String(latest.remark||'').includes('postponed')?'postponed':String(latest.remark||'').includes('unavailable')?'unavailable':'pending'):'');setTaskSnapshot(latest?{status:met?'Completed · Met resident in person':`Pending · ${String(latest.remark||'Not met yet').replace(/^Meeting result:\s*/i,'').replace(/\..*$/,'')}`,detail:[latest.recorded_at?new Date(latest.recorded_at).toLocaleString():null,latest.recorded_by||'Staff',latest.remark].filter(Boolean).join(' · '),done:met}:{status:'Pending · No in-person meeting recorded',done:false})}
   if(task==='remarks'){setRemarksLoading(true);const {data,error}=await supabase.from('remarks').select('id,resident_id,section,remark,recorded_by,recorded_at').eq('resident_id',id).order('recorded_at',{ascending:false}).limit(50);if(error)throw error;if(!active)return;const rows=(data||[]) as Remark[];setRemarks(rows);setTaskSnapshot(rows.length?{status:`${rows.length} saved ${rows.length===1?'remark':'remarks'}`,detail:rows[0].recorded_at?`Latest: ${new Date(rows[0].recorded_at).toLocaleString()} · ${rows[0].recorded_by||'Staff'}`:'',done:true}:{status:'Pending · No remarks yet',done:false})}
   if(task==='transport'){const {data,error}=await supabase.from('transportation').select('transport_status,notes,updated_at').eq('resident_id',id).maybeSingle();if(error)throw error;if(!active)return;const value=data?.transport_status||'';setTransportStatus(value);setNote(data?.notes||'');setTransportLoaded(true);setTaskSnapshot(data?{status:`Saved · ${human(value||'pending')}`,detail:[data.updated_at?new Date(data.updated_at).toLocaleString():null,data.notes||null].filter(Boolean).join(' · '),done:['completed','picked-up'].includes(value)}:{status:'Pending · No transport request',done:false})}
- }catch(e){if(active)setError(`${tasks.find(item=>item.id===task)?.label||'Task'} status could not load: ${e instanceof Error?e.message:'Please try again.'}`)}finally{if(active){setTaskStatusLoading(false);setRemarksLoading(false)}}})();return()=>{active=false}},[id,task]);
+ }catch(e){if(active)setError(`${tasks.find(item=>item.id===task)?.label||'Task'} status could not load: ${e instanceof Error?e.message:'Please try again.'}`)}finally{if(active){setTaskStatusLoading(false);setRemarksLoading(false)}}})();return()=>{active=false}},[id,task,summaryRevision]);
  if(!id)return <div className="panel text-center"><h1>Select a resident</h1><Link prefetch={false} href={workspaceMode==='mdp'?'/mdp/residents/':'/residents/'} className="btn-primary mt-5">Open residents</Link></div>;
  if(loading)return <section className="panel"><h1>Resident profile</h1><div className="mt-4 h-32 animate-pulse bg-primary-light"/></section>;
  if(!resident)return <section className="panel"><h1>Resident unavailable</h1><p className="mt-2 text-body">{error||'Resident not found.'}</p></section>;
