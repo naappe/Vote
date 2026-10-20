@@ -12,9 +12,19 @@ const StaffAccessContext=createContext<Access>(null);
 export function useStaffAccess(){return useContext(StaffAccessContext)}
 export default function AuthGate({children}:{children:React.ReactNode}){
  const [access,setAccess]=useState<Access>(null),[ready,setReady]=useState(false),[error,setError]=useState(''),[attempt,setAttempt]=useState(0),[recovery,setRecovery]=useState(false),[mdpAccess,setMdpAccess]=useState<{userId:string;allowed:boolean;checkFailed?:boolean}|null>(null),[mdpAttempt,setMdpAttempt]=useState(0);
+ const [featureAccess,setFeatureAccess]=useState<{route:string;allowed:boolean;failed:boolean}|null>(null);
  const pathname=usePathname();
  const route=pathname.replace(/^\/Vote(?=\/|$)/i,'').replace(/\/$/,'');
  const isMdpRoute=route==='/mdp'||route.startsWith('/mdp/');
+ const featurePaths:[string,string][]=[['/mdp/calls','calls'],['/mdp/door-to-door','door_to_door'],['/mdp/voting-days','election_day'],['/mdp/voting','voting'],['/mdp/transportation','transport'],['/mdp/transport-links','transport'],['/mdp/assignments','assignments'],['/mdp/remarks','remarks'],['/mdp/reports','reports'],['/mdp/residents','residents']];
+ const feature=featurePaths.find(([path])=>route===path||route.startsWith(path+'/'))?.[1]||(isMdpRoute?'residents':null);
+ useEffect(()=>{
+  let active=true;
+  if(!access||!isMdpRoute||!feature){setFeatureAccess(null);return()=>{active=false}}
+  setFeatureAccess(null);
+  void supabase.rpc('staff_has_feature_permission',{p_feature:feature}).then(({data,error})=>{if(active)setFeatureAccess({route,allowed:!error&&data===true,failed:!!error})});
+  return()=>{active=false}
+ },[access?.user.id,access?.role,isMdpRoute,feature,route,attempt]);
  useEffect(()=>{
   let active=true,generation=0;
   const hashParams=new URLSearchParams(window.location.hash.replace(/^#/,'?'));
@@ -79,18 +89,10 @@ export default function AuthGate({children}:{children:React.ReactNode}){
   return <main className="grid min-h-screen place-items-center bg-calm-50 p-5"><section className="panel w-full max-w-md"><div className="brand-mark">MDP</div><p className="eyebrow mt-5">MDP Resident Operations</p><h1 className="mt-2 text-3xl">You’re signed in, but MDP access is off</h1><p className="mt-3 text-sm text-body">Signed in account</p><p className="mt-1 break-all rounded-xl border border-border bg-slate-50 px-3 py-3 font-semibold text-navy">{access.user.email||'Current staff account'}</p><div className="info-banner mt-4" role={mdpAccess?.checkFailed?'alert':'status'}>{accessMessage}</div><div className="mt-5 flex flex-wrap items-center gap-3"><button className="btn-primary" onClick={()=>{setMdpAccess(null);setMdpAttempt(value=>value+1)}}>Check access again</button><AuthControl/></div></section></main>;
  }
  if(['/users','/backup'].includes(route)&&access.role!=='admin')return <main className="p-6"><h1>Administrator access required</h1><a href="/Vote/">Return to dashboard</a></main>;
- const mdpRoleAccess:[string,string[]][]=[
-  ['/mdp/calls',['admin','supervisor','call_agent']],
-  ['/mdp/door-to-door',['admin','supervisor','field_agent','election_operator']],
-  ['/mdp/voting-days',['admin','supervisor','election_operator']],
-  ['/mdp/transportation',['admin','supervisor','election_operator']],
-  ['/mdp/transport-links',['admin','supervisor','election_operator']],
-  ['/mdp/assignments',['admin','supervisor']],
-  ['/mdp/verification',['admin']],
- ];
- const roleRule=mdpRoleAccess.find(([path])=>route===path||route.startsWith(`${path}/`));
- if(isMdpRoute&&roleRule&&!roleRule[1].includes(access.role))return <main className="grid min-h-screen place-items-center bg-calm-50 p-6"><section className="panel max-w-lg"><h1>Task access required</h1><p className="mt-2 text-sm text-body">This task is not enabled for your staff role. Return to the MDP workspace to see the tasks available to you.</p><a className="btn-primary mt-4 inline-flex" href="/Vote/mdp/">Return to MDP home</a></section></main>;
- if(!isMdpRoute&&access.role!=='admin')return <main className="grid min-h-screen place-items-center bg-calm-50 p-6"><section className="panel max-w-lg"><h1>Administrator access required</h1><p className="mt-2 text-sm text-body">The main Vote app is for administrators. Staff approved for MDP operations should use the separate MDP workspace link.</p><a className="btn-primary mt-4 inline-flex" href="/Vote/mdp/">Open MDP workspace</a></section></main>;
+ if((route==='/mdp/verification'||route.startsWith('/mdp/verification/'))&&access.role!=='admin')return <main className="p-6"><h1>Administrator access required</h1><a href="/Vote/mdp/">Return to MDP home</a></main>;
+ if(isMdpRoute&&feature&&(!featureAccess||featureAccess.route!==route))return <main className="grid min-h-screen place-items-center p-6"><p role="status">Checking task permission…</p></main>;
+ if(isMdpRoute&&feature&&!featureAccess?.allowed)return <main className="grid min-h-screen place-items-center bg-calm-50 p-6"><section className="panel max-w-lg"><h1>Permission required</h1><p className="mt-2 text-sm text-body">{featureAccess?.failed?'Could not verify your task permission. Please retry.':'An administrator has not authorized this feature for your account.'}</p><a className="btn-primary mt-4 inline-flex" href="/Vote/mdp/">Return to MDP home</a></section></main>;
+  if(!isMdpRoute&&access.role!=='admin')return <main className="grid min-h-screen place-items-center bg-calm-50 p-6"><section className="panel max-w-lg"><h1>Administrator access required</h1><p className="mt-2 text-sm text-body">The main Vote app is for administrators. Staff approved for MDP operations should use the separate MDP workspace link.</p><a className="btn-primary mt-4 inline-flex" href="/Vote/mdp/">Open MDP workspace</a></section></main>;
  if(route==='/contact-verification'&&!['admin','supervisor'].includes(access.role))return <main className="p-6"><h1>Supervisor access required</h1><a href="/Vote/">Return to dashboard</a></main>;
  return <StaffAccessContext.Provider value={access}>{children}</StaffAccessContext.Provider>;
 }

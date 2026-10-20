@@ -55,10 +55,12 @@ export default function VoterManagementContent({profilePath='/resident-profile/'
  function clearFilters(){router.push(pathname);setFocus('all');setQuery('');setDebouncedQuery('');setHouse('all');setParty('all');setGender('all');setAge('all');setBox('all');setPage(1)}
  function changePage(next:number){setPage(Math.min(pages,Math.max(1,next)));resultsRef.current?.scrollIntoView({behavior:'smooth',block:'start'})}
  async function exportResults(){
-  setExporting(true);setError('');setMessage('');setExportProgress('Preparing…');
+  setExporting(true);setError('');setMessage('');setExportProgress('Checking export permission…');
   // Capture the complete filter state so changing controls cannot alter a running export.
   const selected={...filters,search:query.trim()};
   try{
+   const {data:mayExport,error:permissionError}=await supabase.rpc('staff_has_feature_permission',{p_feature:'export'});
+   if(permissionError||mayExport!==true)throw new Error(permissionError?'Unable to verify export permission.':'Export permission not granted by Admin.');
    const all=await collectDirectoryPages(p=>getDirectoryPage(selected,p,500,true),(loaded,total)=>setExportProgress(`${loaded.toLocaleString()} / ${total.toLocaleString()}`));
    const csv=partyControls?residentsCsv(all):mdpResidentsCsv(all);
    const blob=new Blob([csv],{type:'text/csv;charset=utf-8'}),url=URL.createObjectURL(blob),link=document.createElement('a');
