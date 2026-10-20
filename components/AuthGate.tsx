@@ -13,6 +13,8 @@ export function useStaffAccess(){return useContext(StaffAccessContext)}
 export default function AuthGate({children}:{children:React.ReactNode}){
  const [access,setAccess]=useState<Access>(null),[ready,setReady]=useState(false),[error,setError]=useState(''),[attempt,setAttempt]=useState(0),[recovery,setRecovery]=useState(false),[mdpAccess,setMdpAccess]=useState<{userId:string;allowed:boolean;checkFailed?:boolean}|null>(null),[mdpAttempt,setMdpAttempt]=useState(0);
  const pathname=usePathname();
+ const route=pathname.replace(/^\/Vote(?=\/|$)/i,'').replace(/\/$/,'');
+ const isMdpRoute=route==='/mdp'||route.startsWith('/mdp/');
  useEffect(()=>{
   let active=true,generation=0;
   const hashParams=new URLSearchParams(window.location.hash.replace(/^#/,'?'));
@@ -24,9 +26,10 @@ export default function AuthGate({children}:{children:React.ReactNode}){
     const {data:{user},error}=await supabase.auth.getUser();
     if(!active||current!==generation)return;
     if(error||!user){setAccess(null);if(error&&error.name!=='AuthSessionMissingError')setError(authErrorMessage(error));return}
-    const [membershipResult,partyResult]=await Promise.all([
+    const [membershipResult,partyResult,mdpResult]=await Promise.all([
      supabase.from('user_roles').select('role,active').eq('user_id',user.id).maybeSingle(),
      supabase.from('staff_party_access').select('party_scope').eq('user_id',user.id).maybeSingle(),
+     isMdpRoute?supabase.rpc('mdp_has_access'):Promise.resolve(null),
     ]);
     if(!active||current!==generation)return;
     const {data:membership,error:roleError}=membershipResult;
@@ -35,6 +38,7 @@ export default function AuthGate({children}:{children:React.ReactNode}){
     const {data:partyAccess,error:partyError}=partyResult;
     if(partyError)throw partyError;
     setAccess({user,role:membership.role,partyScope:membership.role==='admin'?'ALL':partyAccess?.party_scope||null});
+    if(isMdpRoute&&mdpResult)setMdpAccess({userId:user.id,allowed:!mdpResult.error&&mdpResult.data===true,checkFailed:!!mdpResult.error});
    }catch(error){if(active&&current===generation){setAccess(null);setError(authErrorMessage(error))}}
    finally{if(active&&current===generation)setReady(true)}
   }
@@ -46,9 +50,7 @@ export default function AuthGate({children}:{children:React.ReactNode}){
   });
   void check();
   return()=>{active=false;generation++;subscription.unsubscribe()};
- },[attempt]);
- const route=pathname.replace(/^\/Vote(?=\/|$)/i,'').replace(/\/$/,'');
- const isMdpRoute=route==='/mdp'||route.startsWith('/mdp/');
+ },[attempt,isMdpRoute]);
  useEffect(()=>{
   let active=true;
   if(!isMdpRoute||!access){return()=>{active=false}}
