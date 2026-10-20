@@ -13,7 +13,7 @@ export function useStaffAccess(){return useContext(StaffAccessContext)}
 export default function AuthGate({children}:{children:React.ReactNode}){
  const [access,setAccess]=useState<Access>(null),[ready,setReady]=useState(false),[error,setError]=useState(''),[attempt,setAttempt]=useState(0),[recovery,setRecovery]=useState(false),[mdpAccess,setMdpAccess]=useState<{userId:string;allowed:boolean;checkFailed?:boolean}|null>(null),[mdpAttempt,setMdpAttempt]=useState(0);
  const pathname=usePathname();
- const route=pathname.replace(/^\\/Vote(?=\\/|$)/i,'').replace(/\\/$/,'');
+ const route=pathname.replace(/^\/Vote(?=\/|$)/i,'').replace(/\/$/,'');
  const isMdpRoute=route==='/mdp'||route.startsWith('/mdp/');
  useEffect(()=>{
   let active=true,generation=0;
