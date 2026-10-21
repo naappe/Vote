@@ -346,3 +346,7 @@
 .mdp-workspace .mdp-next-call{white-space:nowrap;align-self:center;min-height:46px}
 @media(max-width:1280px){.mdp-workspace .mdp-operation-summary{grid-template-columns:repeat(4,minmax(0,1fr))}.mdp-workspace .mdp-next-call{grid-column:1/-1}}
 @media(max-width:700px){.mdp-workspace .mdp-operation-summary{grid-template-columns:repeat(2,minmax(0,1fr))}.mdp-workspace .mdp-next-call{grid-column:1/-1;width:100%;justify-content:center}}
+
+/* Consistent four-card operational summaries for Assignments and Transport. */
+.mdp-workspace .mdp-operation-summary-four{grid-template-columns:repeat(4,minmax(0,1fr))}
+@media(max-width:700px){.mdp-workspace .mdp-operation-summary-four{grid-template-columns:repeat(2,minmax(0,1fr))}}
