@@ -10,6 +10,7 @@ import type {HouseOption,PartyOption} from '../lib/supabase';
 import type {CallOutcome,Resident,VoteStatus} from '../lib/types';
 import {residentTaskCards} from '../lib/resident-task-presentation';
 import {ResidentTaskIcon} from './ResidentTaskIcon';
+import {useStaffAccess} from './AuthGate';
 
 type ViewMode='list'|'gallery';
 type Props={profilePath?:string;partyControls?:boolean};
@@ -148,43 +149,57 @@ export default function VoterManagementContent({profilePath='/resident-profile/'
  </div>
 }
 function Gallery({rows,loading,profilePath,partyControls,workflow,workflowError,showRemarks,onWorkflowUpdate,layoutMode='grid'}:{rows:Resident[];loading:boolean;profilePath:string;partyControls:boolean;workflow:Record<string,WorkflowSummary>;workflowError:string;showRemarks:boolean;onWorkflowUpdate:(id:string|number,summary:WorkflowSummary)=>void;layoutMode?:'grid'|'house'}){
- const [selected,setSelected]=useState<Resident|null>(null);
+ const [selected,setSelected]=useState<{resident:Resident;task:QuickTask}|null>(null);
  if(loading)return <div className="mdp-residents-grid">{Array.from({length:6}).map((_,i)=><div key={i} className="h-64 animate-pulse rounded-xl bg-blue-50"/>)}</div>;
  if(!rows.length)return <div className="empty-state m-5">No residents found.</div>;
  const grouped=layoutMode==='house'&&!partyControls;
  const houseGroups=new Map<string,Resident[]>();
  if(grouped)for(const r of rows){const name=String(r.house||'House not recorded').trim()||'House not recorded';houseGroups.set(name,[...(houseGroups.get(name)||[]),r])}
- const renderCard=(r:Resident)=>partyControls?<ResidentFlipCard key={String(r.id)} resident={r} profilePath={profilePath} partyControls workflow={workflow[String(r.id)]} workflowError={workflowError}/>:<ResidentGalleryCard key={String(r.id)} resident={r} profilePath={profilePath} workflow={workflow[String(r.id)]} workflowError={workflowError} showRemark={showRemarks} onViewTasks={()=>setSelected(r)}/>;
- return <>{grouped?<div className="space-y-5">{Array.from(houseGroups.entries()).sort(([a],[b])=>a.localeCompare(b)).map(([name,people])=><section key={name} className="mdp-house-group"><div className="mdp-house-group-heading"><h3>{name}</h3><span>{people.length} {people.length===1?'resident':'residents'} on this page</span></div><div className="mdp-residents-grid mdp-house-grid">{people.map(renderCard)}</div></section>)}</div>:<div className={partyControls?"grid grid-cols-1 gap-4 p-4 md:grid-cols-2 2xl:grid-cols-3":"mdp-residents-grid"}>{rows.map(renderCard)}</div>}{selected&&<ResidentTaskDialog resident={selected} profilePath={profilePath} workflow={workflow[String(selected.id)]} workflowError={workflowError} onWorkflowUpdate={onWorkflowUpdate} onClose={()=>setSelected(null)}/>}</>;
+ const renderCard=(r:Resident)=>partyControls?<ResidentFlipCard key={String(r.id)} resident={r} profilePath={profilePath} partyControls workflow={workflow[String(r.id)]} workflowError={workflowError}/>:<ResidentGalleryCard key={String(r.id)} resident={r} profilePath={profilePath} workflow={workflow[String(r.id)]} workflowError={workflowError} showRemark={showRemarks} onViewTasks={task=>setSelected({resident:r,task})}/>;
+ return <>{grouped?<div className="space-y-5">{Array.from(houseGroups.entries()).sort(([a],[b])=>a.localeCompare(b)).map(([name,people])=><section key={name} className="mdp-house-group"><div className="mdp-house-group-heading"><h3>{name}</h3><span>{people.length} {people.length===1?'resident':'residents'} on this page</span></div><div className="mdp-residents-grid mdp-house-grid">{people.map(renderCard)}</div></section>)}</div>:<div className={partyControls?"grid grid-cols-1 gap-4 p-4 md:grid-cols-2 2xl:grid-cols-3":"mdp-residents-grid"}>{rows.map(renderCard)}</div>}{selected&&<ResidentTaskDialog key={String(selected.resident.id)} resident={selected.resident} initialTask={selected.task} profilePath={profilePath} workflow={workflow[String(selected.resident.id)]} workflowError={workflowError} onWorkflowUpdate={onWorkflowUpdate} onClose={()=>setSelected(null)}/>}</>;
 }
 function VotingIntentionHighlight({summary}:{summary?:WorkflowSummary}){
  const status=summary?.voteStatus;
- if(status!=='will-vote'&&status!=='not-vote'&&!(status==='not-decided'&&summary?.hasVoteIntention))return null;
- const undecided=status==='not-decided',yes=status==='will-vote';
- return <span aria-label={undecided?'Recorded voting intention: not sure yet, follow-up required':yes?'Recorded voting intention: will vote':'Recorded voting intention: will not vote'} className={`inline-flex max-w-full items-center gap-1 rounded-lg border px-2 py-1 text-[11px] font-bold leading-tight ${undecided?'border-amber-200 bg-amber-50 text-amber-900':yes?'border-emerald-200 bg-emerald-50 text-emerald-800':'border-rose-200 bg-rose-50 text-rose-800'}`}>
-  <span aria-hidden="true">{undecided?'?':yes?'✓':'×'}</span>{undecided?'Not sure · Follow up':yes?'Will vote':'Will not vote'}
- </span>;
+ const undecided=status==='not-decided'&&summary?.hasVoteIntention,yes=status==='will-vote',no=status==='not-vote';
+ const label=undecided?'Not sure yet':yes?'Will vote':no?'Will not vote':summary?'Pending':'Loading status';
+ const style=undecided?'border-amber-200 bg-amber-50 text-amber-900':yes?'border-emerald-200 bg-emerald-50 text-emerald-800':no?'border-rose-200 bg-rose-50 text-rose-800':'border-slate-200 bg-slate-100 text-slate-700';
+ return <span aria-label={'Voting plan: '+label} className={`mdp-master-vote-badge inline-flex max-w-full items-center gap-1.5 rounded-lg border px-2.5 py-1 text-[11px] font-bold ${style}`}><span aria-hidden="true" className="mdp-master-vote-mark">{undecided?'?':yes?'✓':no?'×':'◷'}</span>{label}</span>;
 }
-function ResidentGalleryCard({resident:r,profilePath,workflow,workflowError,showRemark=false,onViewTasks}:{resident:Resident;profilePath:string;workflow?:WorkflowSummary;workflowError:string;showRemark?:boolean;onViewTasks:()=>void}){
+function ResidentGalleryCard({resident:r,profilePath,workflow,workflowError,showRemark=false,onViewTasks}:{resident:Resident;profilePath:string;workflow?:WorkflowSummary;workflowError:string;showRemark?:boolean;onViewTasks:(task:QuickTask)=>void}){
  const profileHref=profilePath+'?id='+r.id;
- return <article role="button" tabIndex={0} aria-label={'Open tasks for '+(r.name||'resident')} onClick={event=>{if(!(event.target as HTMLElement).closest('a,button,input,select,textarea'))onViewTasks()}} onKeyDown={event=>{if((event.key==='Enter'||event.key===' ')&&event.target===event.currentTarget){event.preventDefault();onViewTasks()}}} className="mdp-resident-card min-w-0 cursor-pointer bg-white transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600">
-  <div className="flex min-w-0 items-start gap-4">
+ const access=useStaffAccess(),canAssign=access?.role==='admin'||access?.role==='supervisor';
+ const actions:{label:string;task:QuickTask;icon:'phone'|'home'|'vote'|'remark'|'transport'}[]=[
+  {label:'Record phone call',task:'call',icon:'phone'},
+  {label:'Record house visit',task:'door-to-door',icon:'home'},
+  {label:'Update voting plan',task:'voting-intention',icon:'vote'},
+  {label:'Read or write notes',task:'remarks',icon:'remark'},
+  {label:'Transport details',task:'transport',icon:'transport'},
+ ];
+ return <article className="mdp-resident-card mdp-master-card min-w-0 bg-white">
+  <div className="mdp-master-identity">
    <Link prefetch={false} href={profileHref} aria-label={'Open '+(r.name||'resident')+' profile'} className="shrink-0"><Photo r={r} small/></Link>
    <div className="min-w-0 flex-1">
-    <div className="flex items-start justify-between gap-2"><Link prefetch={false} href={profileHref} className="break-words text-base font-extrabold leading-snug text-[#0c2d68] hover:underline">{r.name||'Unnamed resident'}</Link><span className="text-xl font-light text-slate-400" aria-hidden="true">›</span></div>
-    <p className="mt-1 text-xs text-slate-500">{r.national_id||'No national ID'} · #{r.id}</p>
-    <div className="mt-3"><VotingIntentionHighlight summary={workflow}/></div>
+    <Link prefetch={false} href={profileHref} className="mdp-master-resident-name">{r.name||'Unnamed resident'}</Link>
+    <p className="mdp-master-id">{r.national_id||'ID unavailable'} · #{r.id}</p>
+    <div className="mt-2"><VotingIntentionHighlight summary={workflow}/></div>
    </div>
+   <Link prefetch={false} href={profileHref} className="mdp-master-chevron" aria-label={'Open profile of '+(r.name||'resident')} title="Open full resident details">›</Link>
   </div>
-  <div className="mdp-card-icons"><TaskProgress summary={workflow} unavailable={Boolean(workflowError)}/></div>
-  <div className="mdp-card-house grid grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto_auto] items-start gap-3 border-t border-slate-100 text-xs">
-   <div className="min-w-0"><span className="block text-[10px] font-semibold uppercase text-slate-400">House</span><strong className="mt-1 block break-words text-[#15294d]">{r.house||'Not recorded'}</strong></div>
-   <div className="min-w-0"><span className="block text-[10px] font-semibold uppercase text-slate-400">Mobile</span>{r.phone?<a href={'tel:'+r.phone} onClick={event=>event.stopPropagation()} className="mt-1 block truncate font-bold text-blue-600">{r.phone}</a>:<span className="mt-1 block text-slate-500">—</span>}</div>
-   <div><span className="block text-[10px] font-semibold uppercase text-slate-400">Age</span><strong className="mt-1 block">{r.age??'—'}</strong></div>
-   <div><span className="block text-[10px] font-semibold uppercase text-slate-400">Sex</span><strong className="mt-1 block">{r.sex||'—'}</strong></div>
+  <div className="mdp-master-actions" aria-label="Resident tasks">
+   <button type="button" title="Record phone call" aria-label="Record phone call" onClick={()=>onViewTasks('call')} className="mdp-master-action mdp-master-action-green"><ResidentTaskIcon name="phone"/></button>
+   <button type="button" title="Record house visit" aria-label="Record house visit" onClick={()=>onViewTasks('door-to-door')} className="mdp-master-action mdp-master-action-green"><ResidentTaskIcon name="home"/></button>
+   {canAssign?<Link prefetch={false} href="/mdp/assignments/" title="Manage staff assignment" aria-label="Manage staff assignment" className="mdp-master-action"><ResidentTaskIcon name="person"/></Link>:<button type="button" title="Record meeting" aria-label="Record meeting" onClick={()=>onViewTasks('in-person-meeting')} className="mdp-master-action"><ResidentTaskIcon name="person"/></button>}
+   {actions.slice(2).map(action=><button key={action.task} type="button" title={action.label} aria-label={action.label} onClick={()=>onViewTasks(action.task)} className="mdp-master-action"><ResidentTaskIcon name={action.icon}/></button>)}
   </div>
-  {showRemark&&<div className="mt-3 flex flex-wrap gap-1.5" aria-label="Written resident remarks">{workflow?.writtenRemarks?.length?workflow.writtenRemarks.map((remark,index)=><span key={index} className="max-w-full break-words rounded-md border border-blue-100 bg-blue-50 px-2 py-1 text-xs text-blue-900" title={remark}>{remark}</span>):<span className="text-xs text-body">Loading written remarks…</span>}</div>}
- </article>
+  <div className="mdp-master-data">
+   <div><span>House</span><strong title={r.house||''}>{r.house||'Not recorded'}</strong></div>
+   <div><span>Mobile</span>{r.phone?<a href={'tel:'+r.phone} className="mdp-master-phone">{r.phone}</a>:<strong>—</strong>}</div>
+   <div><span>Age</span><strong>{r.age??'—'}</strong></div>
+   <div><span>Sex</span><strong>{r.sex||'—'}</strong></div>
+  </div>
+  {workflowError&&<p className="mt-2 text-xs text-amber-700" role="status">Task status unavailable</p>}
+  {showRemark&&<div className="mt-3 flex flex-wrap gap-1.5" aria-label="Written resident remarks">{workflow?.writtenRemarks?.length?workflow.writtenRemarks.map((remark,index)=><span key={index} className="max-w-full break-words rounded-md border border-blue-100 bg-blue-50 px-2 py-1 text-xs text-blue-900" title={remark}>{remark}</span>):<span className="text-xs text-body">No saved remarks on this page.</span>}</div>}
+ </article>;
 }
 function ResidentFlipCard({resident:r,profilePath,partyControls,workflow,workflowError}:{resident:Resident;profilePath:string;partyControls:boolean;workflow?:WorkflowSummary;workflowError:string}){
  const [flipped,setFlipped]=useState(false),showTasks=!partyControls&&flipped,profileHref=profilePath+'?id='+r.id;
@@ -232,8 +247,8 @@ function TaskProgress({summary,unavailable}:{summary?:WorkflowSummary;unavailabl
 }
 type QuickTask='call'|'door-to-door'|'in-person-meeting'|'voting-intention'|'remarks'|'transport';
 type ResidentRemark={id:number|string;remark:string;recorded_by?:string|null;recorded_at?:string|null};
-function ResidentTaskDialog({resident:r,profilePath,workflow,workflowError,onWorkflowUpdate,onClose}:{resident:Resident;profilePath:string;workflow?:WorkflowSummary;workflowError:string;onWorkflowUpdate:(id:string|number,summary:WorkflowSummary)=>void;onClose:()=>void}){
- const [activeTask,setActiveTask]=useState<QuickTask>('voting-intention'),[currentWorkflow,setCurrentWorkflow]=useState(workflow),[success,setSuccess]=useState(''),[revision,setRevision]=useState(0);
+function ResidentTaskDialog({resident:r,profilePath,workflow,workflowError,onWorkflowUpdate,onClose,initialTask='voting-intention'}:{resident:Resident;profilePath:string;workflow?:WorkflowSummary;workflowError:string;onWorkflowUpdate:(id:string|number,summary:WorkflowSummary)=>void;onClose:()=>void;initialTask?:QuickTask}){
+ const [activeTask,setActiveTask]=useState<QuickTask>(initialTask),[currentWorkflow,setCurrentWorkflow]=useState(workflow),[success,setSuccess]=useState(''),[revision,setRevision]=useState(0);
  const profileHref=profilePath+'?id='+r.id,scrollRef=useRef<HTMLDivElement>(null);
  useEffect(()=>{const closeOnEscape=(event:KeyboardEvent)=>{if(event.key==='Escape')onClose()};window.addEventListener('keydown',closeOnEscape);const previous=document.body.style.overflow;document.body.style.overflow='hidden';return()=>{window.removeEventListener('keydown',closeOnEscape);document.body.style.overflow=previous}},[onClose]);
  const taskItems=currentWorkflow?residentTaskCards(currentWorkflow):[];
