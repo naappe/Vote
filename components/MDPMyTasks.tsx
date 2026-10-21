@@ -1,36 +1,55 @@
 'use client';
 import Link from 'next/link';
-import {useEffect,useState} from 'react';
+import {useEffect,useMemo,useState} from 'react';
 import {supabase} from '../lib/supabase';
 import {useStaffAccess} from './AuthGate';
-type Assignment={id:number|string;resident_id:number|string;assignee_name:string;assignee_user_id:string|null;assignment_type:string;status:string};
-type ResidentLabel={id:number|string;name:string|null;house:string|null};
-const complete=(s:string)=>['completed','complete','done'].includes(s.toLowerCase().trim());
+
+type Update={update_id:number;resident_id:number;activity_type:string;update_text:string;staff_email:string;saved_at:string|null};
+type ManagedUser={id:string;email:string;name?:string;username?:string;active:boolean;role:string};
+const labelFor:Record<string,string>={'call-center':'Call','door-to-door':'House visit','in-person-meeting':'Meeting','voting-intention':'Voting plan','general':'Remark','transportation':'Transport'};
+const norm=(email:string)=>email.trim().toLowerCase();
 export default function MDPMyTasks(){
- const access=useStaffAccess(),userId=access?.user.id,manager=access?.role==='admin'||access?.role==='supervisor';
- const [rows,setRows]=useState<Assignment[]>([]),[names,setNames]=useState<Record<string,ResidentLabel>>({}),[loading,setLoading]=useState(true),[error,setError]=useState('');
- useEffect(()=>{if(!userId)return;let active=true;setLoading(true);setError('');
+ const access=useStaffAccess(),userId=access?.user.id,admin=access?.role==='admin';
+ const [updates,setUpdates]=useState<Update[]>([]),[users,setUsers]=useState<ManagedUser[]>([]),[selected,setSelected]=useState('all'),[error,setError]=useState(''),[loading,setLoading]=useState(true);
+ useEffect(()=>{
+  if(!userId)return;
+  let active=true;setLoading(true);setError('');
   void(async()=>{try{
-   let q=supabase.from('assignments').select('id,resident_id,assignee_name,assignee_user_id,assignment_type,status').order('assigned_at',{ascending:false}).limit(200);
-   if(!manager)q=q.eq('assignee_user_id',userId);
-   const {data,error:e}=await q;if(e)throw e;const found=(data||[]) as Assignment[];
-   if(!active)return;setRows(found);
-   const ids=[...new Set(found.map(row=>row.resident_id))];
-   if(ids.length){const {data:residents,error:re}=await supabase.from('Resident').select('id,name,house').in('id',ids);if(re)throw re;if(active)setNames(Object.fromEntries(((residents||[]) as ResidentLabel[]).map(row=>[String(row.id),row])))}
-   else if(active)setNames({});
-  }catch(e){if(active)setError(e instanceof Error?e.message:'Unable to load tasks')}
+   // SQL function checks login identity on the server; staff cannot request another user's history.
+   const [history,accounts]=await Promise.all([
+    supabase.rpc('vote_staff_recent_updates',{p_limit:200}),
+    admin?supabase.functions.invoke('manage-users',{body:{action:'list'}}):Promise.resolve(null)
+   ]);
+   if(history.error)throw history.error;
+   if(!active)return;
+   setUpdates((history.data||[]) as Update[]);
+   if(admin&&accounts&&!accounts.error&&!accounts.data?.error)setUsers((accounts.data?.users||[]) as ManagedUser[]);
+  }catch(e){if(active)setError(e instanceof Error?e.message:'Could not load your saved updates')}
   finally{if(active)setLoading(false)}})();
   return()=>{active=false};
- },[userId,manager]);
+ },[userId,admin]);
+ const known=useMemo(()=>new Map(users.map(user=>[norm(user.email),user])),[users]);
+ const activityUsers=useMemo(()=>[...new Set(updates.map(item=>norm(item.staff_email)).filter(Boolean))],[updates]);
+ const activeEmails=useMemo(()=>[...new Set([...users.map(user=>norm(user.email)),...activityUsers])].sort(),[users,activityUsers]);
+ const visible=useMemo(()=>!admin||selected==='all'?updates:updates.filter(row=>norm(row.staff_email)===selected),[admin,selected,updates]);
+ const uniqueResidents=new Set(visible.map(item=>String(item.resident_id))).size;
+ const recent=visible.slice(0,16);
+ const totalLabel=admin?'Staff updates':'My updates';
+ const staffName=(email:string)=>known.get(norm(email))?.name||known.get(norm(email))?.username||email;
  if(!userId)return null;
- const done=rows.filter(row=>complete(row.status)).length;
  return <section className="mdp-home-section" aria-labelledby="mdp-assignment-heading">
-  <div className="mdp-home-section-heading"><h2 id="mdp-assignment-heading">{manager?'All staff assignments':'My Tasks'}</h2><p>{manager?'All accessible assigned work, including older assignments not linked to an account.':'Work assigned specifically to your login account.'}</p></div>
-  {loading?<p role="status" className="mdp-home-house-loading">Loading tasks…</p>:error?<p role="alert" className="mdp-home-house-loading">{error}</p>:<>
-   <div className="mdp-home-task-stats"><div><span>Assignments</span><strong>{rows.length}</strong></div><div><span>Completed</span><strong>{done}</strong></div><div><span>Remaining</span><strong>{rows.length-done}</strong></div>{manager&&<div><span>Linked accounts</span><strong>{rows.filter(row=>row.assignee_user_id).length}</strong></div>}</div>
-   {rows.length?<div className="mdp-home-task-list">{rows.slice(0,10).map(row=><Link key={String(row.id)} prefetch={false} href={'/mdp/resident-profile/?id='+row.resident_id} className="mdp-home-task-row"><span className={complete(row.status)?'mdp-home-task-indicator is-done':'mdp-home-task-indicator'} aria-hidden="true">{complete(row.status)?'✓':'○'}</span><span className="mdp-home-task-info"><strong>{names[String(row.resident_id)]?.name||'Resident #'+row.resident_id}</strong><small>{row.assignment_type||'Assigned work'} · {names[String(row.resident_id)]?.house||'House not listed'}{manager?' · '+(row.assignee_name||'Unassigned'):''}</small></span><span className="mdp-home-task-state">{row.status||'Pending'}</span></Link>)}</div>:<p className="mdp-home-house-loading">{manager?'No assignment records.':'No assignments linked to your login yet. Ask Admin to link your assigned work.'}</p>}
-   {manager&&<Link prefetch={false} href="/mdp/assignments/" className="mdp-home-tasks-manage">Manage assignments →</Link>}
-   {rows.length===200&&<p className="text-xs text-body">Showing up to 200 assignments.</p>}
+  <div className="mdp-home-section-heading"><h2 id="mdp-assignment-heading">{admin?'All users’ work':'My Work'}</h2><p>{admin?'Saved work by login account. Choose a user to review their updates.':'Only updates recorded under your signed-in account. Other users’ work is not shown here.'}</p></div>
+  {loading?<p className="mdp-home-house-loading" role="status">Loading saved work…</p>:error?<p role="alert" className="mdp-home-house-loading">Could not load work activity: {error}</p>:<>
+   {admin&&<label className="block max-w-sm"><span className="field-label">Login user</span><select className="field mt-1 w-full" value={selected} onChange={e=>setSelected(e.target.value)}><option value="all">All users</option>{activeEmails.map(email=><option key={email} value={email}>{staffName(email)}</option>)}</select></label>}
+   <div className="mdp-home-task-stats">
+    <div><span>{totalLabel}</span><strong>{visible.length}</strong></div>
+    <div><span>Residents updated</span><strong>{uniqueResidents}</strong></div>
+    <div><span>Calls recorded</span><strong>{visible.filter(item=>item.activity_type==='call-center').length}</strong></div>
+    <div><span>House visits</span><strong>{visible.filter(item=>item.activity_type==='door-to-door').length}</strong></div>
+   </div>
+   {admin&&users.length>0&&selected==='all'&&<div className="mdp-home-houses">{users.map(user=><button type="button" key={user.id} className="mdp-home-house-row" onClick={()=>setSelected(norm(user.email))}><span className="mdp-home-house-rank" aria-hidden="true">●</span><strong>{user.name||user.username||user.email}</strong><span className="mdp-home-house-count">{updates.filter(item=>norm(item.staff_email)===norm(user.email)).length} updates</span><span className="mdp-home-house-arrow" aria-hidden="true">›</span></button>)}</div>}
+   {recent.length?<div className="mdp-home-task-list">{recent.map(item=><Link prefetch={false} key={item.update_id} href={'/mdp/resident-profile/?id='+encodeURIComponent(String(item.resident_id))} className="mdp-home-task-row"><span className="mdp-home-task-indicator is-done" aria-hidden="true">✓</span><span className="mdp-home-task-info"><strong>{labelFor[item.activity_type]||'Task update'} · Resident #{item.resident_id}</strong><small>{item.saved_at?new Date(item.saved_at).toLocaleString():'Date unavailable'}{admin?' · '+staffName(item.staff_email):''}</small><small>{item.update_text||'Result saved'}</small></span><span className="mdp-home-task-state">View ›</span></Link>)}</div>:<p className="mdp-home-house-loading">{admin?'No saved updates for this login user.':'No saved updates under your login yet.'}</p>}
+   <p className="text-xs text-body">Shows recent recorded call, visit, meeting, voting-plan and remark history. Resident records remain shared according to staff permissions. Older updates without a recorder cannot be attributed to a user.</p>
   </>}
  </section>;
 }
