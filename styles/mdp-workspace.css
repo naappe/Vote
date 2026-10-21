@@ -182,3 +182,30 @@
  .mdp-workspace .mdp-reference-stat{width:80px;min-width:80px}
  .mdp-workspace .mdp-reference-filter-main{gap:8px}
 }
+
+/* Plain-language, quick-to-use MDP home (no mock data or demo login). */
+.mdp-workspace .mdp-home-simple{display:grid;gap:22px}
+.mdp-workspace .mdp-home-intro{display:flex;justify-content:space-between;align-items:center;gap:22px;padding:25px 28px;border:1px solid #dce7f5;border-radius:20px;background:linear-gradient(115deg,#fff 0%,#f5f9ff 70%,#fff5cc 100%);box-shadow:0 8px 22px rgba(11,54,120,.045)}
+.mdp-workspace .mdp-home-intro h1{margin-top:5px;font-size:clamp(24px,2.6vw,33px);font-weight:850;line-height:1.17;color:#0b3678}
+.mdp-workspace .mdp-home-intro p:not(.mdp-eyebrow){margin-top:10px;color:#5c6d83;font-size:14px;line-height:1.55}
+.mdp-workspace .mdp-home-main-link{flex:none;display:inline-flex;align-items:center;gap:15px;justify-content:center;min-height:47px;padding:11px 17px;background:#185aca;color:white!important;border-radius:12px;font-size:13px;font-weight:800;text-decoration:none}
+.mdp-workspace .mdp-home-main-link:hover{background:#104698}
+.mdp-workspace .mdp-home-section{display:grid;gap:13px}
+.mdp-workspace .mdp-home-section-heading h2{font-size:17px;font-weight:850;color:#0b3678}
+.mdp-workspace .mdp-home-section-heading p{margin-top:3px;color:#65758c;font-size:12px}
+.mdp-workspace .mdp-home-quick-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:15px}
+.mdp-workspace .mdp-home-quick-card{display:flex;flex-direction:column;align-items:flex-start;gap:10px;min-width:0;min-height:177px;padding:21px;border:1px solid #e0e8f4;border-radius:18px;background:white;color:#172c49!important;text-decoration:none;box-shadow:0 6px 22px rgba(11,54,120,.035);transition:border-color .15s,transform .15s,box-shadow .15s}
+.mdp-workspace .mdp-home-quick-card:hover{border-color:#82afe9;transform:translateY(-2px);box-shadow:0 10px 25px rgba(11,54,120,.085)}
+.mdp-workspace .mdp-home-quick-mark{display:grid;place-items:center;width:35px;height:35px;border-radius:10px;background:#fff1ae;color:#0b3678;font-size:12px;font-weight:900}
+.mdp-workspace .mdp-home-quick-card strong{font-size:15px;line-height:1.3;color:#0b3678}
+.mdp-workspace .mdp-home-quick-card small{font-size:12px;line-height:1.45;color:#65758c}
+.mdp-workspace .mdp-home-quick-arrow{margin-top:auto;color:#1557b0;font-size:12px;font-weight:800}
+.mdp-workspace .mdp-home-simple-links{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:11px}
+.mdp-workspace .mdp-home-simple-link{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:17px 19px;border:1px solid #e0e8f4;border-radius:14px;background:white;text-decoration:none}
+.mdp-workspace .mdp-home-simple-link:hover{border-color:#82afe9;background:#fcfdff}
+.mdp-workspace .mdp-home-simple-link strong{display:block;color:#0b3678;font-size:13px}
+.mdp-workspace .mdp-home-simple-link small{display:block;margin-top:4px;color:#65758c;font-size:11px;line-height:1.4}
+.mdp-workspace .mdp-home-simple-link>span:last-child{font-size:22px;color:#1557b0}
+@media(max-width:1200px){.mdp-workspace .mdp-home-quick-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:680px){.mdp-workspace .mdp-home-intro{flex-direction:column;align-items:stretch;padding:20px}.mdp-workspace .mdp-home-main-link{align-self:stretch}.mdp-workspace .mdp-home-simple-links{grid-template-columns:1fr}.mdp-workspace .mdp-home-quick-grid{gap:10px}.mdp-workspace .mdp-home-quick-card{min-height:176px;padding:15px}}
+@media(max-width:380px){.mdp-workspace .mdp-home-quick-grid{grid-template-columns:1fr}.mdp-workspace .mdp-home-quick-card{min-height:0}}
