@@ -1,7 +1,7 @@
 'use client';
 import Link from 'next/link';
 import {usePathname,useSearchParams} from 'next/navigation';
-import {useEffect,useRef} from 'react';
+import {useEffect,useRef,useState} from 'react';
 import {useStaffAccess} from './AuthGate';
 import AuthControl from './AuthControl';
 
@@ -34,10 +34,16 @@ function NavIcon({name}:{name:string}){return <svg aria-hidden="true" width="19"
 function isActive(pathname:string,focus:string|null,href:string){const [path,query]=href.split('?');if(pathname!==path.replace(/\/$/,'')&&!pathname.startsWith(path.replace(/\/$/,'')+'/'))return false;const selected=new URLSearchParams(query||'').get('focus');return selected?focus===selected:!focus}
 export default function MDPWorkspaceNavigation(){
  const access=useStaffAccess(),role=access?.role||'',pathname=(usePathname()||'/mdp/').replace(/\/$/,'')||'/mdp',params=useSearchParams(),focus=params.get('focus'),moreRef=useRef<HTMLDetailsElement>(null);
- useEffect(()=>{if(moreRef.current)moreRef.current.open=false},[pathname,focus]);
+ const [menuOpen,setMenuOpen]=useState(false);
+ useEffect(()=>{if(moreRef.current)moreRef.current.open=false;setMenuOpen(false)},[pathname,focus]);
+ useEffect(()=>{if(!menuOpen)return;const close=(event:KeyboardEvent)=>{if(event.key==='Escape')setMenuOpen(false)};window.addEventListener('keydown',close);return()=>window.removeEventListener('keydown',close)},[menuOpen]);
  const visible=(items:NavItem[])=>items.filter(item=>!item.roles||item.roles.includes(role));
  const moreActive=visible(secondary).some(item=>isActive(pathname,focus,item.href));
  return <nav aria-label="Main navigation" className="mdp-nav">
+  <button className="mdp-mobile-menu-toggle" type="button" aria-expanded={menuOpen} aria-controls="mdp-navigation-items" onClick={()=>setMenuOpen(value=>!value)}><span aria-hidden="true">☰</span> Menu</button>
+  {menuOpen&&<button type="button" className="mdp-mobile-menu-backdrop" aria-label="Close navigation menu" onClick={()=>setMenuOpen(false)}/>}
+  <div id="mdp-navigation-items" className={`mdp-navigation-items${menuOpen?" is-open":""}`}>
+   <div className="mdp-mobile-menu-heading"><strong>MDP Resident Voters</strong><button type="button" aria-label="Close menu" onClick={()=>setMenuOpen(false)}>✕</button></div>
   <Link prefetch={false} href="/mdp/" aria-current={pathname==='/mdp'?'page':undefined} className={`mdp-nav-link mdp-nav-home${pathname==='/mdp'?' is-active':''}`}><NavIcon name="home"/><span>Home</span></Link>
   {visible(primary).map(item=><Link key={item.href} prefetch={false} href={item.href} aria-current={isActive(pathname,focus,item.href)?'page':undefined} className={`mdp-nav-link${isActive(pathname,focus,item.href)?' is-active':''}`}><NavIcon name={item.icon}/><span>{item.label}</span></Link>)}
   <details ref={moreRef} className={`mdp-nav-more${moreActive?' is-active':''}`}>
@@ -45,5 +51,6 @@ export default function MDPWorkspaceNavigation(){
    <div className="mdp-nav-menu">{visible(secondary).map(item=><Link key={item.href} prefetch={false} href={item.href} aria-current={isActive(pathname,focus,item.href)?'page':undefined} onClick={()=>{if(moreRef.current)moreRef.current.open=false}}><NavIcon name={item.icon}/>{item.label}</Link>)}</div>
   </details>
   <div className="mdp-nav-account"><AuthControl/></div>
+  </div>
  </nav>;
 }
