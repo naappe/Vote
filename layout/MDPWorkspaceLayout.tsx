@@ -14,7 +14,7 @@ export default function MDPWorkspaceLayout({children}:{children:ReactNode}){
     <MDPWorkspaceNavigation/>
    </div>
   </header>
-  <main className="mdp-main flex-1"><MDPBackButton/>{children}</main>
+  <main className="mdp-main flex-1"><div className="mdp-main-back"><MDPBackButton/></div>{children}</main>
   <footer className="mdp-footer">MDP Resident Operations · Maldivian Democratic Party</footer>
  </div>
 }
