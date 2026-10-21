@@ -377,3 +377,20 @@
  .mdp-workspace .mdp-navigation-items .mdp-nav-menu{position:static;display:grid;width:100%;max-height:none;padding:4px 9px;box-shadow:none;border:0}
  .mdp-workspace .mdp-navigation-items .mdp-nav-account{margin-top:auto;padding-top:14px;border-top:1px solid #e2eaf5}
 }
+
+/* Home polish: minimal everyday tasks and compact live top-ten house list. */
+.mdp-workspace .mdp-home-simple{gap:19px}
+.mdp-workspace .mdp-home-quick-card{min-height:140px;padding:18px;gap:9px}
+.mdp-workspace .mdp-home-quick-card strong{font-size:15px}
+.mdp-workspace .mdp-home-quick-arrow{margin-top:auto}
+.mdp-workspace .mdp-brand{gap:8px}
+.mdp-workspace .mdp-home-houses{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}
+.mdp-workspace .mdp-home-house-row{display:flex;align-items:center;min-width:0;gap:11px;padding:12px 13px;border:1px solid #dde8f5;border-radius:12px;background:#fff;color:#123260;text-decoration:none;transition:border-color .15s,background .15s}
+.mdp-workspace .mdp-home-house-row:hover{border-color:#8eb9ee;background:#f8fbff}
+.mdp-workspace .mdp-home-house-row:focus-visible{outline:2px solid #2563eb;outline-offset:2px}
+.mdp-workspace .mdp-home-house-rank{display:grid;place-items:center;flex:0 0 29px;height:29px;border-radius:8px;background:#eff5fc;color:#406592;font-size:12px;font-weight:800}
+.mdp-workspace .mdp-home-house-row strong{font-size:13px;font-weight:800;overflow-wrap:anywhere;min-width:0;flex:1}
+.mdp-workspace .mdp-home-house-count{flex:none;color:#245bb3;font-size:12px;font-weight:800;white-space:nowrap}
+.mdp-workspace .mdp-home-house-arrow{color:#718aa8;font-size:20px}
+.mdp-workspace .mdp-home-house-loading{padding:17px;border:1px solid #dde8f5;border-radius:12px;background:#fff;color:#57708e;font-size:13px}
+@media(max-width:730px){.mdp-workspace .mdp-home-houses{grid-template-columns:1fr}}
