@@ -394,3 +394,20 @@
 .mdp-workspace .mdp-home-house-arrow{color:#718aa8;font-size:20px}
 .mdp-workspace .mdp-home-house-loading{padding:17px;border:1px solid #dde8f5;border-radius:12px;background:#fff;color:#57708e;font-size:13px}
 @media(max-width:730px){.mdp-workspace .mdp-home-houses{grid-template-columns:1fr}}
+
+/* Role-scoped task overview on Home. */
+.mdp-workspace .mdp-home-task-stats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}
+.mdp-workspace .mdp-home-task-stats>div{display:flex;flex-direction:column;gap:5px;padding:13px 15px;border:1px solid #dfe8f4;border-radius:12px;background:#fff}
+.mdp-workspace .mdp-home-task-stats span{font-size:11px;font-weight:700;color:#66809d}
+.mdp-workspace .mdp-home-task-stats strong{font-size:23px;font-weight:850;color:#0b3678}
+.mdp-workspace .mdp-home-task-list{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+.mdp-workspace .mdp-home-task-row{display:flex;min-width:0;align-items:center;gap:10px;padding:12px;border:1px solid #e0e8f4;border-radius:12px;background:#fff;text-decoration:none}
+.mdp-workspace .mdp-home-task-row:hover{border-color:#85b1ea;background:#f9fbff}
+.mdp-workspace .mdp-home-task-indicator{display:grid;place-items:center;flex:0 0 25px;height:25px;border-radius:50%;background:#fff4dd;color:#9e670b;font-weight:800}
+.mdp-workspace .mdp-home-task-indicator.is-done{background:#e2f7eb;color:#138454}
+.mdp-workspace .mdp-home-task-info{display:flex;min-width:0;flex:1;flex-direction:column;gap:3px}
+.mdp-workspace .mdp-home-task-info strong{font-size:12px;color:#123260;overflow-wrap:anywhere}
+.mdp-workspace .mdp-home-task-info small{font-size:11px;color:#71849a;overflow-wrap:anywhere}
+.mdp-workspace .mdp-home-task-state{max-width:100px;font-size:11px;font-weight:750;color:#4d678a;overflow-wrap:anywhere;text-align:right}
+.mdp-workspace .mdp-home-tasks-manage{justify-self:start;font-size:12px;font-weight:800;color:#185aca}
+@media(max-width:800px){.mdp-workspace .mdp-home-task-stats{grid-template-columns:repeat(2,minmax(0,1fr))}.mdp-workspace .mdp-home-task-list{grid-template-columns:1fr}}
