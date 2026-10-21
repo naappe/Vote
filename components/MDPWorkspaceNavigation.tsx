@@ -8,9 +8,9 @@ import AuthControl from './AuthControl';
 type NavItem={label:string;href:string;icon:string;roles?:string[]};
 const primary:NavItem[]=[
  {label:'Residents',href:'/mdp/residents/',icon:'users'},
- {label:'Calls',href:'/mdp/residents/?focus=called',icon:'phone'},
+ {label:'Calls',href:'/mdp/calls/',icon:'phone'},
  {label:'Assignments',href:'/mdp/assignments/',icon:'tasks',roles:['admin','supervisor']},
- {label:'Transport',href:'/mdp/residents/?focus=transport',icon:'truck'},
+ {label:'Transport',href:'/mdp/transportation/',icon:'truck'},
  {label:'Reports',href:'/mdp/reports/',icon:'chart'},
 ];
 const secondary:NavItem[]=[
