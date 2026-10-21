@@ -1,48 +1,49 @@
 'use client';
-
 import Link from 'next/link';
 import {usePathname,useSearchParams} from 'next/navigation';
 import {useEffect,useRef} from 'react';
 import {useStaffAccess} from './AuthGate';
 import AuthControl from './AuthControl';
 
-const moreLinks=[
- {label:'Phone calls',href:'/mdp/residents/?focus=called'},
- {label:'House visits',href:'/mdp/residents/?focus=visited'},
- {label:'Notes',href:'/mdp/residents/?focus=remarks'},
- {label:'Transport requests',href:'/mdp/residents/?focus=transport'},
- {label:'Record who voted',href:'/mdp/voting-days/',roles:['admin','supervisor','election_operator']},
- {label:'Staff tasks',href:'/mdp/assignments/',roles:['admin','supervisor']},
- {label:'Arrange transport',href:'/mdp/transport-links/',roles:['admin','supervisor','election_operator']},
- {label:'Reports',href:'/mdp/reports/'},
+type NavItem={label:string;href:string;icon:string;roles?:string[]};
+const primary:NavItem[]=[
+ {label:'Residents',href:'/mdp/residents/',icon:'users'},
+ {label:'Calls',href:'/mdp/residents/?focus=called',icon:'phone'},
+ {label:'Assignments',href:'/mdp/assignments/',icon:'tasks',roles:['admin','supervisor']},
+ {label:'Transport',href:'/mdp/residents/?focus=transport',icon:'truck'},
+ {label:'Reports',href:'/mdp/reports/',icon:'chart'},
 ];
-
-function isCurrent(pathname:string,href:string){
- if(href==='/')return pathname==='/';
- const normalized=href.replace(/\/$/,'');
- if(href==='/mdp/')return pathname===normalized;
- return pathname===normalized||pathname.startsWith(`${normalized}/`);
-}
-
+const secondary:NavItem[]=[
+ {label:'House visits',href:'/mdp/residents/?focus=visited',icon:'home'},
+ {label:'Voting plans',href:'/mdp/residents/?focus=undecided',icon:'vote'},
+ {label:'Notes',href:'/mdp/residents/?focus=remarks',icon:'note'},
+ {label:'Record who voted',href:'/mdp/voting-days/',icon:'vote',roles:['admin','supervisor','election_operator']},
+ {label:'Arrange transport',href:'/mdp/transport-links/',icon:'truck',roles:['admin','supervisor','election_operator']},
+];
+const iconPaths:Record<string,string>={
+ users:'M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2 M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8 M22 21v-2a4 4 0 0 0-3-3.87 M16 3.13a4 4 0 0 1 0 7.75',
+ phone:'M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6A19.79 19.79 0 0 1 2.12 4.18 2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72l.58 3.5a2 2 0 0 1-.57 1.74L7.8 10.3a16 16 0 0 0 5.9 5.9l1.34-1.32a2 2 0 0 1 1.74-.57l3.5.58A2 2 0 0 1 22 16.92Z',
+ tasks:'M8 4h12v18H4V4h2 M8 2h8v4H8z M9 12l2 2 4-4 M9 18h7',
+ truck:'M10 17h4V5H2v12h3 M14 9h4l4 4v4h-3 M14 17h3 M5 17a2 2 0 1 0 4 0 2 2 0 0 0-4 0 M17 17a2 2 0 1 0 4 0 2 2 0 0 0-4 0',
+ chart:'M4 21V3 M4 21h17 M9 17v-5 M14 17V8 M19 17V4',
+ home:'M3 10 12 3l9 7v11h-6v-7H9v7H3z',
+ vote:'M4 13h16v8H4z M8 4h8l3 7H5z M9 8l2 2 4-4',
+ note:'M5 3h14v18H5z M8 8h8 M8 12h8 M8 16h5',
+};
+function NavIcon({name}:{name:string}){return <svg aria-hidden="true" width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d={iconPaths[name]||iconPaths.note}/></svg>}
+function isActive(pathname:string,focus:string|null,href:string){const [path,query]=href.split('?');if(pathname!==path.replace(/\/$/,'')&&!pathname.startsWith(path.replace(/\/$/,'')+'/'))return false;const selected=new URLSearchParams(query||'').get('focus');return selected?focus===selected:!focus}
 export default function MDPWorkspaceNavigation(){
- const access=useStaffAccess(),role=access?.role||'';
- const pathname=usePathname()||'/mdp/',params=useSearchParams();
- const moreRef=useRef<HTMLDetailsElement>(null);
- const home=isCurrent(pathname,'/mdp/');
- const residents=(isCurrent(pathname,'/mdp/residents/')&&!params.get('focus'))||isCurrent(pathname,'/mdp/resident-profile/');
- const activeHref=(href:string)=>{const [path,query]=href.split('?');if(!isCurrent(pathname,path))return false;return !query||new URLSearchParams(query).get('focus')===params.get('focus')};
- const moreActive=moreLinks.some(item=>activeHref(item.href));
-
- useEffect(()=>{if(moreRef.current)moreRef.current.open=false},[pathname,params]);
- const visibleMoreLinks=moreLinks.filter(item=>!('roles'in item)||!item.roles||item.roles.includes(role));
-
+ const access=useStaffAccess(),role=access?.role||'',pathname=(usePathname()||'/mdp/').replace(/\/$/,'')||'/mdp',params=useSearchParams(),focus=params.get('focus'),moreRef=useRef<HTMLDetailsElement>(null);
+ useEffect(()=>{if(moreRef.current)moreRef.current.open=false},[pathname,focus]);
+ const visible=(items:NavItem[])=>items.filter(item=>!item.roles||item.roles.includes(role));
+ const moreActive=visible(secondary).some(item=>isActive(pathname,focus,item.href));
  return <nav aria-label="Main navigation" className="mdp-nav">
-  <Link prefetch={false} href="/mdp/" aria-current={home?'page':undefined} className={`mdp-nav-link mdp-nav-home${home?' is-active':''}`}>Home</Link>
-  <Link prefetch={false} href="/mdp/residents/" aria-current={residents?'page':undefined} className={`mdp-nav-link${residents?' is-active':''}`}>Residents</Link>
+  <Link prefetch={false} href="/mdp/" aria-current={pathname==='/mdp'?'page':undefined} className={`mdp-nav-link mdp-nav-home${pathname==='/mdp'?' is-active':''}`}><NavIcon name="home"/><span>Home</span></Link>
+  {visible(primary).map(item=><Link key={item.href} prefetch={false} href={item.href} aria-current={isActive(pathname,focus,item.href)?'page':undefined} className={`mdp-nav-link${isActive(pathname,focus,item.href)?' is-active':''}`}><NavIcon name={item.icon}/><span>{item.label}</span></Link>)}
   <details ref={moreRef} className={`mdp-nav-more${moreActive?' is-active':''}`}>
-   <summary aria-current={moreActive?'page':undefined}>More</summary>
-   <div className="mdp-nav-menu">{visibleMoreLinks.map(item=><Link key={item.href} prefetch={false} href={item.href} onClick={()=>{if(moreRef.current)moreRef.current.open=false}} aria-current={activeHref(item.href)?'page':undefined}>{item.label}</Link>)}</div>
+   <summary aria-current={moreActive?'page':undefined}>More tasks</summary>
+   <div className="mdp-nav-menu">{visible(secondary).map(item=><Link key={item.href} prefetch={false} href={item.href} aria-current={isActive(pathname,focus,item.href)?'page':undefined} onClick={()=>{if(moreRef.current)moreRef.current.open=false}}><NavIcon name={item.icon}/>{item.label}</Link>)}</div>
   </details>
   <div className="mdp-nav-account"><AuthControl/></div>
- </nav>
+ </nav>;
 }

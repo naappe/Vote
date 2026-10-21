@@ -8,13 +8,13 @@ export default function MDPWorkspaceLayout({children}:{children:ReactNode}){
   <header className="mdp-header">
    <div className="mdp-header-inner">
     <Link href="/mdp/" className="mdp-brand" aria-label="MDP Resident Operations home">
-     <span className="mdp-brand-mark">MDP</span>
-     <span className="mdp-brand-name">MDP Resident Operations</span>
+     <span className="mdp-brand-mark" aria-hidden="true">⚖</span>
+     <span className="mdp-brand-name"><strong>MDP</strong><small>Resident Voters</small></span>
     </Link>
     <MDPWorkspaceNavigation/>
    </div>
   </header>
   <main className="mdp-main flex-1"><div className="mdp-main-back"><MDPBackButton/></div>{children}</main>
-  <footer className="mdp-footer">MDP Resident Operations · Maldivian Democratic Party</footer>
+  <footer className="mdp-footer">MDP Resident Voters · Staff Workspace</footer>
  </div>
 }
