@@ -4,14 +4,14 @@ import {useStaffAccess} from './AuthGate';
 
 const dailyTasks=[
  {title:'Find a resident',detail:'Search by name, ID, house or phone number.',href:'/mdp/residents/',mark:'01'},
- {title:'Record a phone call',detail:'See who was called and save the call result.',href:'/mdp/residents/?focus=called',mark:'02'},
+ {title:'Record a phone call',detail:'See who was called and save the call result.',href:'/mdp/calls/',mark:'02'},
  {title:'Record a house visit',detail:'Find residents visited at home and update their visit result.',href:'/mdp/residents/?focus=visited',mark:'03'},
  {title:'Check voting plans',detail:'See who plans to vote, who is unsure, and who needs follow-up.',href:'/mdp/residents/?focus=undecided',mark:'04'},
 ];
 
 const otherTasks=[
  {title:'Write or read notes',detail:'Check saved notes about residents.',href:'/mdp/residents/?focus=remarks'},
- {title:'Arrange transport',detail:'See residents who have a transport request.',href:'/mdp/residents/?focus=transport'},
+ {title:'Arrange transport',detail:'See residents who have a transport request.',href:'/mdp/transportation/'},
  {title:'View reports',detail:'See progress and saved results.',href:'/mdp/reports/'},
 ];
 
