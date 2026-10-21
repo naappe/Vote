@@ -30,7 +30,7 @@ export function residentTaskCards(summary:ResidentTaskSummary):ResidentTaskCard[
   {id:'call',label:'Call',icon:'phone',status:summary.callOutcome==='pending'&&summary.callAttempts?'Follow-up':summary.callAttempts?friendly(summary.callOutcome||'pending'):'Pending',done:summary.callAttempts>0&&summary.callOutcome!=='pending'},
   {id:'door-to-door',label:'Door-to-door',icon:'home',status:!summary.visitStatus||summary.visitStatus==='not-visited'?'Pending':summary.visitStatus==='visited'?'Reached':`${friendly(summary.visitStatus)} · pending`,done:summary.visitStatus==='visited'},
   {id:'in-person-meeting',label:'Meeting',icon:'person',status:summary.hasInPersonMeeting?'Met':'Pending',done:Boolean(summary.hasInPersonMeeting)},
-  {id:'voting-intention',label:'Vote plan',icon:'vote',status:summary.voteStatus&&summary.voteStatus!=='not-decided'?friendly(summary.voteStatus):'Pending',done:Boolean(summary.voteStatus&&summary.voteStatus!=='not-decided')},
+  {id:'voting-intention',label:'Vote plan',icon:'vote',status:summary.voteStatus==='not-decided'&&summary.hasVoteIntention?'Not sure yet · Follow up':summary.voteStatus&&summary.voteStatus!=='not-decided'?friendly(summary.voteStatus):'Pending',done:Boolean(summary.voteStatus&&summary.voteStatus!=='not-decided')},
   {id:'remarks',label:'Remark',icon:'remark',status:summary.hasRemarks?'Added':'Pending',done:summary.hasRemarks},
   {id:'transport',label:'Transport',icon:'transport',status:summary.transportStatus?transportLabel(summary.transportStatus):'Pending',done:['completed','picked-up'].includes(summary.transportStatus||'')},
  ];
