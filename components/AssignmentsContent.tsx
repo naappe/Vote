@@ -17,9 +17,16 @@ export default function AssignmentsContent({partyControls=true}:{partyControls?:
  async function load(){try{setError('');const [residentRows,assignmentResponse,shareResponse]=await Promise.all([getResidents(),supabase.from('assignments').select('*').order('assigned_at',{ascending:false}).limit(2000),supabase.from('workflow_shares').select('*').eq('workflow','assignments').order('created_at',{ascending:false}).limit(300)]);if(assignmentResponse.error)throw assignmentResponse.error;if(shareResponse.error)throw shareResponse.error;setResidents(residentRows);setItems((assignmentResponse.data||[]) as Assignment[]);setLinks((shareResponse.data||[]) as ShareLink[])}catch(e){setError(e instanceof Error?e.message:'Unable to load assignments')}}
  useEffect(()=>{load()},[]);
  useEffect(()=>{if(!isAdmin)return;let active=true;void(async()=>{try{
-  const {data,error}=await supabase.functions.invoke('manage-users',{body:{action:'list'}});
-  if(error||data?.error)throw new Error(data?.error||error?.message||'Cannot list staff');
-  if(active)setStaffAccounts((data?.users||[]).filter((user:{id:string;role:string;active:boolean})=>user.active&&['admin','supervisor','call_agent','field_agent','election_operator'].includes(user.role)));
+  const [users,scopes,mdpAccess]=await Promise.all([
+   supabase.functions.invoke('manage-users',{body:{action:'list'}}),
+   supabase.rpc('staff_list_party_access'),
+   supabase.rpc('mdp_list_user_access'),
+  ]);
+  if(users.error||users.data?.error)throw new Error(users.data?.error||users.error?.message||'Cannot list staff');
+  if(scopes.error||mdpAccess.error)throw new Error(scopes.error?.message||mdpAccess.error?.message||'Cannot verify MDP access');
+  const approvedIds=new Set(((mdpAccess.data||[]) as {user_id:string}[]).map(item=>item.user_id));
+  const scopeById=new Map(((scopes.data||[]) as {user_id:string;party_scope:string}[]).map(item=>[item.user_id,item.party_scope]));
+  if(active)setStaffAccounts(((users.data?.users||[]) as {id:string;name:string;email:string;role:string;active:boolean}[]).filter(user=>user.active&&['admin','supervisor','call_agent','field_agent','election_operator'].includes(user.role)&&approvedIds.has(user.id)&&['MDP','ALL'].includes(scopeById.get(user.id)||'')));
  }catch(e){if(active)setError(e instanceof Error?e.message:'Cannot load staff accounts')}})();return()=>{active=false}},[isAdmin]);
  async function linkStaffAccount(item:Assignment,userId:string){
   setError('');const {data,error}=await supabase.from('assignments').update({assignee_user_id:userId||null}).eq('id',item.id).select('id').maybeSingle();
