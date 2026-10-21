@@ -150,13 +150,15 @@ export default function VoterManagementContent({profilePath='/resident-profile/'
 }
 function Gallery({rows,loading,profilePath,partyControls,workflow,workflowError,showRemarks,onWorkflowUpdate,layoutMode='grid'}:{rows:Resident[];loading:boolean;profilePath:string;partyControls:boolean;workflow:Record<string,WorkflowSummary>;workflowError:string;showRemarks:boolean;onWorkflowUpdate:(id:string|number,summary:WorkflowSummary)=>void;layoutMode?:'grid'|'house'}){
  const [selected,setSelected]=useState<{resident:Resident;task:QuickTask}|null>(null);
+ const [toast,setToast]=useState('');
+ useEffect(()=>{if(!toast)return;const t=window.setTimeout(()=>setToast(''),4500);return()=>window.clearTimeout(t)},[toast]);
  if(loading)return <div className="mdp-residents-grid">{Array.from({length:6}).map((_,i)=><div key={i} className="h-64 animate-pulse rounded-xl bg-blue-50"/>)}</div>;
  if(!rows.length)return <div className="empty-state m-5">No residents found.</div>;
  const grouped=layoutMode==='house'&&!partyControls;
  const houseGroups=new Map<string,Resident[]>();
  if(grouped)for(const r of rows){const name=String(r.house||'House not recorded').trim()||'House not recorded';houseGroups.set(name,[...(houseGroups.get(name)||[]),r])}
  const renderCard=(r:Resident)=>partyControls?<ResidentFlipCard key={String(r.id)} resident={r} profilePath={profilePath} partyControls workflow={workflow[String(r.id)]} workflowError={workflowError}/>:<ResidentGalleryCard key={String(r.id)} resident={r} profilePath={profilePath} workflow={workflow[String(r.id)]} workflowError={workflowError} showRemark={showRemarks} onViewTasks={task=>setSelected({resident:r,task})}/>;
- return <>{grouped?<div className="space-y-5">{Array.from(houseGroups.entries()).sort(([a],[b])=>a.localeCompare(b)).map(([name,people])=><section key={name} className="mdp-house-group"><div className="mdp-house-group-heading"><h3>{name}</h3><span>{people.length} {people.length===1?'resident':'residents'} on this page</span></div><div className="mdp-residents-grid mdp-house-grid">{people.map(renderCard)}</div></section>)}</div>:<div className={partyControls?"grid grid-cols-1 gap-4 p-4 md:grid-cols-2 2xl:grid-cols-3":"mdp-residents-grid"}>{rows.map(renderCard)}</div>}{selected&&<ResidentTaskDialog key={String(selected.resident.id)} resident={selected.resident} initialTask={selected.task} profilePath={profilePath} workflow={workflow[String(selected.resident.id)]} workflowError={workflowError} onWorkflowUpdate={onWorkflowUpdate} onClose={()=>setSelected(null)}/>}</>;
+ return <>{grouped?<div className="space-y-5">{Array.from(houseGroups.entries()).sort(([a],[b])=>a.localeCompare(b)).map(([name,people])=><section key={name} className="mdp-house-group"><div className="mdp-house-group-heading"><h3>{name}</h3><span>{people.length} {people.length===1?'resident':'residents'} on this page</span></div><div className="mdp-residents-grid mdp-house-grid">{people.map(renderCard)}</div></section>)}</div>:<div className={partyControls?"grid grid-cols-1 gap-4 p-4 md:grid-cols-2 2xl:grid-cols-3":"mdp-residents-grid"}>{rows.map(renderCard)}</div>}{selected&&<ResidentTaskDialog key={String(selected.resident.id)} resident={selected.resident} initialTask={selected.task} profilePath={profilePath} workflow={workflow[String(selected.resident.id)]} workflowError={workflowError} onWorkflowUpdate={onWorkflowUpdate} onClose={()=>setSelected(null)} onSaved={()=>setToast('Resident result saved successfully.')}/>}{toast&&<div role="status" className="mdp-saved-toast">✓ {toast}</div>}</>;
 }
 function VotingIntentionHighlight({summary}:{summary?:WorkflowSummary}){
  const status=summary?.voteStatus;
@@ -247,7 +249,7 @@ function TaskProgress({summary,unavailable}:{summary?:WorkflowSummary;unavailabl
 }
 type QuickTask='call'|'door-to-door'|'in-person-meeting'|'voting-intention'|'remarks'|'transport';
 type ResidentRemark={id:number|string;remark:string;recorded_by?:string|null;recorded_at?:string|null};
-function ResidentTaskDialog({resident:r,profilePath,workflow,workflowError,onWorkflowUpdate,onClose,initialTask='voting-intention'}:{resident:Resident;profilePath:string;workflow?:WorkflowSummary;workflowError:string;onWorkflowUpdate:(id:string|number,summary:WorkflowSummary)=>void;onClose:()=>void;initialTask?:QuickTask}){
+function ResidentTaskDialog({resident:r,profilePath,workflow,workflowError,onWorkflowUpdate,onClose,onSaved,initialTask='voting-intention'}:{resident:Resident;profilePath:string;workflow?:WorkflowSummary;workflowError:string;onWorkflowUpdate:(id:string|number,summary:WorkflowSummary)=>void;onClose:()=>void;onSaved?:()=>void;initialTask?:QuickTask}){
  const [activeTask,setActiveTask]=useState<QuickTask>(initialTask),[currentWorkflow,setCurrentWorkflow]=useState(workflow),[success,setSuccess]=useState(''),[revision,setRevision]=useState(0);
  const profileHref=profilePath+'?id='+r.id,scrollRef=useRef<HTMLDivElement>(null);
  useEffect(()=>{const closeOnEscape=(event:KeyboardEvent)=>{if(event.key==='Escape')onClose()};window.addEventListener('keydown',closeOnEscape);const previous=document.body.style.overflow;document.body.style.overflow='hidden';return()=>{window.removeEventListener('keydown',closeOnEscape);document.body.style.overflow=previous}},[onClose]);
@@ -274,7 +276,7 @@ function ResidentTaskDialog({resident:r,profilePath,workflow,workflowError,onWor
     </nav>
     <div ref={scrollRef} className="min-h-0 overflow-y-auto overscroll-contain px-4 py-4 sm:px-6 sm:py-5">
      {success&&<p role="status" className="mb-4 rounded-xl border border-emerald-200 bg-emerald-50 p-3 text-sm font-semibold text-emerald-900">✓ {success}</p>}
-     <QuickTaskEditor key={activeTask+'-'+revision} resident={r} task={activeTask} summary={currentWorkflow} onBack={()=>choose('voting-intention')} onClose={onClose} onSaved={summary=>{setCurrentWorkflow(summary);onWorkflowUpdate(r.id,summary);setSuccess('Saved successfully. Choose another task or update this one.');setRevision(v=>v+1);scrollRef.current?.scrollTo({top:0,behavior:'smooth'})}}/>
+     <QuickTaskEditor key={activeTask+'-'+revision} resident={r} task={activeTask} summary={currentWorkflow} onBack={()=>choose('voting-intention')} onClose={onClose} onSaved={summary=>{setCurrentWorkflow(summary);onWorkflowUpdate(r.id,summary);onSaved?.();onClose()}}/>
     </div>
    </div>
   </div>
