@@ -26,7 +26,7 @@ export default function MDPResidentHome(){
   for(let start=0;start<10000;start+=1000){const {data,error}=await supabase.from('Resident').select('house').ilike('party','MDP').order('id',{ascending:true}).range(start,start+999);if(error)throw error;const batch=(data||[]) as {house:string|null}[];all.push(...batch);if(batch.length<1000)break;}
   const grouped=new Map<string,number>();
   for(const item of all){const raw=String(item.house||'').trim();if(!raw)continue;
-   const name=/dhafthar|^(no\\s*)?(dh\\s*r|dhr|rs)(\\s*no)?\\s*[0-9]|^no\\s*[0-9]/i.test(raw)?'Dhafthar':/sina mal[eé]/i.test(raw)?'Sina Malé':raw;
+   const name=/dhafthar|^(no\s*)?(dh\s*r|dhr|rs)(\s*no)?\s*[0-9]|^no\s*[0-9]/i.test(raw)?'Dhafthar':/sina mal[eé]/i.test(raw)?'Sina Malé':raw;
    grouped.set(name,(grouped.get(name)||0)+1);
   }
   const result=[...grouped].map(([name,count])=>({name,count})).sort((a,b)=>b.count-a.count||a.name.localeCompare(b.name)).slice(0,10);
