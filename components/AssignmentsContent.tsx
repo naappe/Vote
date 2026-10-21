@@ -1,18 +1,33 @@
 'use client';
 import {useEffect,useMemo,useState} from 'react';
 import {createWorkflowShare} from '../lib/operations';
+import {useStaffAccess} from './AuthGate';
 import {getResidents,supabase} from '../lib/supabase';
 import type {Resident} from '../lib/types';
 import {PartyFilter,ResidentIdentity,matchesParty} from '../shared/ResidentIdentity';
 
-type Assignment={id:number|string;resident_id:number|string;assignee_name:string;assignment_type:string;status:string;notes?:string|null;assigned_at?:string|null};
+type Assignment={id:number|string;resident_id:number|string;assignee_name:string;assignee_user_id?:string|null;assignment_type:string;status:string;notes?:string|null;assigned_at?:string|null};
 type ShareLink={id:number|string;token:string;title?:string|null;status_filter?:string|null;resident_ids?:number[]|null;active:boolean;created_at?:string|null};
 
 export default function AssignmentsContent({partyControls=true}:{partyControls?:boolean}){
+ const access=useStaffAccess(),isAdmin=access?.role==='admin';
+ const [staffAccounts,setStaffAccounts]=useState<{id:string;name:string;email:string;role:string;active:boolean}[]>([]);
  const [residents,setResidents]=useState<Resident[]>([]),[items,setItems]=useState<Assignment[]>([]),[links,setLinks]=useState<ShareLink[]>([]),[query,setQuery]=useState(''),[party,setParty]=useState('all'),[house,setHouse]=useState('all'),[box,setBox]=useState('all'),[linkAssignee,setLinkAssignee]=useState(''),[historyAssignee,setHistoryAssignee]=useState(''),[historySearch,setHistorySearch]=useState(''),[editingId,setEditingId]=useState<string|null>(null),[editingName,setEditingName]=useState(''),[editingLinkId,setEditingLinkId]=useState<string|null>(null),[editingLinkName,setEditingLinkName]=useState(''),[error,setError]=useState(''),[message,setMessage]=useState(''),[creating,setCreating]=useState(false),[residentPage,setResidentPage]=useState(1);
 
  async function load(){try{setError('');const [residentRows,assignmentResponse,shareResponse]=await Promise.all([getResidents(),supabase.from('assignments').select('*').order('assigned_at',{ascending:false}).limit(2000),supabase.from('workflow_shares').select('*').eq('workflow','assignments').order('created_at',{ascending:false}).limit(300)]);if(assignmentResponse.error)throw assignmentResponse.error;if(shareResponse.error)throw shareResponse.error;setResidents(residentRows);setItems((assignmentResponse.data||[]) as Assignment[]);setLinks((shareResponse.data||[]) as ShareLink[])}catch(e){setError(e instanceof Error?e.message:'Unable to load assignments')}}
  useEffect(()=>{load()},[]);
+ useEffect(()=>{if(!isAdmin)return;let active=true;void(async()=>{try{
+  const {data,error}=await supabase.functions.invoke('manage-users',{body:{action:'list'}});
+  if(error||data?.error)throw new Error(data?.error||error?.message||'Cannot list staff');
+  if(active)setStaffAccounts((data?.users||[]).filter((user:{id:string;role:string;active:boolean})=>user.active&&['admin','supervisor','call_agent','field_agent','election_operator'].includes(user.role)));
+ }catch(e){if(active)setError(e instanceof Error?e.message:'Cannot load staff accounts')}})();return()=>{active=false}},[isAdmin]);
+ async function linkStaffAccount(item:Assignment,userId:string){
+  setError('');const {data,error}=await supabase.from('assignments').update({assignee_user_id:userId||null}).eq('id',item.id).select('id').maybeSingle();
+  if(error||!data){setError(error?.message||'Could not link assignment to account.');return}
+  setItems(current=>current.map(row=>String(row.id)===String(item.id)?{...row,assignee_user_id:userId||null}:row));
+  setMessage(userId?'Assignment linked to staff account.':'Account link cleared.');
+ }
+
 
  const houses=useMemo(()=>[...new Set(residents.map(r=>(r.house||'').trim()).filter(Boolean))].sort((a,b)=>a.localeCompare(b)),[residents]);
  const boxes=useMemo(()=>[...new Set(residents.map(r=>(r.election_box||'').trim()).filter(Boolean))].sort((a,b)=>a.localeCompare(b,undefined,{numeric:true})),[residents]);
@@ -69,7 +84,9 @@ export default function AssignmentsContent({partyControls=true}:{partyControls?:
 
   <section className="panel sticky top-0 z-10"><div className="grid gap-3 lg:grid-cols-[260px_1fr]"><div><label className="field-label">Show assignee</label><select className="field" value={historyAssignee} onChange={e=>chooseAssignee(e.target.value)}>{assignees.map(name=><option key={name} value={name}>{name}</option>)}</select></div><div><label className="field-label">Search residents</label><input className="field" value={historySearch} onChange={e=>setHistorySearch(e.target.value)} placeholder="Name, national ID, record ID, phone or house"/></div></div></section>
 
-  {historyAssignee&&<section id="assignee-residents" className="panel scroll-mt-28 overflow-hidden p-0"><div className="flex items-center justify-between border-b border-border px-5 py-4"><h2>{historyAssignee}</h2><span className="status-chip bg-primary-light text-primary">{selectedItems.length} resident{selectedItems.length===1?'':'s'}</span></div><div className="max-h-[620px] divide-y divide-border overflow-y-auto">{selectedItems.slice(0,100).map(item=>{const resident=residentMap.get(String(item.resident_id)),editing=editingId===String(item.id);return <article key={String(item.id)} className="p-4"><div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between"><div className="min-w-0 flex-1">{resident?<ResidentIdentity resident={resident} showParty={partyControls}/>:<b>Resident {item.resident_id}</b>}</div>{editing?<div className="flex w-full flex-col gap-2 sm:flex-row lg:w-auto"><input className="field min-w-[220px]" value={editingName} onChange={e=>setEditingName(e.target.value)} autoFocus/><button className="btn-primary" onClick={()=>saveEdit(item)}>Save</button><button className="btn-secondary" onClick={()=>{setEditingId(null);setEditingName('')}}>Cancel</button></div>:<div className="flex gap-2"><button className="btn-secondary" onClick={()=>beginEdit(item)}>Modify</button><button className="btn-secondary text-danger" onClick={()=>remove(item)}>Delete</button></div>}</div></article>})}{!selectedItems.length&&<div className="empty-state m-4">No residents match.</div>}</div></section>}
+  {historyAssignee&&<section id="assignee-residents" className="panel scroll-mt-28 overflow-hidden p-0"><div className="flex items-center justify-between border-b border-border px-5 py-4"><h2>{historyAssignee}</h2><span className="status-chip bg-primary-light text-primary">{selectedItems.length} resident{selectedItems.length===1?'':'s'}</span></div><div className="max-h-[620px] divide-y divide-border overflow-y-auto">{selectedItems.slice(0,100).map(item=>{const resident=residentMap.get(String(item.resident_id)),editing=editingId===String(item.id);return <article key={String(item.id)} className="p-4"><div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between"><div className="min-w-0 flex-1">{resident?<ResidentIdentity resident={resident} showParty={partyControls}/>:<b>Resident {item.resident_id}</b>}
+ {isAdmin&&<label className="mt-2 block max-w-xs"><span className="field-label">Linked staff login</span><select className="field mt-1 w-full" aria-label={'Linked staff account for resident '+item.resident_id} value={item.assignee_user_id||''} onChange={e=>void linkStaffAccount(item,e.target.value)}><option value="">Not linked to a login</option>{staffAccounts.map(account=><option key={account.id} value={account.id}>{account.name||account.email} · {account.role}</option>)}</select></label>}
+ </div>{editing?<div className="flex w-full flex-col gap-2 sm:flex-row lg:w-auto"><input className="field min-w-[220px]" value={editingName} onChange={e=>setEditingName(e.target.value)} autoFocus/><button className="btn-primary" onClick={()=>saveEdit(item)}>Save</button><button className="btn-secondary" onClick={()=>{setEditingId(null);setEditingName('')}}>Cancel</button></div>:<div className="flex gap-2"><button className="btn-secondary" onClick={()=>beginEdit(item)}>Modify</button><button className="btn-secondary text-danger" onClick={()=>remove(item)}>Delete</button></div>}</div></article>})}{!selectedItems.length&&<div className="empty-state m-4">No residents match.</div>}</div></section>}
  </div>
 }
 
