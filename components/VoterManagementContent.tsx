@@ -29,7 +29,7 @@ export default function VoterManagementContent({profilePath='/resident-profile/'
  const [query,setQuery]=useState(()=>params.get('q')||''),[debouncedQuery,setDebouncedQuery]=useState(()=>params.get('q')||''),[house,setHouse]=useState(()=>initial('house')),[party,setParty]=useState(()=>partyControls?initial('party'):'all'),[gender,setGender]=useState(()=>initial('gender')),[age,setAge]=useState(()=>initial('age')),[box,setBox]=useState(()=>initial('box')),[page,setPage]=useState(()=>Math.max(1,Number(params.get('page'))||1)),[count,setCount]=useState(0),[view,setView]=useState<ViewMode>(()=>!partyControls||params.get('view')==='gallery'?'gallery':'list'),[pageSize,setPageSize]=useState(50),[exporting,setExporting]=useState(false),[exportProgress,setExportProgress]=useState('');
  const filters=useMemo(()=>({search:debouncedQuery,house,party:partyControls?party:'MDP',gender,age,box:partyControls?box:'all'}),[debouncedQuery,house,party,partyControls,gender,age,box]);
  function loadFilters(){if(filtersLoaded||filtersLoading)return;setFiltersLoading(true);getDirectoryFilterOptions().then(data=>{setHouses(data.houses);if(partyControls)setParties(data.parties);setBoxes(data.boxes);setFiltersLoaded(true)}).catch(e=>setError(e.message)).finally(()=>setFiltersLoading(false))}
- useEffect(()=>{if(partyControls)loadFilters()},[partyControls]);
+ useEffect(()=>{loadFilters()},[partyControls]);
  useEffect(()=>{const timer=window.setTimeout(()=>setDebouncedQuery(query),250);return()=>window.clearTimeout(timer)},[query]);
  useEffect(()=>{
   const next=new URLSearchParams();if(debouncedQuery)next.set('q',debouncedQuery);
