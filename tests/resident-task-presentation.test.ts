@@ -50,6 +50,18 @@ test('a call reset to pending stays incomplete even when earlier attempts exist'
 test('reset voting intention remains pending despite older saved positive history',()=>{
  const cards=residentTaskCards({callAttempts:6,callOutcome:'connected',voteStatus:'not-decided',hasVoteIntention:true,visitStatus:'visited',hasInPersonMeeting:false,transportStatus:'picked-up',hasRemarks:true});
  assert.equal(cards.find(card=>card.id==='voting-intention')?.done,false);
- assert.equal(cards.find(card=>card.id==='voting-intention')?.status,'Pending');
+ assert.equal(cards.find(card=>card.id==='voting-intention')?.status,'Not sure yet · Follow up');
  assert.equal(cards.filter(card=>card.done).length,4);
+});
+
+test('explicit not-sure voting answer is visible but still requires follow-up',()=>{
+ const card=residentTaskCards({callAttempts:0,callOutcome:null,voteStatus:'not-decided',hasVoteIntention:true,visitStatus:null,transportStatus:null,hasRemarks:false}).find(item=>item.id==='voting-intention');
+ assert.equal(card?.status,'Not sure yet · Follow up');
+ assert.equal(card?.done,false);
+});
+
+test('not-asked voting answer remains pending even if default value is not-decided',()=>{
+ const card=residentTaskCards({callAttempts:0,callOutcome:null,voteStatus:'not-decided',hasVoteIntention:false,visitStatus:null,transportStatus:null,hasRemarks:false}).find(item=>item.id==='voting-intention');
+ assert.equal(card?.status,'Pending');
+ assert.equal(card?.done,false);
 });
