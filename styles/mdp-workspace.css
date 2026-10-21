@@ -130,3 +130,55 @@
 .mdp-workspace .mdp-directory-results .divide-y{overflow:hidden;border:1px solid #dfe7f1;border-radius:17px;background:white}
 @media(max-width:950px){.mdp-workspace .mdp-kpi-strip{grid-template-columns:repeat(3,minmax(0,1fr))}.mdp-workspace .mdp-house-grid{grid-template-columns:1fr}}
 @media(max-width:650px){.mdp-workspace .mdp-kpi-heading{flex-direction:column;gap:3px}.mdp-workspace .mdp-kpi-strip{display:flex;overflow-x:auto;scroll-snap-type:x mandatory}.mdp-workspace .mdp-kpi-stat{flex:0 0 132px;scroll-snap-align:start}.mdp-workspace .mdp-view-switch{width:100%;justify-content:center}.mdp-workspace .mdp-view-switch button{flex:1;padding:7px 5px;font-size:11px}.mdp-workspace .mdp-house-grid{padding:12px}.mdp-workspace .mdp-house-group-heading{padding:13px}}
+
+/* Reference-aligned compact Residents header: title + KPI chips + export, then search bar. */
+.mdp-workspace .mdp-residents-page{gap:13px}
+.mdp-workspace .mdp-reference-header{display:flex;align-items:center;justify-content:space-between;gap:14px;min-width:0;padding:7px 0 0}
+.mdp-workspace .mdp-reference-title{flex:1 1 175px;min-width:140px}
+.mdp-workspace .mdp-reference-title h1{font-size:25px;line-height:1.1}
+.mdp-workspace .mdp-reference-stats{flex:0 1 auto;display:flex;align-items:stretch;justify-content:center;gap:7px;min-width:0}
+.mdp-workspace .mdp-reference-stat{width:83px;min-width:72px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;padding:9px 5px;border-radius:11px;text-align:center;white-space:normal}
+.mdp-workspace .mdp-reference-stat strong{font-size:18px;font-weight:850;line-height:1.15;font-variant-numeric:tabular-nums}
+.mdp-workspace .mdp-reference-stat span{font-size:10px;line-height:1.2;font-weight:650}
+.mdp-workspace .mdp-reference-export{flex:none;min-height:43px;padding:0 15px;white-space:nowrap;font-size:12px;border-radius:10px}
+.mdp-workspace .mdp-reference-filters{display:grid;gap:9px;padding:0;background:transparent;border:0;box-shadow:none}
+.mdp-workspace .mdp-reference-filter-main{display:grid;grid-template-columns:minmax(180px,2fr) minmax(140px,0.8fr) minmax(155px,.85fr) auto;align-items:end;gap:11px}
+.mdp-workspace .mdp-reference-filter-main .field{height:43px;min-height:43px;border-radius:10px;background:#fff;font-size:12px}
+.mdp-workspace .mdp-reference-search{position:relative;min-width:0;display:block}
+.mdp-workspace .mdp-reference-search .field{padding-left:38px}
+.mdp-workspace .mdp-search-icon{position:absolute;left:12px;top:8px;color:#5976a4;font-size:24px;line-height:1;pointer-events:none}
+.mdp-workspace .mdp-reference-area{min-width:0}
+.mdp-workspace .mdp-reference-area label,.mdp-workspace .mdp-reference-area .field-label{margin:0}
+.mdp-workspace .mdp-reference-area .field-label{display:none}
+.mdp-workspace .mdp-reference-area select,.mdp-workspace .mdp-reference-area input{height:43px;min-height:43px;width:100%}
+.mdp-workspace .mdp-reference-status{min-width:0}
+.mdp-workspace .mdp-reference-clear{height:43px;min-height:43px;padding:0 13px;font-size:12px;border-radius:10px}
+.mdp-workspace .mdp-reference-secondary{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:10px;padding-top:3px}
+.mdp-workspace .mdp-reference-secondary details{flex:0 1 auto}
+.mdp-workspace .mdp-reference-secondary .mdp-view-switch{margin-left:auto}
+.mdp-workspace .mdp-directory-paging{padding:5px 0 10px}
+.mdp-workspace .mdp-residents-grid{gap:14px}
+.mdp-workspace .mdp-reference-header+.mdp-reference-filters{margin-top:0}
+@media(min-width:1100px){
+ .mdp-workspace .mdp-reference-header{min-height:60px}
+ .mdp-workspace .mdp-reference-title{flex:1 1 155px}
+}
+@media(max-width:1300px){
+ .mdp-workspace .mdp-reference-header{flex-wrap:wrap}
+ .mdp-workspace .mdp-reference-title{flex:1}
+ .mdp-workspace .mdp-reference-stats{order:3;width:100%;justify-content:flex-start;overflow-x:auto}
+ .mdp-workspace .mdp-reference-export{order:2}
+}
+@media(max-width:750px){
+ .mdp-workspace .mdp-reference-filter-main{grid-template-columns:1fr 1fr}
+ .mdp-workspace .mdp-reference-search{grid-column:1/-1}
+ .mdp-workspace .mdp-reference-clear{grid-column:2;justify-self:end}
+ .mdp-workspace .mdp-reference-stat{flex:0 0 88px}
+ .mdp-workspace .mdp-reference-stats{width:100%;padding-bottom:3px}
+}
+@media(max-width:480px){
+ .mdp-workspace .mdp-reference-header{gap:9px}
+ .mdp-workspace .mdp-reference-title h1{font-size:22px}
+ .mdp-workspace .mdp-reference-stat{width:80px;min-width:80px}
+ .mdp-workspace .mdp-reference-filter-main{gap:8px}
+}
