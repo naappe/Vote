@@ -10,6 +10,7 @@ const taskLabels:Record<string,string>={'call-center':'Phone call','door-to-door
 export default function MDPUserWork(){
  const access=useStaffAccess();
  const admin=access?.role==='admin';
+ const loginEmail=access?.user.email?.trim();
  const [items,setItems]=useState<Activity[]>([]);
  const [loading,setLoading]=useState(true);
  const [error,setError]=useState('');
@@ -24,13 +25,13 @@ export default function MDPUserWork(){
    if(active)setItems((data||[]) as Activity[]);
    // The query is scoped at the database request; ordinary staff never request coworkers' entries.
    let recentQuery=supabase.from('remarks').select('id,resident_id,section,recorded_at,recorded_by').order('recorded_at',{ascending:false}).limit(20);
-   if(!admin){const email=access.user.email?.trim();if(!email){if(active)setRecentError('Your login has no email linked to recorded activity.');return;}recentQuery=recentQuery.ilike('recorded_by',email);}
+   if(!admin){const email=loginEmail;if(!email){if(active)setRecentError('Your login has no email linked to recorded activity.');return;}recentQuery=recentQuery.eq('recorded_by',email);}
    const result=await recentQuery;
    if(result.error){if(active)setRecentError('Could not load recent updates.')}else if(active)setRecent((result.data||[]) as UpdateRow[]);
   }catch(e){if(active)setError(e instanceof Error?e.message:'Could not load work history')}
   finally{if(active)setLoading(false)}})();
   return()=>{active=false};
- },[access?.user.id,access?.user.email,admin]);
+ },[access?.user.id,loginEmail,admin]);
  const totals=items.reduce((acc,item)=>({calls:acc.calls+Number(item.call_records||0),visits:acc.visits+Number(item.visit_records||0),meetings:acc.meetings+Number(item.meeting_records||0),plans:acc.plans+Number(item.voting_plan_records||0)}),{calls:0,visits:0,meetings:0,plans:0});
  return <section className="mdp-home-section" aria-labelledby="mdp-work-heading">
   <div className="mdp-home-section-heading"><h2 id="mdp-work-heading">{admin?'Work by Login User':'My Saved Work'}</h2><p>{admin?'Updates recorded by staff login accounts.':'Only updates recorded under your signed-in account.'}</p></div>
