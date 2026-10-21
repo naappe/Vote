@@ -411,3 +411,6 @@
 .mdp-workspace .mdp-home-task-state{max-width:100px;font-size:11px;font-weight:750;color:#4d678a;overflow-wrap:anywhere;text-align:right}
 .mdp-workspace .mdp-home-tasks-manage{justify-self:start;font-size:12px;font-weight:800;color:#185aca}
 @media(max-width:800px){.mdp-workspace .mdp-home-task-stats{grid-template-columns:repeat(2,minmax(0,1fr))}.mdp-workspace .mdp-home-task-list{grid-template-columns:1fr}}
+
+/* Recent user work section matches the compact MDP administrative layout. */
+.mdp-workspace .mdp-work-recent-heading{font-size:15px;font-weight:850;color:#0b3678}
