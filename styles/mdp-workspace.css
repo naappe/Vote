@@ -333,3 +333,16 @@
  .mdp-workspace .mdp-header-inner{flex-wrap:nowrap}
 }
 @media(prefers-reduced-motion:reduce){.mdp-workspace .mdp-navigation-items{transition:none}}
+
+/* Real call-queue counters, aligned with the master MDP screenshot. */
+.mdp-workspace .mdp-operation-summary{display:grid;grid-template-columns:repeat(4,minmax(0,1fr)) auto;align-items:stretch;gap:11px}
+.mdp-workspace .mdp-operation-stat{display:flex;flex-direction:column;justify-content:center;gap:4px;padding:13px;border:1px solid #e4ebf5;border-radius:13px;background:#f4f7fd}
+.mdp-workspace .mdp-operation-stat:nth-child(2){background:#fff8e6}
+.mdp-workspace .mdp-operation-stat:nth-child(3){background:#eaf9f0}
+.mdp-workspace .mdp-operation-stat:nth-child(4){background:#fff0ed}
+.mdp-workspace .mdp-operation-stat span{font-size:11px;font-weight:700;color:#587089}
+.mdp-workspace .mdp-operation-stat strong{font-size:22px;font-weight:850;line-height:1.1;color:#0b3678;font-variant-numeric:tabular-nums}
+.mdp-workspace .mdp-operation-stat small{font-size:10px;color:#74869a}
+.mdp-workspace .mdp-next-call{white-space:nowrap;align-self:center;min-height:46px}
+@media(max-width:1280px){.mdp-workspace .mdp-operation-summary{grid-template-columns:repeat(4,minmax(0,1fr))}.mdp-workspace .mdp-next-call{grid-column:1/-1}}
+@media(max-width:700px){.mdp-workspace .mdp-operation-summary{grid-template-columns:repeat(2,minmax(0,1fr))}.mdp-workspace .mdp-next-call{grid-column:1/-1;width:100%;justify-content:center}}
