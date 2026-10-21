@@ -350,3 +350,7 @@
 /* Consistent four-card operational summaries for Assignments and Transport. */
 .mdp-workspace .mdp-operation-summary-four{grid-template-columns:repeat(4,minmax(0,1fr))}
 @media(max-width:700px){.mdp-workspace .mdp-operation-summary-four{grid-template-columns:repeat(2,minmax(0,1fr))}}
+
+/* Confirmation stays visible after the resident editor has closed. */
+.mdp-workspace .mdp-saved-toast{position:fixed;right:22px;bottom:24px;z-index:110;max-width:min(360px,calc(100vw - 30px));padding:13px 18px;border:1px solid #a4e1b5;border-radius:12px;background:#eaffef;color:#175d35;box-shadow:0 12px 28px rgba(14,77,33,.14);font-size:13px;font-weight:750}
+@media(max-width:600px){.mdp-workspace .mdp-saved-toast{right:14px;bottom:14px;left:14px;max-width:none}}
