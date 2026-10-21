@@ -170,13 +170,11 @@ function VotingIntentionHighlight({summary}:{summary?:WorkflowSummary}){
 function ResidentGalleryCard({resident:r,profilePath,workflow,workflowError,showRemark=false,onViewTasks}:{resident:Resident;profilePath:string;workflow?:WorkflowSummary;workflowError:string;showRemark?:boolean;onViewTasks:(task:QuickTask)=>void}){
  const profileHref=profilePath+'?id='+r.id;
  const access=useStaffAccess(),canAssign=access?.role==='admin'||access?.role==='supervisor';
- const actions:{label:string;task:QuickTask;icon:'phone'|'home'|'vote'|'remark'|'transport'}[]=[
-  {label:'Record phone call',task:'call',icon:'phone'},
-  {label:'Record house visit',task:'door-to-door',icon:'home'},
-  {label:'Update voting plan',task:'voting-intention',icon:'vote'},
-  {label:'Read or write notes',task:'remarks',icon:'remark'},
-  {label:'Transport details',task:'transport',icon:'transport'},
- ];
+ const taskStatuses=workflow?residentTaskCards(workflow):[];
+ const taskState=(id:QuickTask)=>taskStatuses.find(item=>item.id===id);
+ const taskClass=(id:QuickTask)=>'mdp-master-action'+(taskState(id)?.done?' mdp-master-action-green':'');
+ const taskTooltip=(id:QuickTask,label:string)=>label+' · '+(taskState(id)?.status||'Status loading');
+
  return <article className="mdp-resident-card mdp-master-card min-w-0 bg-white">
   <div className="mdp-master-identity">
    <Link prefetch={false} href={profileHref} aria-label={'Open '+(r.name||'resident')+' profile'} className="shrink-0"><Photo r={r} small/></Link>
@@ -188,10 +186,12 @@ function ResidentGalleryCard({resident:r,profilePath,workflow,workflowError,show
    <Link prefetch={false} href={profileHref} className="mdp-master-chevron" aria-label={'Open profile of '+(r.name||'resident')} title="Open full resident details">›</Link>
   </div>
   <div className="mdp-master-actions" aria-label="Resident tasks">
-   <button type="button" title="Record phone call" aria-label="Record phone call" onClick={()=>onViewTasks('call')} className="mdp-master-action mdp-master-action-green"><ResidentTaskIcon name="phone"/></button>
-   <button type="button" title="Record house visit" aria-label="Record house visit" onClick={()=>onViewTasks('door-to-door')} className="mdp-master-action mdp-master-action-green"><ResidentTaskIcon name="home"/></button>
-   {canAssign?<Link prefetch={false} href="/mdp/assignments/" title="Manage staff assignment" aria-label="Manage staff assignment" className="mdp-master-action"><ResidentTaskIcon name="person"/></Link>:<button type="button" title="Record meeting" aria-label="Record meeting" onClick={()=>onViewTasks('in-person-meeting')} className="mdp-master-action"><ResidentTaskIcon name="person"/></button>}
-   {actions.slice(2).map(action=><button key={action.task} type="button" title={action.label} aria-label={action.label} onClick={()=>onViewTasks(action.task)} className="mdp-master-action"><ResidentTaskIcon name={action.icon}/></button>)}
+   <button type="button" title={taskTooltip('call','Call')} aria-label={taskTooltip('call','Call')} onClick={()=>onViewTasks('call')} className={taskClass('call')}><ResidentTaskIcon name="phone"/></button>
+   <button type="button" title={taskTooltip('door-to-door','House visit')} aria-label={taskTooltip('door-to-door','House visit')} onClick={()=>onViewTasks('door-to-door')} className={taskClass('door-to-door')}><ResidentTaskIcon name="home"/></button>
+   {canAssign?<Link prefetch={false} href="/mdp/assignments/" title="Manage staff assignment" aria-label="Manage staff assignment" className="mdp-master-action"><ResidentTaskIcon name="person"/></Link>:<button type="button" title={taskTooltip('in-person-meeting','Meeting')} aria-label={taskTooltip('in-person-meeting','Meeting')} onClick={()=>onViewTasks('in-person-meeting')} className={taskClass('in-person-meeting')}><ResidentTaskIcon name="person"/></button>}
+   <button type="button" title={taskTooltip('voting-intention','Voting plan')} aria-label={taskTooltip('voting-intention','Voting plan')} onClick={()=>onViewTasks('voting-intention')} className={taskClass('voting-intention')}><ResidentTaskIcon name="vote"/></button>
+   <button type="button" title={taskTooltip('remarks','Remarks')} aria-label={taskTooltip('remarks','Remarks')} onClick={()=>onViewTasks('remarks')} className={taskClass('remarks')}><ResidentTaskIcon name="remark"/></button>
+   <button type="button" title={taskTooltip('transport','Transport')} aria-label={taskTooltip('transport','Transport')} onClick={()=>onViewTasks('transport')} className={taskClass('transport')}><ResidentTaskIcon name="transport"/></button>
   </div>
   <div className="mdp-master-data">
    <div><span>House</span><strong title={r.house||''}>{r.house||'Not recorded'}</strong></div>
