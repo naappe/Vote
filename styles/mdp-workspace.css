@@ -260,3 +260,15 @@
  .mdp-workspace .mdp-nav-account .btn-secondary{font-size:10px;padding:0 6px}
  .mdp-workspace .mdp-main{width:calc(100% - 22px);margin-top:16px}
 }
+
+/* Phase 2: make operational pages visually consistent with the approved Residents layout. */
+.mdp-workspace .page-hero{border:0!important;background:transparent!important;box-shadow:none!important;padding:2px 0 7px!important;min-width:0}
+.mdp-workspace .page-hero h1{font-size:clamp(23px,2.3vw,31px);line-height:1.2;color:#0b214b;font-weight:850;letter-spacing:-.02em}
+.mdp-workspace .page-hero .eyebrow{font-size:11px;font-weight:750;color:#416aa1}
+.mdp-workspace .page-hero p.text-body{max-width:760px;line-height:1.55}
+.mdp-workspace .panel{border:1px solid #e2eaf5;border-radius:17px;box-shadow:0 5px 16px rgba(20,58,119,.03)}
+.mdp-workspace .panel .field{border-radius:10px;min-height:43px}
+.mdp-workspace .panel button{touch-action:manipulation}
+.mdp-workspace .panel .btn-primary,.mdp-workspace .panel .btn-secondary{border-radius:10px}
+.mdp-workspace .panel h2{color:#0b3678}
+@media(max-width:650px){.mdp-workspace .panel{border-radius:12px}.mdp-workspace .page-hero h1{font-size:23px}}
