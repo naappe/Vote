@@ -7,13 +7,13 @@ import {useStaffAccess} from './AuthGate';
 import AuthControl from './AuthControl';
 
 const moreLinks=[
- {label:'Call Center',href:'/mdp/residents/?focus=called'},
- {label:'Door to Door',href:'/mdp/residents/?focus=visited'},
- {label:'Remarks',href:'/mdp/residents/?focus=remarks'},
- {label:'Transport',href:'/mdp/residents/?focus=transport'},
- {label:'Voting days',href:'/mdp/voting-days/',roles:['admin','supervisor','election_operator']},
- {label:'Assignments',href:'/mdp/assignments/',roles:['admin','supervisor']},
- {label:'Link transport requests',href:'/mdp/transport-links/',roles:['admin','supervisor','election_operator']},
+ {label:'Phone calls',href:'/mdp/residents/?focus=called'},
+ {label:'House visits',href:'/mdp/residents/?focus=visited'},
+ {label:'Notes',href:'/mdp/residents/?focus=remarks'},
+ {label:'Transport requests',href:'/mdp/residents/?focus=transport'},
+ {label:'Record who voted',href:'/mdp/voting-days/',roles:['admin','supervisor','election_operator']},
+ {label:'Staff tasks',href:'/mdp/assignments/',roles:['admin','supervisor']},
+ {label:'Arrange transport',href:'/mdp/transport-links/',roles:['admin','supervisor','election_operator']},
  {label:'Reports',href:'/mdp/reports/'},
 ];
 
