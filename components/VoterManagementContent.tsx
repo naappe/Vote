@@ -216,30 +216,34 @@ function TaskProgress({summary,unavailable}:{summary?:WorkflowSummary;unavailabl
 type QuickTask='call'|'door-to-door'|'in-person-meeting'|'voting-intention'|'remarks'|'transport';
 type ResidentRemark={id:number|string;remark:string;recorded_by?:string|null;recorded_at?:string|null};
 function ResidentTaskDialog({resident:r,profilePath,workflow,workflowError,onWorkflowUpdate,onClose}:{resident:Resident;profilePath:string;workflow?:WorkflowSummary;workflowError:string;onWorkflowUpdate:(id:string|number,summary:WorkflowSummary)=>void;onClose:()=>void}){
- const [activeTask,setActiveTask]=useState<QuickTask|null>(null),[currentWorkflow,setCurrentWorkflow]=useState(workflow),[success,setSuccess]=useState('');
+ const [activeTask,setActiveTask]=useState<QuickTask>('voting-intention'),[currentWorkflow,setCurrentWorkflow]=useState(workflow),[success,setSuccess]=useState(''),[revision,setRevision]=useState(0);
  const profileHref=profilePath+'?id='+r.id,scrollRef=useRef<HTMLDivElement>(null);
- useEffect(()=>{const closeOnEscape=(event:KeyboardEvent)=>{if(event.key==='Escape')onClose()};window.addEventListener('keydown',closeOnEscape);const former=document.body.style.overflow;document.body.style.overflow='hidden';return()=>{window.removeEventListener('keydown',closeOnEscape);document.body.style.overflow=former}},[onClose]);
- function choose(task:QuickTask|null){setSuccess('');setActiveTask(task);scrollRef.current?.scrollTo({top:0,behavior:'instant'})}
+ useEffect(()=>{const closeOnEscape=(event:KeyboardEvent)=>{if(event.key==='Escape')onClose()};window.addEventListener('keydown',closeOnEscape);const previous=document.body.style.overflow;document.body.style.overflow='hidden';return()=>{window.removeEventListener('keydown',closeOnEscape);document.body.style.overflow=previous}},[onClose]);
+ const taskItems=currentWorkflow?residentTaskCards(currentWorkflow):[];
+ function choose(task:QuickTask){setSuccess('');setActiveTask(task);scrollRef.current?.scrollTo({top:0,behavior:'smooth'})}
  return <div className="fixed inset-0 z-[100] flex items-end justify-center bg-slate-950/60 p-0 sm:items-center sm:p-5" onMouseDown={event=>{if(event.target===event.currentTarget)onClose()}}>
-  <div role="dialog" aria-modal="true" aria-label={`Resident tasks for ${r.name||'resident'}`} className="flex max-h-[96dvh] w-full max-w-2xl flex-col overflow-hidden rounded-t-2xl border border-border bg-white shadow-2xl sm:max-h-[88dvh] sm:rounded-2xl" onMouseDown={event=>event.stopPropagation()}>
-   <div className="flex shrink-0 items-center gap-3 border-b border-border bg-white p-3 sm:p-4">
+  <div role="dialog" aria-modal="true" aria-label={`Resident tasks for ${r.name||'resident'}`} className="flex max-h-[98dvh] w-full max-w-5xl flex-col overflow-hidden rounded-t-2xl border border-border bg-white shadow-2xl sm:max-h-[92dvh] sm:rounded-2xl" onMouseDown={event=>event.stopPropagation()}>
+   <div className="flex shrink-0 items-center gap-3 border-b border-slate-100 bg-white px-4 py-3 sm:px-6 sm:py-4">
     <Photo r={r} small/>
-    <div className="min-w-0 flex-1">
-     <p className="text-[10px] font-bold uppercase tracking-wider text-blue-700">Resident record · #{r.id}</p>
-     <h2 className="truncate text-base font-extrabold text-navy sm:text-lg">{r.name||'Unnamed resident'}</h2>
-     <p className="truncate text-xs text-body">{r.house||'House not recorded'} · {r.national_id||'ID unavailable'}</p>
-    </div>
+    <div className="min-w-0 flex-1"><p className="text-[10px] font-bold uppercase tracking-wider text-blue-700">Resident · #{r.id}</p><h2 className="truncate text-base font-extrabold text-navy sm:text-lg">{r.name||'Unnamed resident'}</h2><p className="truncate text-xs text-body">{r.house||'House not recorded'} · {r.phone||'No phone'} · {r.national_id||'ID unavailable'}</p></div>
+    <Link prefetch={false} href={profileHref} className="hidden shrink-0 rounded-lg border border-border px-3 py-2 text-xs font-bold text-blue-700 hover:bg-blue-50 sm:inline-flex">Profile ↗</Link>
     <button type="button" onClick={onClose} aria-label="Close resident tasks" className="btn-secondary min-h-10 shrink-0 px-3">Close</button>
    </div>
-   <div ref={scrollRef} className="min-h-0 flex-1 overflow-y-auto overscroll-contain p-3 sm:p-5">
-    {activeTask?<div>
-      
-      <QuickTaskEditor key={activeTask} resident={r} task={activeTask} summary={currentWorkflow} onBack={()=>choose(null)} onClose={onClose} onSaved={summary=>{setCurrentWorkflow(summary);onWorkflowUpdate(r.id,summary);setActiveTask(null);setSuccess('Result saved. The task status above has been updated.');scrollRef.current?.scrollTo({top:0,behavior:'smooth'})}}/>
-     </div>:<>
-      {success&&<div role="status" className="mb-4 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-semibold text-emerald-900">✓ {success}</div>}
-      <div className="mb-4 flex items-start justify-between gap-3"><div><h3 className="text-base font-extrabold text-navy">What would you like to update?</h3><p className="mt-1 text-xs text-body">Select a task, record the result, and save it. Current statuses are shown below.</p></div><Link prefetch={false} href={profileHref} className="shrink-0 rounded-lg border border-border px-3 py-2 text-xs font-bold text-blue-700 hover:bg-blue-50">Full profile ↗</Link></div>
-      <WorkflowStatus summary={currentWorkflow} unavailable={Boolean(workflowError)} onSelectTask={choose}/>
-     </>}
+   {workflowError?<p role="alert" className="mx-4 mt-4 rounded-xl bg-amber-50 p-3 text-sm text-amber-900">{workflowError}</p>:null}
+   <div className="grid min-h-0 flex-1 grid-cols-1 md:grid-cols-[minmax(215px,0.75fr)_minmax(0,1.8fr)]">
+    <nav aria-label="Resident task categories" className="border-b border-slate-200 bg-slate-50/70 p-3 md:overflow-y-auto md:border-b-0 md:border-r md:p-5">
+     <div className="hidden md:block"><h3 className="text-sm font-extrabold text-navy">Tasks</h3><p className="mt-1 text-xs text-body">Choose a task to update.</p></div>
+     <div className="flex gap-2 overflow-x-auto pb-1 md:mt-4 md:flex-col md:overflow-visible">
+      {(taskItems.length?taskItems:residentTaskCards({callAttempts:0,callOutcome:null,voteStatus:null,visitStatus:null,transportStatus:null,hasRemarks:false})).map(item=><button key={item.id} type="button" aria-current={activeTask===item.id?'true':undefined} onClick={()=>choose(item.id)} className={`flex min-w-[145px] items-center gap-2 rounded-xl border px-3 py-3 text-left transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-blue-600 md:min-w-0 ${activeTask===item.id?'border-blue-500 bg-blue-50 shadow-sm':'border-transparent bg-white hover:border-blue-200'}`}>
+       <span className={`grid h-9 w-9 shrink-0 place-items-center rounded-lg ${item.done?'bg-emerald-100 text-emerald-700':item.status.toLowerCase().includes('follow up')?'bg-amber-100 text-amber-700':'bg-slate-100 text-blue-700'}`}><ResidentTaskIcon name={item.icon} className="h-5 w-5"/></span>
+       <span className="min-w-0 flex-1"><span className="block text-xs font-bold text-navy">{item.label}</span><span className="block break-words text-[11px] text-body">{item.status}</span></span>
+      </button>)}
+     </div>
+    </nav>
+    <div ref={scrollRef} className="min-h-0 overflow-y-auto overscroll-contain px-4 py-4 sm:px-6 sm:py-5">
+     {success&&<p role="status" className="mb-4 rounded-xl border border-emerald-200 bg-emerald-50 p-3 text-sm font-semibold text-emerald-900">✓ {success}</p>}
+     <QuickTaskEditor key={activeTask+'-'+revision} resident={r} task={activeTask} summary={currentWorkflow} onBack={()=>choose('voting-intention')} onClose={onClose} onSaved={summary=>{setCurrentWorkflow(summary);onWorkflowUpdate(r.id,summary);setSuccess('Saved successfully. Choose another task or update this one.');setRevision(v=>v+1);scrollRef.current?.scrollTo({top:0,behavior:'smooth'})}}/>
+    </div>
    </div>
   </div>
  </div>
