@@ -304,3 +304,32 @@
 @media(max-width:1100px){.mdp-workspace .mdp-residents-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:650px){.mdp-workspace .mdp-residents-grid{grid-template-columns:1fr}.mdp-workspace .mdp-master-card{min-height:218px;padding:15px}.mdp-workspace .mdp-master-actions{gap:11px}.mdp-workspace .mdp-master-action{width:37px;height:37px;flex-basis:37px}}
 @media(max-width:360px){.mdp-workspace .mdp-master-actions{gap:6px}.mdp-workspace .mdp-master-action{width:33px;height:33px;flex-basis:33px}.mdp-workspace .mdp-master-data>div{padding:0 5px}}
+
+/* Accessible mobile navigation drawer, matching approved fixed desktop sidebar. */
+.mdp-workspace .mdp-mobile-menu-toggle,.mdp-workspace .mdp-mobile-menu-heading,.mdp-workspace .mdp-mobile-menu-backdrop{display:none}
+.mdp-workspace .mdp-navigation-items{display:flex;align-items:center;gap:6px}
+@media(min-width:1100px){
+ .mdp-workspace .mdp-navigation-items{display:flex;flex:1;min-height:0;flex-direction:column;align-items:stretch;gap:4px}
+ .mdp-workspace .mdp-navigation-items .mdp-nav-account{margin-top:auto}
+}
+@media(min-width:650px) and (max-width:1099px){
+ .mdp-workspace .mdp-navigation-items{flex-wrap:wrap;gap:3px}
+}
+@media(max-width:649px){
+ .mdp-workspace .mdp-nav{width:auto;max-width:none;display:flex;flex:0 0 auto;overflow:visible;padding:0}
+ .mdp-workspace .mdp-mobile-menu-toggle{display:inline-flex;align-items:center;justify-content:center;gap:7px;min-height:39px;padding:0 12px;border:1px solid #dce6f3;border-radius:10px;background:white;color:#0b3678;font-size:12px;font-weight:800;cursor:pointer}
+ .mdp-workspace .mdp-mobile-menu-toggle>span{font-size:17px}
+ .mdp-workspace .mdp-mobile-menu-backdrop{display:block;position:fixed;inset:0;z-index:70;border:0;background:rgba(5,21,48,.4)}
+ .mdp-workspace .mdp-navigation-items{position:fixed;inset:0 auto 0 0;z-index:71;width:min(310px,85vw);height:100dvh;overflow-y:auto;display:flex;flex-direction:column;align-items:stretch;gap:7px;padding:17px 14px 25px;background:#fff;box-shadow:9px 0 28px rgba(7,27,64,.14);transform:translateX(-110%);visibility:hidden;transition:transform .18s,visibility .18s}
+ .mdp-workspace .mdp-navigation-items.is-open{transform:translateX(0);visibility:visible}
+ .mdp-workspace .mdp-mobile-menu-heading{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:12px;padding:12px;background:#ffe681;border-radius:12px;color:#0b3678;font-size:15px}
+ .mdp-workspace .mdp-mobile-menu-heading button{display:grid;place-items:center;width:36px;height:36px;border:1px solid #ddc454;border-radius:9px;background:white;color:#0b3678}
+ .mdp-workspace .mdp-navigation-items .mdp-nav-link,.mdp-workspace .mdp-navigation-items .mdp-nav-more>summary{display:flex;min-height:47px;padding:0 15px;font-size:14px;gap:12px;white-space:normal}
+ .mdp-workspace .mdp-navigation-items .mdp-nav-link svg{height:19px;width:19px}
+ .mdp-workspace .mdp-navigation-items .mdp-nav-more{position:relative}
+ .mdp-workspace .mdp-navigation-items .mdp-nav-menu{position:static;display:grid;width:100%;max-height:none;box-shadow:none;border:0;padding:4px 9px}
+ .mdp-workspace .mdp-navigation-items .mdp-nav-account{margin-top:auto;padding-top:14px;border-top:1px solid #e2eaf5}
+ .mdp-workspace .mdp-navigation-items .mdp-nav-account .btn-secondary{width:100%;min-height:43px}
+ .mdp-workspace .mdp-header-inner{flex-wrap:nowrap}
+}
+@media(prefers-reduced-motion:reduce){.mdp-workspace .mdp-navigation-items{transition:none}}
