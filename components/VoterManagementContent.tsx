@@ -205,24 +205,30 @@ function TaskProgress({summary,unavailable}:{summary?:WorkflowSummary;unavailabl
 type QuickTask='call'|'door-to-door'|'in-person-meeting'|'voting-intention'|'remarks'|'transport';
 type ResidentRemark={id:number|string;remark:string;recorded_by?:string|null;recorded_at?:string|null};
 function ResidentTaskDialog({resident:r,profilePath,workflow,workflowError,onWorkflowUpdate,onClose}:{resident:Resident;profilePath:string;workflow?:WorkflowSummary;workflowError:string;onWorkflowUpdate:(id:string|number,summary:WorkflowSummary)=>void;onClose:()=>void}){
- const [flipped,setFlipped]=useState(true),[activeTask,setActiveTask]=useState<QuickTask|null>(null),[currentWorkflow,setCurrentWorkflow]=useState(workflow),profileHref=profilePath+'?id='+r.id;
- useEffect(()=>{const closeOnEscape=(event:KeyboardEvent)=>{if(event.key==='Escape')onClose()};window.addEventListener('keydown',closeOnEscape);return()=>window.removeEventListener('keydown',closeOnEscape)},[onClose]);
- const face='absolute inset-0 overflow-y-auto rounded-2xl border border-border bg-white shadow-2xl [backface-visibility:hidden]';
- return <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-950/55 p-3 sm:p-5" onMouseDown={event=>{if(event.target===event.currentTarget)onClose()}}>
-  <div role="dialog" aria-modal="true" aria-label={'Resident tasks for '+(r.name||'resident')} className="w-full max-w-xl" onMouseDown={event=>event.stopPropagation()}>
-   <div className="[perspective:1200px]"><article className={`relative h-[min(76vh,560px)] min-h-[420px] [transform-style:preserve-3d] transition-transform duration-500 ease-in-out motion-reduce:duration-0 ${activeTask?'[transform:rotateY(360deg)]':flipped?'[transform:rotateY(180deg)]':''}`}>
-    <section aria-hidden={flipped&&!activeTask} inert={flipped&&!activeTask||undefined} className={face}>
-     {activeTask?<QuickTaskEditor resident={r} task={activeTask} summary={currentWorkflow} onBack={()=>setActiveTask(null)} onClose={onClose} onSaved={summary=>{setCurrentWorkflow(summary);onWorkflowUpdate(r.id,summary)}}/>:<><div className="flex items-center justify-between gap-3 border-b border-border p-4"><div><p className="text-xs font-bold uppercase tracking-wide text-body">Resident</p><h2 className="mt-1 text-lg font-bold leading-snug text-navy">{r.name||'Unnamed resident'}</h2><p className="mt-1 text-xs text-body">{r.national_id||'No national ID'} · Record {r.id}</p></div><button type="button" onClick={onClose} aria-label="Close" className="btn-secondary min-h-10 shrink-0 px-3">Close</button></div>
-     <div className="flex items-center gap-4 p-4"><Photo r={r}/><div className="min-w-0"><p className="break-words text-base font-bold text-navy">{r.house||'House not recorded'}</p><p className="mt-2 text-sm text-body">{r.phone?<a href={'tel:'+r.phone} className="font-semibold text-blue-700">{r.phone}</a>:'Mobile not recorded'}</p></div></div>
-     <dl className="grid grid-cols-2 gap-x-4 gap-y-4 border-t border-border p-4 text-sm"><Info label="House" value={r.house}/><Info label="Mobile" value={r.phone} href={r.phone?`tel:${r.phone}`:undefined}/><Info label="Age" value={String(r.age??'—')}/><Info label="Sex" value={r.sex}/></dl>
-     <div className="p-4"><button type="button" onClick={()=>setFlipped(true)} className="btn-primary min-h-12 w-full justify-center">View tasks <span aria-hidden="true" className="ml-2">↻</span></button><Link prefetch={false} href={profileHref} className="mt-3 block text-center text-sm font-semibold text-primary hover:underline">Open full profile</Link></div></>}
-    </section>
-    <section aria-hidden={!flipped||Boolean(activeTask)} inert={!flipped||Boolean(activeTask)||undefined} className={`${face} [transform:rotateY(180deg)]`}>
-     <div className="flex items-center justify-between gap-3 border-b border-border bg-yellow-50/70 p-4"><div className="min-w-0"><h2 className="text-lg font-bold text-navy">Resident tasks</h2><p className="mt-1 break-words text-xs text-body">{r.name||'Unnamed resident'} · Record {r.id}</p></div><div className="flex shrink-0 gap-2"><button type="button" onClick={()=>setFlipped(false)} aria-label="Back to resident details" title="Back to resident details" className="btn-secondary min-h-10 px-3">← Details</button><button type="button" onClick={onClose} aria-label="Close resident tasks" className="btn-secondary min-h-10 px-3">Close</button></div></div>
-     <div className="p-3 sm:p-4"><WorkflowStatus summary={currentWorkflow} unavailable={Boolean(workflowError)} onSelectTask={task=>setActiveTask(task)}/></div>
-     <div className="px-3 pb-4 sm:px-4"><Link prefetch={false} href={profileHref} className="btn-secondary min-h-11 w-full justify-center">Open full profile</Link></div>
-    </section>
-   </article></div>
+ const [activeTask,setActiveTask]=useState<QuickTask|null>(null),[currentWorkflow,setCurrentWorkflow]=useState(workflow);
+ const profileHref=profilePath+'?id='+r.id,scrollRef=useRef<HTMLDivElement>(null);
+ useEffect(()=>{const closeOnEscape=(event:KeyboardEvent)=>{if(event.key==='Escape')onClose()};window.addEventListener('keydown',closeOnEscape);const former=document.body.style.overflow;document.body.style.overflow='hidden';return()=>{window.removeEventListener('keydown',closeOnEscape);document.body.style.overflow=former}},[onClose]);
+ function choose(task:QuickTask|null){setActiveTask(task);scrollRef.current?.scrollTo({top:0,behavior:'instant'})}
+ return <div className="fixed inset-0 z-[100] flex items-end justify-center bg-slate-950/60 p-0 sm:items-center sm:p-5" onMouseDown={event=>{if(event.target===event.currentTarget)onClose()}}>
+  <div role="dialog" aria-modal="true" aria-label={`Resident tasks for ${r.name||'resident'}`} className="flex max-h-[96dvh] w-full max-w-2xl flex-col overflow-hidden rounded-t-2xl border border-border bg-white shadow-2xl sm:max-h-[88dvh] sm:rounded-2xl" onMouseDown={event=>event.stopPropagation()}>
+   <div className="flex shrink-0 items-center gap-3 border-b border-border bg-white p-3 sm:p-4">
+    <Photo r={r} small/>
+    <div className="min-w-0 flex-1">
+     <p className="text-[10px] font-bold uppercase tracking-wider text-blue-700">Resident record · #{r.id}</p>
+     <h2 className="truncate text-base font-extrabold text-navy sm:text-lg">{r.name||'Unnamed resident'}</h2>
+     <p className="truncate text-xs text-body">{r.house||'House not recorded'} · {r.national_id||'ID unavailable'}</p>
+    </div>
+    <button type="button" onClick={onClose} aria-label="Close resident tasks" className="btn-secondary min-h-10 shrink-0 px-3">Close</button>
+   </div>
+   <div ref={scrollRef} className="min-h-0 flex-1 overflow-y-auto overscroll-contain p-3 sm:p-5">
+    {activeTask?<div>
+      
+      <QuickTaskEditor key={activeTask} resident={r} task={activeTask} summary={currentWorkflow} onBack={()=>choose(null)} onClose={onClose} onSaved={summary=>{setCurrentWorkflow(summary);onWorkflowUpdate(r.id,summary)}}/>
+     </div>:<>
+      <div className="mb-4 flex items-start justify-between gap-3"><div><h3 className="text-base font-extrabold text-navy">What would you like to update?</h3><p className="mt-1 text-xs text-body">Select a task, record the result, and save it. Current statuses are shown below.</p></div><Link prefetch={false} href={profileHref} className="shrink-0 rounded-lg border border-border px-3 py-2 text-xs font-bold text-blue-700 hover:bg-blue-50">Full profile ↗</Link></div>
+      <WorkflowStatus summary={currentWorkflow} unavailable={Boolean(workflowError)} onSelectTask={choose}/>
+     </>}
+   </div>
   </div>
  </div>
 }
@@ -261,7 +267,7 @@ function QuickTaskEditor({resident,task,summary,onBack,onClose,onSaved}:{residen
   if(task==='transport'){if(!transportLoaded)throw new Error('Wait for saved transport details to load.');const preserved=note.trim()||base.transportNote||null;await saveTransportation(resident.id,{transport_status:transport,notes:preserved});next.transportStatus=transport;next.transportNote=preserved;}
   onSaved(next);onClose();
  }catch(e){setError(e instanceof Error?e.message:'Could not save this result.')}finally{setSaving(false)}}
- return <><div className="flex items-center justify-between gap-2 border-b border-border bg-yellow-50/70 p-4"><div className="min-w-0"><p className="text-xs font-bold uppercase tracking-wide text-body">Select result</p><h2 className="mt-1 text-lg font-bold text-navy">{taskLabel}</h2><p className="mt-1 truncate text-xs text-body">{resident.name||'Resident'} · {resident.national_id||`Record ${resident.id}`}</p></div><div className="flex shrink-0 gap-2"><button type="button" onClick={onBack} className="btn-secondary min-h-10 px-3">← Tasks</button><button type="button" onClick={onClose} className="btn-secondary min-h-10 px-3">Close</button></div></div>
+ return <><div className="flex items-center justify-between gap-2 border-b border-border bg-yellow-50/70 p-4"><div className="min-w-0"><p className="text-xs font-bold uppercase tracking-wide text-body">Select result</p><h2 className="mt-1 text-lg font-bold text-navy">{taskLabel}</h2><p className="mt-1 truncate text-xs text-body">{resident.name||'Resident'} · {resident.national_id||`Record ${resident.id}`}</p></div><button type="button" onClick={onBack} className="btn-secondary min-h-10 shrink-0 px-3">← All tasks</button></div>
   <div className="space-y-4 overflow-y-auto p-4">
    {task==='call'&&<><label className="block"><span className="field-label">Call result</span><select className="field" value={callResult} onChange={e=>setCallResult(e.target.value as CallOutcome)}>{(['pending','connected','busy','not-answer','out-of-coverage','disconnected','wrong-number'] as CallOutcome[]).map(value=><option key={value} value={value}>{friendly(value)}</option>)}</select></label>{resident.phone&&<a className="btn-secondary inline-flex min-h-10 items-center justify-center" href={'tel:'+resident.phone}>Call {resident.phone}</a>}</>}
    {task==='door-to-door'&&<label className="block"><span className="field-label">Visit result</span><select className="field" value={visitResult} onChange={e=>setVisitResult(e.target.value as typeof visitResult)}>{[['not-visited','Pending · not visited yet'],['visited','Resident reached'],['not-home','Nobody home'],['access-issue','Could not access home'],['address-not-found','Address not found'],['visit-postponed','Visit postponed']].map(([value,label])=><option key={value} value={value}>{label}</option>)}</select></label>}
