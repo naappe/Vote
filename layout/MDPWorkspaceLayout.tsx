@@ -7,8 +7,7 @@ export default function MDPWorkspaceLayout({children}:{children:ReactNode}){
  return <div className="mdp-workspace flex min-h-screen flex-col">
   <header className="mdp-header">
    <div className="mdp-header-inner">
-    <Link href="/mdp/" className="mdp-brand" aria-label="MDP Resident Operations home">
-     <span className="mdp-brand-mark" aria-hidden="true">⚖</span>
+    <Link href="/mdp/" className="mdp-brand" aria-label="MDP Resident Voters home">
      <span className="mdp-brand-name"><strong>MDP</strong><small>Resident Voters</small></span>
     </Link>
     <MDPWorkspaceNavigation/>

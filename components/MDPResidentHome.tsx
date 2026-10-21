@@ -1,5 +1,7 @@
 'use client';
 import Link from 'next/link';
+import {useEffect,useState} from 'react';
+import {supabase} from '../lib/supabase';
 import {useStaffAccess} from './AuthGate';
 
 const dailyTasks=[
@@ -18,6 +20,18 @@ const otherTasks=[
 export default function MDPResidentHome(){
  const access=useStaffAccess(),role=access?.role||'';
  const canManage=role==='admin'||role==='supervisor';
+ const [houses,setHouses]=useState<{name:string;count:number}[]>([]),[houseLoading,setHouseLoading]=useState(true),[houseError,setHouseError]=useState('');
+ useEffect(()=>{let active=true;void(async()=>{try{
+  const all:{house:string|null}[]=[];
+  for(let start=0;start<10000;start+=1000){const {data,error}=await supabase.from('Resident').select('house').ilike('party','MDP').order('id',{ascending:true}).range(start,start+999);if(error)throw error;const batch=(data||[]) as {house:string|null}[];all.push(...batch);if(batch.length<1000)break;}
+  const grouped=new Map<string,number>();
+  for(const item of all){const raw=String(item.house||'').trim();if(!raw)continue;
+   const name=/dhafthar|^(no\s*)?(dh\s*r|dhr|rs)(\s*no)?\s*[0-9]|^no\s*[0-9]/i.test(raw)?'Dhafthar':/sina mal[eé]/i.test(raw)?'Sina Malé':raw;
+   grouped.set(name,(grouped.get(name)||0)+1);
+  }
+  const result=[...grouped].map(([name,count])=>({name,count})).sort((a,b)=>b.count-a.count||a.name.localeCompare(b.name)).slice(0,10);
+  if(active)setHouses(result);
+ }catch(e){if(active)setHouseError(e instanceof Error?e.message:'Unable to load houses')}finally{if(active)setHouseLoading(false)}})();return()=>{active=false}},[]);
  const canHandleVotingDay=canManage||role==='election_operator';
  return <div className="mdp-home mdp-home-simple">
   <section className="mdp-home-intro" aria-labelledby="mdp-home-title">
@@ -27,8 +41,12 @@ export default function MDPResidentHome(){
   <section className="mdp-home-section" aria-labelledby="mdp-daily-heading">
    <div className="mdp-home-section-heading"><h2 id="mdp-daily-heading">Everyday tasks</h2><p>Choose what you need to do now.</p></div>
    <div className="mdp-home-quick-grid">{dailyTasks.map(task=><Link prefetch={false} key={task.title} href={task.href} className="mdp-home-quick-card">
-    <span className="mdp-home-quick-mark" aria-hidden="true">{task.mark}</span><strong>{task.title}</strong><small>{task.detail}</small><span className="mdp-home-quick-arrow" aria-hidden="true">Open →</span>
+    <strong>{task.title}</strong><small>{task.detail}</small><span className="mdp-home-quick-arrow" aria-hidden="true">Open →</span>
    </Link>)}</div>
+  </section>
+  <section className="mdp-home-section" aria-labelledby="mdp-top-houses-heading">
+   <div className="mdp-home-section-heading"><h2 id="mdp-top-houses-heading">10 houses with the most residents</h2><p>MDP resident records, grouped by house. Select a house to see its residents.</p></div>
+   {houseLoading?<div role="status" className="mdp-home-house-loading">Loading house counts…</div>:houseError?<p role="alert" className="mdp-home-house-loading">House counts unavailable. <Link prefetch={false} href="/mdp/residents/">Open Residents</Link></p>:houses.length?<div className="mdp-home-houses">{houses.map((house,index)=><Link prefetch={false} key={house.name} href={'/mdp/residents/?house='+encodeURIComponent(house.name)} className="mdp-home-house-row" title={'View residents in '+house.name}><span className="mdp-home-house-rank">{index+1}</span><strong>{house.name}</strong><span className="mdp-home-house-count">{house.count} {house.count===1?'resident':'residents'}</span><span className="mdp-home-house-arrow" aria-hidden="true">›</span></Link>)}</div>:<p className="mdp-home-house-loading">No house records are available.</p>}
   </section>
   <section className="mdp-home-section" aria-labelledby="mdp-other-heading">
    <div className="mdp-home-section-heading"><h2 id="mdp-other-heading">Other tasks</h2><p>Reports, notes, transport and election work.</p></div>
