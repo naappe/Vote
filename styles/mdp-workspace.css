@@ -272,3 +272,35 @@
 .mdp-workspace .panel .btn-primary,.mdp-workspace .panel .btn-secondary{border-radius:10px}
 .mdp-workspace .panel h2{color:#0b3678}
 @media(max-width:650px){.mdp-workspace .panel{border-radius:12px}.mdp-workspace .page-hero h1{font-size:23px}}
+
+/* Master screenshot: dense, clean resident cards and compact three-column directory. */
+.mdp-workspace .mdp-residents-grid{grid-template-columns:repeat(3,minmax(0,1fr));gap:15px}
+.mdp-workspace .mdp-master-card{display:flex;flex-direction:column;justify-content:space-between;min-height:230px;padding:17px;border:1px solid #e0e9f6;border-radius:17px;background:white;box-shadow:0 2px 8px rgba(9,49,104,.025);transition:border-color .16s,box-shadow .16s}
+.mdp-workspace .mdp-master-card:hover{border-color:#b6cef0;box-shadow:0 5px 13px rgba(9,49,104,.06);transform:none}
+.mdp-workspace .mdp-master-identity{display:flex;align-items:flex-start;gap:13px;min-width:0}
+.mdp-workspace .mdp-master-identity .mdp-card-photo{width:72px;height:72px;border-radius:13px;object-fit:cover}
+.mdp-workspace .mdp-master-resident-name{display:block;color:#0c2b61;font-size:14px;font-weight:800;line-height:1.35;overflow-wrap:anywhere;text-decoration:none}
+.mdp-workspace .mdp-master-resident-name:hover{color:#1557b0;text-decoration:underline}
+.mdp-workspace .mdp-master-id{margin-top:3px;color:#7990aa;font-size:11px;line-height:1.4;overflow-wrap:anywhere}
+.mdp-workspace .mdp-master-chevron{display:grid;flex:none;place-items:center;width:25px;height:30px;color:#91a3bb;font-size:26px;line-height:1;text-decoration:none}
+.mdp-workspace .mdp-master-chevron:hover{color:#145bd1}
+.mdp-workspace .mdp-master-vote-badge{font-size:10px;line-height:1.2;white-space:nowrap}
+.mdp-workspace .mdp-master-vote-mark{display:grid;place-items:center;height:16px;width:16px;border-radius:999px;background:rgba(255,255,255,.72);font-size:11px}
+.mdp-workspace .mdp-master-actions{display:flex;justify-content:flex-start;align-items:center;gap:9px;margin-top:16px;margin-bottom:13px}
+.mdp-workspace .mdp-master-action{display:grid;place-items:center;flex:0 0 36px;width:36px;height:36px;border:1px solid transparent;border-radius:999px;background:#eff4fc;color:#647f9f;cursor:pointer;text-decoration:none;transition:background .15s,transform .15s,border-color .15s}
+.mdp-workspace .mdp-master-action-green{background:#e5f7ed;color:#219766}
+.mdp-workspace .mdp-master-action svg{height:18px;width:18px}
+.mdp-workspace .mdp-master-action:hover{border-color:#81b3e9;background:#e0edff;transform:translateY(-1px)}
+.mdp-workspace .mdp-master-action:focus-visible{outline:2px solid #1e63c9;outline-offset:3px}
+.mdp-workspace .mdp-master-data{display:grid;grid-template-columns:minmax(0,1.25fr) minmax(0,1.18fr) minmax(36px,.4fr) minmax(36px,.4fr);align-items:start;padding-top:13px;border-top:1px solid #edf1f8}
+.mdp-workspace .mdp-master-data>div{min-width:0;padding:0 9px;border-right:1px solid #edf1f8}
+.mdp-workspace .mdp-master-data>div:first-child{padding-left:0}
+.mdp-workspace .mdp-master-data>div:last-child{border:0;padding-right:0}
+.mdp-workspace .mdp-master-data span{display:block;font-size:9px;line-height:1.2;color:#8191a7;font-weight:750;letter-spacing:.045em;text-transform:uppercase}
+.mdp-workspace .mdp-master-data strong,.mdp-workspace .mdp-master-phone{display:block;margin-top:7px;color:#13305b;font-size:11px;font-weight:800;line-height:1.35;overflow-wrap:anywhere;text-decoration:none}
+.mdp-workspace .mdp-master-phone{color:#1962d0}
+.mdp-workspace .mdp-master-phone:hover{text-decoration:underline}
+@media(max-width:1320px){.mdp-workspace .mdp-master-card{padding:14px}.mdp-workspace .mdp-master-actions{gap:6px}.mdp-workspace .mdp-master-action{width:32px;height:32px;flex-basis:32px}.mdp-workspace .mdp-master-data>div{padding:0 6px}}
+@media(max-width:1100px){.mdp-workspace .mdp-residents-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:650px){.mdp-workspace .mdp-residents-grid{grid-template-columns:1fr}.mdp-workspace .mdp-master-card{min-height:218px;padding:15px}.mdp-workspace .mdp-master-actions{gap:11px}.mdp-workspace .mdp-master-action{width:37px;height:37px;flex-basis:37px}}
+@media(max-width:360px){.mdp-workspace .mdp-master-actions{gap:6px}.mdp-workspace .mdp-master-action{width:33px;height:33px;flex-basis:33px}.mdp-workspace .mdp-master-data>div{padding:0 5px}}
