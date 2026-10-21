@@ -35,14 +35,32 @@ function isActive(pathname:string,focus:string|null,href:string){const [path,que
 export default function MDPWorkspaceNavigation(){
  const access=useStaffAccess(),role=access?.role||'',pathname=(usePathname()||'/mdp/').replace(/\/$/,'')||'/mdp',params=useSearchParams(),focus=params.get('focus'),moreRef=useRef<HTMLDetailsElement>(null);
  const [menuOpen,setMenuOpen]=useState(false);
+ const drawerRef=useRef<HTMLDivElement>(null),menuTriggerRef=useRef<HTMLButtonElement>(null);
  useEffect(()=>{if(moreRef.current)moreRef.current.open=false;setMenuOpen(false)},[pathname,focus]);
- useEffect(()=>{if(!menuOpen)return;const close=(event:KeyboardEvent)=>{if(event.key==='Escape')setMenuOpen(false)};window.addEventListener('keydown',close);return()=>window.removeEventListener('keydown',close)},[menuOpen]);
+ useEffect(()=>{
+  if(!menuOpen)return;
+  const previousOverflow=document.body.style.overflow;
+  const previousFocus=document.activeElement instanceof HTMLElement?document.activeElement:null;
+  document.body.style.overflow='hidden';
+  drawerRef.current?.querySelector<HTMLButtonElement>('button[aria-label="Close menu"]')?.focus();
+  const handleKey=(event:KeyboardEvent)=>{
+   if(event.key==='Escape'){event.preventDefault();setMenuOpen(false);return}
+   if(event.key!=='Tab'||!drawerRef.current)return;
+   const focusables=Array.from(drawerRef.current.querySelectorAll<HTMLElement>('a[href],button:not([disabled]),summary,[tabindex]:not([tabindex="-1"])')).filter(el=>el.getClientRects().length>0);
+   if(!focusables.length)return;
+   const first=focusables[0],last=focusables[focusables.length-1];
+   if(event.shiftKey&&(document.activeElement===first||!drawerRef.current.contains(document.activeElement))){event.preventDefault();last.focus()}
+   else if(!event.shiftKey&&(document.activeElement===last||!drawerRef.current.contains(document.activeElement))){event.preventDefault();first.focus()}
+  };
+  window.addEventListener('keydown',handleKey);
+  return()=>{window.removeEventListener('keydown',handleKey);document.body.style.overflow=previousOverflow;if(previousFocus?.isConnected)previousFocus.focus()};
+ },[menuOpen]);
  const visible=(items:NavItem[])=>items.filter(item=>!item.roles||item.roles.includes(role));
  const moreActive=visible(secondary).some(item=>isActive(pathname,focus,item.href));
  return <nav aria-label="Main navigation" className="mdp-nav">
-  <button className="mdp-mobile-menu-toggle" type="button" aria-expanded={menuOpen} aria-controls="mdp-navigation-items" onClick={()=>setMenuOpen(value=>!value)}><span aria-hidden="true">☰</span> Menu</button>
+  <button className="mdp-mobile-menu-toggle" ref={menuTriggerRef} type="button" aria-expanded={menuOpen} aria-controls="mdp-navigation-items" onClick={()=>setMenuOpen(value=>!value)}><span aria-hidden="true">☰</span> Menu</button>
   {menuOpen&&<button type="button" className="mdp-mobile-menu-backdrop" aria-label="Close navigation menu" onClick={()=>setMenuOpen(false)}/>}
-  <div id="mdp-navigation-items" className={`mdp-navigation-items${menuOpen?" is-open":""}`}>
+  <div ref={drawerRef} id="mdp-navigation-items" className={`mdp-navigation-items${menuOpen?" is-open":""}`}>
    <div className="mdp-mobile-menu-heading"><strong>MDP Resident Voters</strong><button type="button" aria-label="Close menu" onClick={()=>setMenuOpen(false)}>✕</button></div>
   <Link prefetch={false} href="/mdp/" aria-current={pathname==='/mdp'?'page':undefined} className={`mdp-nav-link mdp-nav-home${pathname==='/mdp'?' is-active':''}`}><NavIcon name="home"/><span>Home</span></Link>
   {visible(primary).map(item=><Link key={item.href} prefetch={false} href={item.href} aria-current={isActive(pathname,focus,item.href)?'page':undefined} className={`mdp-nav-link${isActive(pathname,focus,item.href)?' is-active':''}`}><NavIcon name={item.icon}/><span>{item.label}</span></Link>)}
