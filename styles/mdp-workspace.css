@@ -496,3 +496,14 @@
 .mdp-global-news-clock{flex:none;white-space:nowrap;padding:0 12px;border-left:1px solid #e3eaf4;color:#0b3678;font-size:12px;font-weight:800;font-variant-numeric:tabular-nums}
 .mdp-global-news-clock small{color:#637894;font-size:9px}
 @media(max-width:700px){.mdp-global-news{flex-wrap:wrap}.mdp-global-news-tabs{width:100%;height:32px}.mdp-global-news-tabs button{flex:1}.mdp-global-news-window{min-width:0;flex:1}.mdp-global-news-clock{font-size:11px;padding:0 8px}}
+
+/* Election-day hierarchy: responsive columns, useful whitespace, reachable controls */
+.mdp-vote-hero{padding:22px 24px}
+.mdp-vote-hero-left{display:flex;flex-direction:column;min-width:0;gap:12px}
+.mdp-vote-shortcuts{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin-top:auto;padding-top:18px}
+.mdp-vote-shortcuts>a,.mdp-vote-shortcuts>button{display:flex;min-height:82px;min-width:0;flex-direction:column;align-items:flex-start;justify-content:center;gap:5px;padding:13px;border:1px solid #dfe8f4;border-radius:13px;background:#f8faff;text-align:left;text-decoration:none;color:#123c78;transition:background .15s ease,border-color .15s ease}
+.mdp-vote-shortcuts>a:hover,.mdp-vote-shortcuts>button:hover{background:#eaf2ff;border-color:#91b2ee}
+.mdp-vote-shortcuts strong{font-size:19px;line-height:1.1}
+.mdp-vote-shortcuts span{font-size:11px;line-height:1.35}
+@media(max-width:980px){.mdp-vote-hero{padding:18px}.mdp-vote-shortcuts{margin-top:0}}
+@media(max-width:560px){.mdp-vote-shortcuts{grid-template-columns:repeat(2,minmax(0,1fr))}.mdp-vote-shortcuts>a:last-child{grid-column:1/-1}.mdp-vote-hero{padding:14px}}
