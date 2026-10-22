@@ -44,6 +44,9 @@ jobs:
       - name: Refresh public MDP announcements
         run: python3 scripts/update_mdp_announcements.py
 
+      - name: Refresh Elections Commission news
+        run: python3 scripts/update_ec_news.py
+
       - name: Build latest static site
         run: npm run build
 
