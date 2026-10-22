@@ -54,6 +54,7 @@ export default function MDPResidentHome(){
    <div className="mdp-home-section-heading"><h2 id="mdp-other-heading">Other tasks</h2><p>Reports, notes, transport and election work.</p></div>
    <div className="mdp-home-simple-links">{otherTasks.map(task=><Link key={task.title} prefetch={false} href={task.href} className="mdp-home-simple-link"><span><strong>{task.title}</strong><small>{task.detail}</small></span><span aria-hidden="true">›</span></Link>)}
     {canHandleVotingDay&&<Link prefetch={false} href="/mdp/voting-days/" className="mdp-home-simple-link"><span><strong>Record who voted</strong><small>Mark residents who voted on election day.</small></span><span aria-hidden="true">›</span></Link>}
+    {role==='admin'&&<Link prefetch={false} href="/mdp/import-review/" className="mdp-home-simple-link"><span><strong>Latest 2026 roster · ID review</strong><small>Review 540 imported names, missing IDs and conflicting matches before updating records.</small></span><span aria-hidden="true">›</span></Link>}
     {canManage&&<Link prefetch={false} href="/mdp/assignments/" className="mdp-home-simple-link"><span><strong>Assign staff work</strong><small>Give tasks to staff members.</small></span><span aria-hidden="true">›</span></Link>}
     {canHandleVotingDay&&<Link prefetch={false} href="/mdp/transport-links/" className="mdp-home-simple-link"><span><strong>Connect transport requests</strong><small>Match resident requests with transport arrangements.</small></span><span aria-hidden="true">›</span></Link>}
    </div>
