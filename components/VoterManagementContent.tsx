@@ -23,6 +23,8 @@ export default function VoterManagementContent({profilePath='/resident-profile/'
  const updateVisibleWorkflow=(id:string|number,summary:WorkflowSummary)=>{workflowPageCache.current.clear();setWorkflow(current=>({...current,[String(id)]:summary}))};
  const initial=(key:string)=>params.get(key)||'all';
  const [pdfSerials,setPdfSerials]=useState<Record<string,number>>({});
+ const [serialInput,setSerialInput]=useState(()=>params.get('serial')||'');
+ const [serialFilter,setSerialFilter]=useState(()=>params.get('serial')||'');
  const [rows,setRows]=useState<Resident[]>([]),[workflow,setWorkflow]=useState<Record<string,WorkflowSummary>>({}),[workflowError,setWorkflowError]=useState(''),[houses,setHouses]=useState<HouseOption[]>([]),[parties,setParties]=useState<PartyOption[]>([]),[boxes,setBoxes]=useState<string[]>([]),[loading,setLoading]=useState(true),[filtersLoading,setFiltersLoading]=useState(false),[filtersLoaded,setFiltersLoaded]=useState(false),[error,setError]=useState(''),[message,setMessage]=useState('');
  useEffect(()=>{
   if(partyControls||rows.length===0){setPdfSerials({});return}
@@ -47,16 +49,27 @@ export default function VoterManagementContent({profilePath='/resident-profile/'
  function loadFilters(){if(filtersLoaded||filtersLoading)return;setFiltersLoading(true);getDirectoryFilterOptions().then(data=>{setHouses(data.houses);if(partyControls)setParties(data.parties);setBoxes(data.boxes);setFiltersLoaded(true)}).catch(e=>setError(e.message)).finally(()=>setFiltersLoading(false))}
  useEffect(()=>{loadFilters()},[partyControls]);
  useEffect(()=>{const timer=window.setTimeout(()=>setDebouncedQuery(query),250);return()=>window.clearTimeout(timer)},[query]);
+ useEffect(()=>{const timer=window.setTimeout(()=>setSerialFilter(serialInput),160);return()=>window.clearTimeout(timer)},[serialInput]);
  useEffect(()=>{
-  const next=new URLSearchParams();if(debouncedQuery)next.set('q',debouncedQuery);
+  const next=new URLSearchParams();if(debouncedQuery)next.set('q',debouncedQuery);if(!partyControls&&serialFilter)next.set('serial',serialFilter);
   for(const [key,value] of Object.entries({house,party:partyControls?party:'all',gender,age,box:partyControls?box:'all'}))if(value!=='all')next.set(key,value);
   if(focus!==incomingFocus)return;
   if(focus!=='all')next.set('focus',focus);if(page>1)next.set('page',String(page));if(view==='gallery'&&partyControls)next.set('view','gallery');
   const base=pathname.startsWith('/Vote')?pathname:`/Vote${pathname}`;
   window.history.replaceState(null,'',`${base}${next.size?'?'+next.toString():''}`);
- },[debouncedQuery,house,party,partyControls,gender,age,box,focus,incomingFocus,page,view,pathname]);
+ },[debouncedQuery,serialFilter,house,party,partyControls,gender,age,box,focus,incomingFocus,page,view,pathname]);
  useEffect(()=>{let active=true;setLoading(true);setError('');setWorkflowError('');if(!partyControls)setWorkflow({});
-  void(async()=>{try{const result=focus==='all'?await getDirectoryPage(filters,page,pageSize):await (async()=>{const [all,operational]=await Promise.all([getResidents(),(async()=>focus==='visited'||focus==='not-visited'?await readOperationalRows('door_to_door','resident_id,visit_status'):focus==='unassigned'?await readOperationalRows('assignments','resident_id,status'):focus==='remarks'?await readOperationalRows('remarks','resident_id,section,remark'):focus==='transport'?await readOperationalRows('transportation','resident_id,transport_status'):[])()]);const opMap=new Map(operational.filter(row=>focus!=='remarks'||!row.section||row.section==='general').map(row=>[String(row.resident_id),row]));const matches=(r:Resident)=>{const op=opMap.get(String(r.id));switch(focus){case 'missing-phone':return !String(r.phone||'').trim();case 'need-call':return r.phone_status!=='called';case 'called':return r.phone_status==='called';case 'reached':return r.reach_status==='reached';case 'connected':return r.call_outcome==='connected';case 'visited':return op?.visit_status==='visited';case 'not-visited':return op?.visit_status!=='visited';case 'unassigned':return !op||op.status==='inactive';case 'remarks':return Boolean(op?.remark);case 'transport':return Boolean(op?.transport_status);case 'will-vote':return r.vote_status==='will-vote';case 'not-vote':return r.vote_status==='not-vote';case 'undecided':return !r.vote_status||r.vote_status==='not-decided';default:return true}};const term=filters.search.trim().toLowerCase();const filtered=all.filter(r=>(partyControls||r.party==='MDP')&&(filters.party==='all'||r.party===filters.party)&&(filters.house==='all'||r.house===filters.house)&&(filters.gender==='all'||String(r.sex||'').toUpperCase()===filters.gender)&&(filters.age==='all'||(filters.age==='61+'?Number(r.age)>=61:(()=>{const [lo,hi]=filters.age.split('-').map(Number);return Number(r.age)>=lo&&Number(r.age)<=hi})()))&&(filters.box==='all'||r.election_box===filters.box)&&(!term||[r.id,r.name,r.national_id,r.house,r.phone,r.lives_in].some(v=>String(v||'').toLowerCase().includes(term)))&&matches(r));return {rows:filtered.slice((page-1)*pageSize,page*pageSize),count:filtered.length}})();if(!active)return;setRows(result.rows);setCount(result.count);setLoading(false);const max=Math.max(1,Math.ceil(result.count/pageSize));if(page>max)setPage(max);
+  void(async()=>{try{const result=!partyControls&&serialFilter?await (async()=>{
+   const serial=Number(serialFilter);
+   if(!Number.isSafeInteger(serial)||serial<1||serial>540)return {rows:[] as Resident[],count:0};
+   const linked=await supabase.rpc('mdp_resident_for_pdf_serial',{p_serial:serial});
+   if(linked.error)throw new Error('MDP serial search failed: '+linked.error.message);
+   if(linked.data===null)return {rows:[] as Resident[],count:0};
+   const {data,error:residentError}=await supabase.from('Resident').select('*').eq('id',linked.data).maybeSingle();
+   if(residentError)throw new Error('Resident lookup failed: '+residentError.message);
+   if(!data)return {rows:[] as Resident[],count:0};
+   return {rows:[{...data,phone:data.phone==null?null:String(data.phone)} as Resident],count:1};
+  })():focus==='all'?await getDirectoryPage(filters,page,pageSize):await (async()=>{const [all,operational]=await Promise.all([getResidents(),(async()=>focus==='visited'||focus==='not-visited'?await readOperationalRows('door_to_door','resident_id,visit_status'):focus==='unassigned'?await readOperationalRows('assignments','resident_id,status'):focus==='remarks'?await readOperationalRows('remarks','resident_id,section,remark'):focus==='transport'?await readOperationalRows('transportation','resident_id,transport_status'):[])()]);const opMap=new Map(operational.filter(row=>focus!=='remarks'||!row.section||row.section==='general').map(row=>[String(row.resident_id),row]));const matches=(r:Resident)=>{const op=opMap.get(String(r.id));switch(focus){case 'missing-phone':return !String(r.phone||'').trim();case 'need-call':return r.phone_status!=='called';case 'called':return r.phone_status==='called';case 'reached':return r.reach_status==='reached';case 'connected':return r.call_outcome==='connected';case 'visited':return op?.visit_status==='visited';case 'not-visited':return op?.visit_status!=='visited';case 'unassigned':return !op||op.status==='inactive';case 'remarks':return Boolean(op?.remark);case 'transport':return Boolean(op?.transport_status);case 'will-vote':return r.vote_status==='will-vote';case 'not-vote':return r.vote_status==='not-vote';case 'undecided':return !r.vote_status||r.vote_status==='not-decided';default:return true}};const term=filters.search.trim().toLowerCase();const filtered=all.filter(r=>(partyControls||r.party==='MDP')&&(filters.party==='all'||r.party===filters.party)&&(filters.house==='all'||r.house===filters.house)&&(filters.gender==='all'||String(r.sex||'').toUpperCase()===filters.gender)&&(filters.age==='all'||(filters.age==='61+'?Number(r.age)>=61:(()=>{const [lo,hi]=filters.age.split('-').map(Number);return Number(r.age)>=lo&&Number(r.age)<=hi})()))&&(filters.box==='all'||r.election_box===filters.box)&&(!term||[r.id,r.name,r.national_id,r.house,r.phone,r.lives_in].some(v=>String(v||'').toLowerCase().includes(term)))&&matches(r));return {rows:filtered.slice((page-1)*pageSize,page*pageSize),count:filtered.length}})();if(!active)return;setRows(result.rows);setCount(result.count);setLoading(false);const max=Math.max(1,Math.ceil(result.count/pageSize));if(page>max)setPage(max);
    if(!partyControls&&result.rows.length){const ids=result.rows.map(row=>row.id);const cacheKey=ids.join(',');const cachedSummary=workflowPageCache.current.get(cacheKey);if(cachedSummary&&cachedSummary.expires>Date.now()){setWorkflow(cachedSummary.data);return;}const [callRows,visitRows,transportRows,remarkRows]=await Promise.all([
     supabase.from('call_center').select('resident_id,call_outcome,call_attempts,vote_status,last_call_at').in('resident_id',ids),
     supabase.from('door_to_door').select('resident_id,visit_status,last_visit_at').in('resident_id',ids),
@@ -66,11 +79,11 @@ export default function VoterManagementContent({profilePath='/resident-profile/'
    }else if(!partyControls)setWorkflow({});
   }catch(e){if(active)setError(e instanceof Error?e.message:'Unable to load residents')}finally{if(active)setLoading(false)}})();
   return()=>{active=false}
- },[filters,page,pageSize,focus,partyControls]);
+ },[filters,page,pageSize,focus,partyControls,serialFilter]);
  const pages=Math.max(1,Math.ceil(count/pageSize)),range=count?`${(page-1)*pageSize+1}–${Math.min(page*pageSize,count)}`:'0';
- const hasFilters=Boolean(focus!=='all'||query||house!=='all'||(partyControls&&party!=='all')||gender!=='all'||age!=='all'||(partyControls&&box!=='all'));
+ const hasFilters=Boolean((!partyControls&&serialInput)||focus!=='all'||query||house!=='all'||(partyControls&&party!=='all')||gender!=='all'||age!=='all'||(partyControls&&box!=='all'));
  function changeFilter(setter:(value:string)=>void,value:string){setter(value);setPage(1)}
- function clearFilters(){router.push(pathname);setFocus('all');setQuery('');setDebouncedQuery('');setHouse('all');setParty('all');setGender('all');setAge('all');setBox('all');setPage(1)}
+ function clearFilters(){router.push(pathname);setSerialInput('');setSerialFilter('');setFocus('all');setQuery('');setDebouncedQuery('');setHouse('all');setParty('all');setGender('all');setAge('all');setBox('all');setPage(1)}
  function selectSummaryFocus(value:string){const next=new URLSearchParams(window.location.search);if(value==='all')next.delete('focus');else next.set('focus',value);next.delete('page');setFocus(value);setPage(1);router.push(pathname+(next.size?'?'+next.toString():''))}
  function changePage(next:number){setPage(Math.min(pages,Math.max(1,next)));resultsRef.current?.scrollIntoView({behavior:'smooth',block:'start'})}
  async function exportResults(){
@@ -139,7 +152,7 @@ export default function VoterManagementContent({profilePath='/resident-profile/'
         {label:'Will not vote',value:String(rows.filter(r=>workflow[String(r.id)]?.voteStatus==='not-vote').length),tone:'red',hint:'Visible page'}
       ] as const).map((stat,index)=><div key={stat.label} className={`mdp-reference-stat mdp-kpi-${stat.tone}`} title={stat.hint}><strong>{loading||(index>0&&!!workflowError)?'—':stat.value}</strong><span>{stat.label}</span></div>)}
     </div>}
-    <button className="btn-primary mdp-reference-export" onClick={exportResults} disabled={exporting||loading||focus!=='all'} title={focus==='all'?'Download all matching residents across every page':'Clear the task status filter to export the full directory'}>{exporting?`Exporting ${exportProgress}`:partyControls?'Export CSV':'↓ Export Excel'}</button>
+    <button className="btn-primary mdp-reference-export" onClick={exportResults} disabled={exporting||loading||focus!=='all'||Boolean(serialFilter)} title={focus==='all'&&!serialFilter?'Download all matching residents across every page':'Clear the task status filter to export the full directory'}>{exporting?`Exporting ${exportProgress}`:partyControls?'Export CSV':'↓ Export Excel'}</button>
   </section>
   <section className={partyControls?"panel space-y-3 !p-4":"mdp-reference-filters"}>
     <div className={partyControls?"grid gap-3":"mdp-reference-filter-main"}>
@@ -149,6 +162,7 @@ export default function VoterManagementContent({profilePath='/resident-profile/'
         <input className="field w-full" value={query} onChange={e=>{setQuery(e.target.value);setPage(1)}} placeholder="Search name, ID, house or phone..." type="search"/>
       </label>
       {!partyControls&&<div className="mdp-reference-area"><HousePicker houses={houses} value={house} onChange={v=>changeFilter(setHouse,v)}/></div>}
+      {!partyControls&&<label className="mdp-reference-serial"><span className="text-xs font-semibold text-slate-700">MDP Serial</span><input aria-label="Find resident by MDP serial number" className="field w-full" inputMode="numeric" autoComplete="off" type="text" maxLength={5} placeholder="e.g. 445" value={serialInput} onChange={e=>{setSerialInput(e.target.value.replace(/[^0-9]/g,''));setPage(1)}}/></label>}
       <label className="mdp-reference-status"><span className="sr-only">Report / task status</span><select aria-label="Report / task status" className="field" value={focus} onChange={e=>selectSummaryFocus(e.target.value)}>{focusOptions.map(([value,label])=><option key={value} value={value}>{label}</option>)}</select></label>
       {partyControls&&<Select label="Party" value={party} onChange={v=>changeFilter(setParty,v)} options={[["all","All parties"],...parties.map(p=>[p.name,`${p.name==='Unspecified'?'No party':p.name} (${p.count})`])]}/>}
       <button className="btn-secondary mdp-reference-clear" onClick={clearFilters} disabled={!hasFilters}>Clear</button>

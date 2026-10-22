@@ -414,3 +414,10 @@
 
 /* Recent user work section matches the compact MDP administrative layout. */
 .mdp-workspace .mdp-work-recent-heading{font-size:15px;font-weight:850;color:#0b3678}
+
+/* Fast exact PDF serial lookup for election-day resident identification. */
+.mdp-workspace .mdp-reference-filter-main{grid-template-columns:minmax(170px,2fr) minmax(135px,.8fr) minmax(112px,.52fr) minmax(150px,.85fr) auto}
+.mdp-workspace .mdp-reference-serial{min-width:0;display:flex;flex-direction:column;gap:3px}
+.mdp-workspace .mdp-reference-serial .field{font-size:15px;font-weight:750;letter-spacing:.02em;font-variant-numeric:tabular-nums}
+@media(max-width:1100px){.mdp-workspace .mdp-reference-filter-main{grid-template-columns:minmax(160px,1fr) minmax(130px,1fr) minmax(115px,.7fr)}.mdp-workspace .mdp-reference-clear{justify-self:start}}
+@media(max-width:680px){.mdp-workspace .mdp-reference-filter-main{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}.mdp-workspace .mdp-reference-search{grid-column:1/-1}.mdp-workspace .mdp-reference-serial{grid-column:1}.mdp-workspace .mdp-reference-clear{grid-column:2;justify-self:end}}
