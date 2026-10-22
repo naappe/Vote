@@ -455,3 +455,14 @@
 .mdp-workspace .mdp-raajje-track a[lang="dv"]{font-family:"MV Waheed Web","MV Waheed","Noto Sans Thaana",sans-serif;font-size:21px;font-weight:500;line-height:1.7}
 .mdp-workspace .mdp-raajje-label{font-size:12px}
 @media(max-width:700px){.mdp-workspace .mdp-home-intro{grid-template-columns:minmax(0,1fr);padding:17px}.mdp-workspace .mdp-home-intro>.mdp-raajje-news{grid-column:1}.mdp-workspace .mdp-home-intro .mdp-home-main-link{justify-self:start}.mdp-workspace .mdp-raajje-track a[lang="dv"]{font-size:19px}}
+
+/* Sidebar countdown: no longer overlays task cards. */
+.mdp-workspace .mdp-nav-countdown{margin-top:auto;padding:12px 10px 8px;min-width:0;width:100%}
+.mdp-workspace .mdp-nav-countdown .mdp-election-countdown{position:static;inset:auto;z-index:auto;display:flex;width:100%;max-width:none;padding:11px 12px;border:1px solid #dce5f4;border-radius:14px;background:linear-gradient(135deg,#f5f8ff,#fff8da);color:#0b3678!important;box-shadow:none}
+.mdp-workspace .mdp-nav-countdown .mdp-election-countdown-title{font-size:9px;letter-spacing:.08em}
+.mdp-workspace .mdp-nav-countdown .mdp-election-countdown strong{font-size:18px;letter-spacing:-.04em;white-space:nowrap}
+.mdp-workspace .mdp-nav-countdown .mdp-election-countdown small{font-size:10px}
+.mdp-workspace .mdp-home-intro{padding:15px 21px;row-gap:10px}
+.mdp-workspace .mdp-home-intro h1{font-size:21px;line-height:1.2;margin:0}
+.mdp-workspace .mdp-home-simple{gap:15px}
+@media(max-width:850px){.mdp-workspace .mdp-nav-countdown{margin-top:10px;padding:10px}.mdp-workspace .mdp-nav-countdown .mdp-election-countdown strong{font-size:17px}}
