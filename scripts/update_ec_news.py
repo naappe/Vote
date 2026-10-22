@@ -1,3 +1,4 @@
+from news_dates import today_only
 #!/usr/bin/env python3
 """Publish Elections Commission news headlines for the static MDP dashboard."""
 import json, pathlib, re
@@ -29,7 +30,7 @@ def collect():
   seen.add(url);items.append({"title":title,"url":url})
   if len(items)>=12:break
  if not items:raise ValueError("No validated EC article links")
- return {"source":"EC","updatedAt":datetime.now(timezone.utc).isoformat(),"items":items}
+ return {"source":"EC","updatedAt":datetime.now(timezone.utc).isoformat(),"items":today_only(items)}
 if __name__=="__main__":
  try:
   data=collect();OUT.parent.mkdir(parents=True,exist_ok=True);OUT.write_text(json.dumps(data,ensure_ascii=False,indent=2)+"\n",encoding="utf-8");print("EC news",len(data["items"]))
