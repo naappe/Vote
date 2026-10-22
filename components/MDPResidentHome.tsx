@@ -4,8 +4,6 @@ import {useEffect,useState} from 'react';
 import {supabase} from '../lib/supabase';
 import {useStaffAccess} from './AuthGate';
 import MDPUserWork from './MDPUserWork';
-import RaajjeHeadlines from './RaajjeHeadlines';
-import MDPAnnouncementTicker from './MDPAnnouncementTicker';
 
 const dailyTasks=[
  {title:'Find a resident',detail:'Search by name, ID, house or phone number.',href:'/mdp/residents/',mark:'01'},
@@ -39,8 +37,6 @@ export default function MDPResidentHome(){
  return <div className="mdp-home mdp-home-simple">
   <section className="mdp-home-intro" aria-labelledby="mdp-home-title">
    <div><h1 id="mdp-home-title">MDP Workspace</h1></div>
-   <RaajjeHeadlines/>
-   <MDPAnnouncementTicker/>
   </section>
   <MDPUserWork/>
   <section className="mdp-home-section" aria-labelledby="mdp-daily-heading">
