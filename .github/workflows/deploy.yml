@@ -5,6 +5,8 @@ on:
   push:
     branches: [main]
   workflow_dispatch:
+  schedule:
+    - cron: '17 * * * *'
 
 permissions:
   contents: read
@@ -35,6 +37,9 @@ jobs:
 
       - name: Test authentication helpers
         run: npm test
+
+      - name: Refresh public Raajje.mv headlines
+        run: python3 scripts/update_raajje_headlines.py
 
       - name: Build latest static site
         run: npm run build
