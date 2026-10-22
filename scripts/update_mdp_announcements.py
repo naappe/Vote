@@ -1,3 +1,4 @@
+from news_dates import today_only
 #!/usr/bin/env python3
 """Publish public MDP announcements to a JSON feed for the static dashboard."""
 from datetime import datetime, timezone
@@ -40,7 +41,7 @@ def collect():
         seen.add(url);entries.append({"title":title,"url":url})
         if len(entries)>=12:break
     if not entries:raise RuntimeError("No announcement links found")
-    return {"source":"MDP","updatedAt":datetime.now(timezone.utc).isoformat(),"items":entries}
+    return {"source":"MDP","updatedAt":datetime.now(timezone.utc).isoformat(),"items":today_only(entries)}
 if __name__=="__main__":
     try:
         feed=collect();OUT.parent.mkdir(parents=True,exist_ok=True)
