@@ -2,7 +2,6 @@ import type {ReactNode} from 'react';
 import Link from 'next/link';
 import MDPBackButton from '../components/MDPBackButton';
 import MDPWorkspaceNavigation from '../components/MDPWorkspaceNavigation';
-import MDPElectionCountdown from '../components/MDPElectionCountdown';
 
 export default function MDPWorkspaceLayout({children}:{children:ReactNode}){
  return <div className="mdp-workspace flex min-h-screen flex-col">
@@ -15,7 +14,6 @@ export default function MDPWorkspaceLayout({children}:{children:ReactNode}){
    </div>
   </header>
   <main className="mdp-main flex-1"><div className="mdp-main-back"><MDPBackButton/></div>{children}</main>
-  <MDPElectionCountdown/>
   <footer className="mdp-footer">MDP Resident Voters · Staff Workspace</footer>
  </div>
 }
