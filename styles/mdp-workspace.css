@@ -468,3 +468,8 @@
 @media(max-width:850px){.mdp-workspace .mdp-nav-countdown{margin-top:10px;padding:10px}.mdp-workspace .mdp-nav-countdown .mdp-election-countdown strong{font-size:17px}}
 
 @media(min-width:1100px){.mdp-workspace .mdp-navigation-items .mdp-nav-account{margin-top:0}.mdp-workspace .mdp-nav-countdown{margin-top:auto}}
+
+/* Headlines enter from the right and travel toward the left. */
+.mdp-workspace .mdp-raajje-track{direction:rtl;animation-name:mdp-raajje-right-to-left}
+@keyframes mdp-raajje-right-to-left{from{transform:translateX(12%)}to{transform:translateX(-50%)}}
+@media(prefers-reduced-motion:reduce){.mdp-workspace .mdp-raajje-track{animation:none}}
