@@ -5,6 +5,7 @@ import {supabase} from '../lib/supabase';
 import type {DashboardStats} from '../lib/types';
 import VoteStatusChart from './VoteStatusChart';
 import PhoneStatusChart from './PhoneStatusChart';
+import AdminRecentUpdates from './AdminRecentUpdates';
 import ReachProgressBar from './ReachProgressBar';
 
 const empty:DashboardStats={total:0,willVote:0,undecided:0,notVote:0,needCall:0,called:0,reached:0,notReached:0,visited:0,unvisited:0};
@@ -80,6 +81,7 @@ export default function DashboardContent(){
    ].map(([label,value,detail,href])=><Link key={String(label)} href={String(href)} className="dashboard-work-link"><span><b className="block text-navy">{label}</b><small>{detail}</small></span><strong>{Number(value).toLocaleString()}</strong></Link>)}</div></article>
    <article className="panel"><div className="section-heading"><div><p className="eyebrow">Quick stats</p><h2 className="mt-1">Campaign pulse</h2></div></div><div className="space-y-4">{quick.map(item=><div key={item.label}><div className="flex items-center justify-between gap-3 text-sm"><span className="text-body">{item.label}</span><b className="text-xl text-navy">{item.value.toLocaleString()}</b></div><div className="mt-2 h-2 overflow-hidden rounded-full bg-slate-100"><div className={`h-full rounded-full ${item.tone}`} style={{width:`${Math.max(4,Math.min(100,percentage(item.value)))}%`}}/></div></div>)}</div></article>
   </section>
+  <AdminRecentUpdates/>
   <section className="panel">
    <div className="section-heading"><div><p className="eyebrow">Administrator tools</p><h2 className="mt-1">Review and manage the system</h2><p className="mt-1 text-sm text-body">These controls are available only in the admin app.</p></div></div>
    <div className="grid gap-3 sm:grid-cols-3">
