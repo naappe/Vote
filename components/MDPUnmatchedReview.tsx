@@ -2,7 +2,7 @@
 import {useEffect,useState} from 'react';
 import {supabase} from '../lib/supabase';
 
-type Pending={serial:number;source_name:string;source_address:string};
+type Pending={serial:number;source_name:string;source_address:string;match_note?:string|null};
 type Candidate={id:number;name:string|null;house:string|null;party:string|null};
 export default function MDPUnmatchedReview(){
  const [pending,setPending]=useState<Pending[]>([]);
@@ -17,7 +17,7 @@ export default function MDPUnmatchedReview(){
  const [message,setMessage]=useState('');
  const [error,setError]=useState('');
  async function refresh(){
-  const r=await supabase.from('mdp_2026_import_review').select('serial,source_name,source_address').is('matched_resident_id',null).order('serial');
+  const r=await supabase.from('mdp_2026_import_review').select('serial,source_name,source_address,match_note').is('matched_resident_id',null).order('serial');
   if(r.error)throw r.error;
   setPending((r.data||[]) as Pending[]);
  }
@@ -46,7 +46,7 @@ export default function MDPUnmatchedReview(){
  }
  return <section className="panel p-4 sm:p-6" aria-label="Unmatched PDF entries">
   <div className="mb-3 flex flex-wrap items-center justify-between gap-2"><h2 className="text-lg font-extrabold text-navy">Unmatched PDF entries ({pending.length})</h2><button className="btn-secondary" onClick={()=>void refresh().catch(e=>setError(e.message))}>Refresh</button></div>
-  <div className="grid gap-2 sm:grid-cols-2">{pending.map(row=><button key={row.serial} type="button" onClick={()=>choose(row.serial)} className={'rounded-lg border p-3 text-left '+(selected===row.serial?'border-blue-500 bg-blue-50':'border-slate-200 bg-white')}><strong className="block text-sm">#{row.serial} · {row.source_name}</strong><small className="text-body">{row.source_address}</small></button>)}</div>
+  <div className="grid gap-2 sm:grid-cols-2">{pending.map(row=><button key={row.serial} type="button" onClick={()=>choose(row.serial)} className={'rounded-lg border p-3 text-left '+(selected===row.serial?'border-blue-500 bg-blue-50':'border-slate-200 bg-white')}><strong className="block text-sm">#{row.serial} · {row.source_name}</strong><small className="block text-body">{row.source_address}</small>{row.match_note?.startsWith("NEW ENTRY")&&<span className="mt-1 inline-block rounded bg-amber-100 px-2 py-1 text-xs font-semibold text-amber-900">NEW · ID & phone pending</span>}</button>)}</div>
   {selected!==null&&<div className="mt-4 rounded-xl border border-slate-200 bg-slate-50 p-4">
    <h3 className="mb-3 font-bold">Review PDF #{selected}</h3>
    <label className="block text-sm font-semibold">Find existing MDP resident<input className="field mt-1" value={search} onChange={e=>{setSearch(e.target.value);setChoice(null)}} placeholder="Search name or house"/></label>
