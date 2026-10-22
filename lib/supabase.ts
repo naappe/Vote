@@ -101,6 +101,13 @@ export function getDirectoryFilterOptions(){
  })().catch(error=>{directoryOptions=null;throw error});
  return directoryOptions;
 }
+export async function getMdpRosterPage(filters:DirectoryFilters,page=1,pageSize=50):Promise<ResidentPage>{
+ const args={p_page:page,p_page_size:pageSize,p_search:filters.search||'',p_house:filters.house||'all',p_gender:filters.gender||'all',p_age:filters.age||'all',p_box:filters.box||'all'};
+ const {data,error}=await supabase.rpc('mdp_2026_roster_directory',args);
+ if(error)throw new Error('MDP 2026 roster failed: '+error.message);
+ return {count:Number(data.count||0),rows:(data.rows||[]).map((row:any)=>({...row,phone:row.phone==null?null:String(row.phone),party:normalizeParty(row.party)} as Resident))};
+}
+
 export async function getDirectoryPage(filters:DirectoryFilters,page=1,pageSize=24,fresh=false):Promise<ResidentPage>{
  const args={p_page:page,p_page_size:pageSize,p_search:filters.search||'',p_house:filters.house||'all',p_party:filters.party||'all',p_gender:filters.gender||'all',p_age:filters.age||'all',p_box:filters.box||'all'};
  const key=JSON.stringify(args),cached=directoryPages.get(key);
