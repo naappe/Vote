@@ -4,6 +4,7 @@ import {usePathname,useSearchParams} from 'next/navigation';
 import {useEffect,useRef,useState} from 'react';
 import {useStaffAccess} from './AuthGate';
 import AuthControl from './AuthControl';
+import MDPElectionCountdown from './MDPElectionCountdown';
 
 type NavItem={label:string;href:string;icon:string;roles?:string[]};
 const primary:NavItem[]=[
@@ -68,6 +69,7 @@ export default function MDPWorkspaceNavigation(){
    <summary aria-current={moreActive?'page':undefined}>More tasks</summary>
    <div className="mdp-nav-menu">{visible(secondary).map(item=><Link key={item.href} prefetch={false} href={item.href} aria-current={isActive(pathname,focus,item.href)?'page':undefined} onClick={()=>{if(moreRef.current)moreRef.current.open=false}}><NavIcon name={item.icon}/>{item.label}</Link>)}</div>
   </details>
+  <div className="mdp-nav-countdown"><MDPElectionCountdown/></div>
   <div className="mdp-nav-account"><AuthControl/></div>
   </div>
  </nav>;
