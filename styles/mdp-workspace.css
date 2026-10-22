@@ -490,3 +490,9 @@
 @keyframes mdp-news-travel{from{transform:translateX(12%)}to{transform:translateX(-50%)}}
 @media(max-width:700px){.mdp-global-news-tabs button{padding:0 7px;font-size:10px}.mdp-global-news-track a{font-size:17px}.mdp-global-news-all{padding:0 7px}}
 @media(prefers-reduced-motion:reduce){.mdp-global-news-track{animation:none;max-width:100%;overflow:auto}}
+
+/* Deliberately slow leftward news ticker, with live Maldives clock. */
+.mdp-workspace .mdp-global-news-track{animation:mdp-news-travel 180s linear infinite}
+.mdp-global-news-clock{flex:none;white-space:nowrap;padding:0 12px;border-left:1px solid #e3eaf4;color:#0b3678;font-size:12px;font-weight:800;font-variant-numeric:tabular-nums}
+.mdp-global-news-clock small{color:#637894;font-size:9px}
+@media(max-width:700px){.mdp-global-news{flex-wrap:wrap}.mdp-global-news-tabs{width:100%;height:32px}.mdp-global-news-tabs button{flex:1}.mdp-global-news-window{min-width:0;flex:1}.mdp-global-news-clock{font-size:11px;padding:0 8px}}
