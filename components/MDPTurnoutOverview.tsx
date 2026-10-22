@@ -46,13 +46,13 @@ export default function MDPTurnoutOverview({dayId,refresh=0}:{dayId:string;refre
  },[dayId,refresh]);
  if(error)return <div className="text-xs text-rose-700" role="status">Turnout overview unavailable: {error}</div>;
  if(!data)return <div className="text-xs text-body" role="status">Loading turnout overview…</div>;
- const bars=[{label:'Will vote',n:data.willVote,color:'bg-emerald-500'},{label:'Reached',n:data.reached,color:'bg-blue-500'},{label:'Scenario forecast',n:data.prediction,color:'bg-amber-500'},{label:'Already voted',n:data.voted,color:'bg-violet-500'}];
+ const bars=[{label:'Not yet voted',n:Math.max(0,data.total-data.voted),color:'bg-slate-500'},{label:'Will vote',n:data.willVote,color:'bg-emerald-500'},{label:'Reached',n:data.reached,color:'bg-blue-500'},{label:'Forecast (estimate)',n:data.prediction,color:'bg-amber-500'},{label:'Already voted',n:data.voted,color:'bg-violet-500'}];
  return <div aria-label="Turnout overview based on matched MDP roster" className="rounded-xl border border-slate-200 bg-white p-3">
   <div className="mb-2 flex items-center justify-between gap-2"><strong className="text-sm text-navy">Turnout overview</strong><span className="text-xs text-body">{data.total} matched</span></div>
   <div className="grid gap-2">{bars.map(item=><div key={item.label}>
    <div className="flex justify-between text-xs"><span>{item.label}</span><b>{item.n} / {data.total}</b></div>
    <div className="mt-1 h-2 overflow-hidden rounded-full bg-slate-100"><div className={item.color+' h-full rounded-full'} style={{width:(data.total?Math.min(100,100*item.n/data.total):0)+'%'}}/></div>
   </div>)}</div>
-  <p className="mt-2 text-[11px] leading-4 text-body">Scenario only: confirmed plans + 35% of reached residents without plans + 15% of unsure residents. Not a validated turnout prediction. Refreshes after voting actions.</p>
+  <p className="mt-2 text-[11px] leading-4 text-body">Estimate only · based on recorded intentions and contact assumptions.</p>
  </div>;
 }
