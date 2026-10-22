@@ -65,10 +65,6 @@ export default function MDPWorkspaceNavigation(){
    <div className="mdp-mobile-menu-heading"><strong>MDP Resident Voters</strong><button type="button" aria-label="Close menu" onClick={()=>setMenuOpen(false)}>✕</button></div>
   <Link prefetch={false} href="/mdp/" aria-current={pathname==='/mdp'?'page':undefined} className={`mdp-nav-link mdp-nav-home${pathname==='/mdp'?' is-active':''}`}><NavIcon name="home"/><span>Home</span></Link>
   {visible(primary).map(item=><Link key={item.href} prefetch={false} href={item.href} aria-current={isActive(pathname,focus,item.href)?'page':undefined} className={`mdp-nav-link${isActive(pathname,focus,item.href)?' is-active':''}`}><NavIcon name={item.icon}/><span>{item.label}</span></Link>)}
-  <details ref={moreRef} className={`mdp-nav-more${moreActive?' is-active':''}`}>
-   <summary aria-current={moreActive?'page':undefined}>More tasks</summary>
-   <div className="mdp-nav-menu">{visible(secondary).map(item=><Link key={item.href} prefetch={false} href={item.href} aria-current={isActive(pathname,focus,item.href)?'page':undefined} onClick={()=>{if(moreRef.current)moreRef.current.open=false}}><NavIcon name={item.icon}/>{item.label}</Link>)}</div>
-  </details>
   <div className="mdp-nav-countdown"><MDPElectionCountdown/></div>
   <div className="mdp-nav-account"><AuthControl/></div>
   </div>
