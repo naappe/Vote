@@ -37,23 +37,23 @@ export default function MDPResidentHome(){
  const canHandleVotingDay=canManage||role==='election_operator';
  return <div className="mdp-home mdp-home-simple">
   <section className="mdp-home-intro" aria-labelledby="mdp-home-title">
-   <div><p className="mdp-eyebrow">MDP Resident Voters</p><h1 id="mdp-home-title">What would you like to do?</h1><p>Choose a task below. You can search for a resident and save your work in a few steps.</p></div>
+   <div><h1 id="mdp-home-title">MDP Workspace</h1></div>
    <Link prefetch={false} href="/mdp/residents/" className="mdp-home-main-link">Open Residents <span aria-hidden="true">→</span></Link>
    <RaajjeHeadlines/>
   </section>
   <MDPUserWork/>
   <section className="mdp-home-section" aria-labelledby="mdp-daily-heading">
-   <div className="mdp-home-section-heading"><h2 id="mdp-daily-heading">Everyday tasks</h2><p>Choose what you need to do now.</p></div>
+   <div className="mdp-home-section-heading"><h2 id="mdp-daily-heading">Quick actions</h2></div>
    <div className="mdp-home-quick-grid">{dailyTasks.map(task=><Link prefetch={false} key={task.title} href={task.href} className="mdp-home-quick-card">
     <strong>{task.title}</strong><small>{task.detail}</small><span className="mdp-home-quick-arrow" aria-hidden="true">Open →</span>
    </Link>)}</div>
   </section>
   <section className="mdp-home-section" aria-labelledby="mdp-top-houses-heading">
-   <div className="mdp-home-section-heading"><h2 id="mdp-top-houses-heading">10 houses with the most residents</h2><p>MDP resident records, grouped by house. Select a house to see its residents.</p></div>
+   <div className="mdp-home-section-heading"><h2 id="mdp-top-houses-heading">Top 10 houses</h2></div>
    {houseLoading?<div role="status" className="mdp-home-house-loading">Loading house counts…</div>:houseError?<p role="alert" className="mdp-home-house-loading">House counts unavailable. <Link prefetch={false} href="/mdp/residents/">Open Residents</Link></p>:houses.length?<div className="mdp-home-houses">{houses.map((house,index)=><Link prefetch={false} key={house.name} href={'/mdp/residents/?house='+encodeURIComponent(house.name)} className="mdp-home-house-row" title={'View residents in '+house.name}><span className="mdp-home-house-rank">{index+1}</span><strong>{house.name}</strong><span className="mdp-home-house-count">{house.count} {house.count===1?'resident':'residents'}</span><span className="mdp-home-house-arrow" aria-hidden="true">›</span></Link>)}</div>:<p className="mdp-home-house-loading">No house records are available.</p>}
   </section>
   <section className="mdp-home-section" aria-labelledby="mdp-other-heading">
-   <div className="mdp-home-section-heading"><h2 id="mdp-other-heading">Other tasks</h2><p>Reports, notes, transport and election work.</p></div>
+   <div className="mdp-home-section-heading"><h2 id="mdp-other-heading">More actions</h2></div>
    <div className="mdp-home-simple-links">{otherTasks.map(task=><Link key={task.title} prefetch={false} href={task.href} className="mdp-home-simple-link"><span><strong>{task.title}</strong><small>{task.detail}</small></span><span aria-hidden="true">›</span></Link>)}
     {canHandleVotingDay&&<Link prefetch={false} href="/mdp/voting-days/" className="mdp-home-simple-link"><span><strong>Record who voted</strong><small>Mark residents who voted on election day.</small></span><span aria-hidden="true">›</span></Link>}
     {role==='admin'&&<Link prefetch={false} href="/mdp/import-review/" className="mdp-home-simple-link"><span><strong>Latest 2026 roster · ID review</strong><small>Review 540 imported names, missing IDs and conflicting matches before updating records.</small></span><span aria-hidden="true">›</span></Link>}
