@@ -38,7 +38,6 @@ export default function MDPResidentHome(){
  return <div className="mdp-home mdp-home-simple">
   <section className="mdp-home-intro" aria-labelledby="mdp-home-title">
    <div><h1 id="mdp-home-title">MDP Workspace</h1></div>
-   <Link prefetch={false} href="/mdp/residents/" className="mdp-home-main-link">Open Residents <span aria-hidden="true">→</span></Link>
    <RaajjeHeadlines/>
   </section>
   <MDPUserWork/>
