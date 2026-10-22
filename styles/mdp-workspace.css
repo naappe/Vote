@@ -444,3 +444,14 @@
 @keyframes mdp-raajje-scroll{to{transform:translateX(-50%)}}
 @media(prefers-reduced-motion:reduce){.mdp-raajje-track{animation:none;max-width:100%;overflow-x:auto}}
 @media(max-width:600px){.mdp-raajje-label{padding:0 8px;font-size:10px}.mdp-raajje-open{padding:0 7px;font-size:10px}}
+
+/* Compact Raajje ticker inside the welcome banner, with legible Thaana. */
+@font-face{font-family:"MV Waheed Web";src:url("https://cdn.jsdelivr.net/gh/maaldheefee/thaana-fonts@master/mvawaheed-webfont.woff2") format("woff2");font-display:swap}
+.mdp-workspace .mdp-home-intro{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;column-gap:24px;row-gap:15px}
+.mdp-workspace .mdp-home-intro>div:first-child{min-width:0}
+.mdp-workspace .mdp-home-intro>.mdp-raajje-news{grid-column:1/-1;width:100%;min-width:0;margin:0;min-height:53px}
+.mdp-workspace .mdp-home-intro .mdp-raajje-window{padding:11px 0}
+.mdp-workspace .mdp-home-intro .mdp-raajje-track{gap:34px;animation-duration:110s}
+.mdp-workspace .mdp-raajje-track a[lang="dv"]{font-family:"MV Waheed Web","MV Waheed","Noto Sans Thaana",sans-serif;font-size:21px;font-weight:500;line-height:1.7}
+.mdp-workspace .mdp-raajje-label{font-size:12px}
+@media(max-width:700px){.mdp-workspace .mdp-home-intro{grid-template-columns:minmax(0,1fr);padding:17px}.mdp-workspace .mdp-home-intro>.mdp-raajje-news{grid-column:1}.mdp-workspace .mdp-home-intro .mdp-home-main-link{justify-self:start}.mdp-workspace .mdp-raajje-track a[lang="dv"]{font-size:19px}}
