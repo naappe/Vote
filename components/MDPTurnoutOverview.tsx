@@ -4,7 +4,7 @@ import {getMdpRosterPage,supabase} from '../lib/supabase';
 
 type Summary={total:number;willVote:number;reached:number;voted:number;notSure:number;prediction:number};
 const filter={party:'MDP',search:'',house:'all',gender:'all',age:'all',box:'all'};
-export default function MDPTurnoutOverview({dayId,refresh=0}:{dayId:string;refresh?:number}){
+export default function MDPTurnoutOverview({dayId,refresh=0,onSelect,selected='all'}:{dayId:string;refresh?:number;onSelect:(filter:'all'|'voted'|'remaining'|'will-vote')=>void;selected?:string}){
  const [data,setData]=useState<Summary|null>(null);
  const [error,setError]=useState('');
  useEffect(()=>{
@@ -46,13 +46,18 @@ export default function MDPTurnoutOverview({dayId,refresh=0}:{dayId:string;refre
  },[dayId,refresh]);
  if(error)return <div className="text-xs text-rose-700" role="status">Turnout overview unavailable: {error}</div>;
  if(!data)return <div className="text-xs text-body" role="status">Loading turnout overview…</div>;
- const bars=[{label:'Not yet voted',n:Math.max(0,data.total-data.voted),color:'bg-slate-500'},{label:'Will vote',n:data.willVote,color:'bg-emerald-500'},{label:'Reached',n:data.reached,color:'bg-blue-500'},{label:'Forecast (estimate)',n:data.prediction,color:'bg-amber-500'},{label:'Already voted',n:data.voted,color:'bg-violet-500'}];
- return <div aria-label="Turnout overview based on matched MDP roster" className="rounded-xl border border-slate-200 bg-white p-3">
-  <div className="mb-2 flex items-center justify-between gap-2"><strong className="text-sm text-navy">Turnout overview</strong><span className="text-xs text-body">{data.total} matched</span></div>
-  <div className="grid gap-2">{bars.map(item=><div key={item.label}>
-   <div className="flex justify-between text-xs"><span>{item.label}</span><b>{item.n} / {data.total}</b></div>
-   <div className="mt-1 h-2 overflow-hidden rounded-full bg-slate-100"><div className={item.color+' h-full rounded-full'} style={{width:(data.total?Math.min(100,100*item.n/data.total):0)+'%'}}/></div>
-  </div>)}</div>
-  <p className="mt-2 text-[11px] leading-4 text-body">Estimate only · based on recorded intentions and contact assumptions.</p>
+ const cards=[
+  {label:'Voted',n:data.voted,key:'voted' as const,color:'bg-emerald-500',hint:'View confirmed votes'},
+  {label:'Not yet voted',n:Math.max(0,data.total-data.voted),key:'remaining' as const,color:'bg-blue-500',hint:'Find residents remaining'},
+  {label:'Will vote',n:data.willVote,key:'will-vote' as const,color:'bg-violet-500',hint:'View recorded voting plans'}
+ ];
+ return <div aria-label="Election turnout summary" className="rounded-xl border border-slate-200 bg-white p-4">
+  <div className="mb-3 flex items-center justify-between"><strong className="text-base text-navy">Voting progress</strong><button onClick={()=>onSelect('all')} className="text-xs font-bold text-blue-700">All {data.total} →</button></div>
+  <div className="mb-3 h-2.5 overflow-hidden rounded-full bg-slate-100"><div className="h-full rounded-full bg-emerald-500" style={{width:(100*data.voted/Math.max(1,data.total))+'%'}}/></div>
+  <div className="grid gap-2">{cards.map(c=><button key={c.key} type="button" onClick={()=>onSelect(c.key)} aria-pressed={selected===c.key} className={'rounded-xl border p-3 text-left transition hover:border-blue-400 hover:bg-blue-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-blue-600 '+(selected===c.key?'border-blue-500 bg-blue-50':'border-slate-200')}>
+   <div className="flex items-center justify-between gap-2"><span className="text-sm font-bold text-navy">{c.label}</span><span className="text-xl font-extrabold tabular-nums text-navy">{c.n}</span></div>
+   <span className="mt-1 block text-xs text-body">{c.hint} →</span>
+  </button>)}</div>
+  <div className="mt-3 flex items-center justify-between gap-2 border-t border-slate-100 pt-3 text-xs"><span className="text-body">Reached: <b>{data.reached}</b></span><span className="text-body">Estimated turnout: <b>{data.prediction}</b></span></div>
  </div>;
 }
