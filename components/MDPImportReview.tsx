@@ -4,6 +4,7 @@ import {useEffect,useMemo,useState} from 'react';
 import {useStaffAccess} from './AuthGate';
 import {supabase} from '../lib/supabase';
 import {buildExcelWorkbook} from '../lib/excel-export';
+import MDPUnmatchedReview from './MDPUnmatchedReview';
 
 type ReviewRow={serial:number;source_address:string;source_name:string;source_location:string;matched_resident_id:number|null;match_status:'existing_mdp'|'other_party'|'no_match'|'ambiguous';match_method?:string|null;match_note?:string|null};
 type ExistingId={id:number;national_id:string|null};
@@ -74,6 +75,7 @@ export default function MDPImportReview(){
  if(!allowed)return <main className="panel"><h1 className="text-xl font-bold">Administrator access required</h1><p className="mt-2 text-sm text-body">Only Admin may review the latest MDP roster and identity matches.</p><Link prefetch={false} href="/mdp/" className="mt-3 inline-flex text-blue-700">Return to Home</Link></main>;
  return <div className="mdp-home mdp-home-simple">
   <section className="mdp-home-intro"><div><p className="mdp-eyebrow">Admin only · Import review</p><h1>MDP Inthihaabu 2026 · Villimalé</h1><p>540 entries from the latest supplied PDF. This is a confidential review list; it does not replace your Residents database or its saved tasks.</p></div></section>
+  <MDPUnmatchedReview/>
   <section className="panel p-4 sm:p-6">
    <h2 className="text-lg font-extrabold text-navy">Identity verification</h2>
    <p className="mt-2 text-sm text-body">The PDF contains no national ID numbers. A national ID appears below only when an exact name-and-address match points to one existing resident. That is a candidate match, not definitive proof of identity. Check uncertain cases against a consented ID or the official Elections Commission service. Never copy an ID to a new record based on a name alone.</p>
