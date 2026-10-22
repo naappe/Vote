@@ -35,9 +35,6 @@ export default function MDPResidentHome(){
  }catch(e){if(active)setHouseError(e instanceof Error?e.message:'Unable to load houses')}finally{if(active)setHouseLoading(false)}})();return()=>{active=false}},[]);
  const canHandleVotingDay=canManage||role==='election_operator';
  return <div className="mdp-home mdp-home-simple">
-  <section className="mdp-home-intro" aria-labelledby="mdp-home-title">
-   <div><h1 id="mdp-home-title">MDP Workspace</h1></div>
-  </section>
   <MDPUserWork/>
   <section className="mdp-home-section" aria-labelledby="mdp-daily-heading">
    <div className="mdp-home-section-heading"><h2 id="mdp-daily-heading">Quick actions</h2></div>
