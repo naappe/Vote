@@ -16,6 +16,10 @@ export default function MDPVotingDaysContent(){
  const [summaryRefresh,setSummaryRefresh]=useState(0);
  const requestId=useRef(0);
  const [statusFilter,setStatusFilter]=useState<'all'|'voted'|'remaining'|'will-vote'>('all');
+ const [viewMode,setViewMode]=useState<'grid'|'house'>('grid');
+ const [searchDraft,setSearchDraft]=useState('');
+ const [houseFilter,setHouseFilter]=useState('all');
+ const [exporting,setExporting]=useState(false);
  const [role,setRole]=useState(''),[name,setName]=useState(''),[date,setDate]=useState(''),[loading,setLoading]=useState(true),[savingId,setSavingId]=useState<number|null>(null),[error,setError]=useState(''),[message,setMessage]=useState('');
  const canManage=['admin','supervisor'].includes(role),canRecord=['admin','supervisor','election_operator'].includes(role);
  useEffect(()=>{let active=true;(async()=>{try{const [{data:{session},error:sessionError},{data:dayRows,error:dayError}]=await Promise.all([supabase.auth.getSession(),supabase.from('voting_days').select('id,name,voting_date,active').order('voting_date')]);if(sessionError)throw sessionError;if(dayError)throw dayError;const user=session?.user;if(!user)throw new Error('Sign in to view voting days.');const {data:membership,error:roleError}=await supabase.from('user_roles').select('role,active').eq('user_id',user.id).maybeSingle();if(roleError)throw roleError;if(!membership?.active)throw new Error('Active staff access is required.');if(active){setRole(membership.role);const available=(dayRows||[]) as VotingDay[];setDays(available);const activeDays=available.filter(day=>day.active);setDayId(current=>activeDays.some(day=>day.id===current)?current:activeDays[0]?.id||'')}}catch(e){if(active)setError(e instanceof Error?e.message:e&&typeof e==='object'&&'message'in e&&typeof e.message==='string'?e.message:'Unable to load voting days')}finally{if(active)setLoading(false)}})();return()=>{active=false}},[]);
@@ -57,6 +61,34 @@ export default function MDPVotingDaysContent(){
  async function createDay(){setError('');setMessage('');if(!name.trim()||!date){setError('Enter a voting day name and date.');return}try{const {data,error}=await supabase.from('voting_days').insert({name:name.trim(),voting_date:date}).select('id,name,voting_date,active').single();if(error)throw error;const newDay=data as VotingDay;setDays(current=>[...current,newDay].sort((a,b)=>a.voting_date.localeCompare(b.voting_date)));setDayId(newDay.id);setName('');setDate('');setPage(1);setMessage('Voting day saved.')}catch(e){setError(e instanceof Error?e.message:'Unable to save voting day')}}
  async function setDayActive(day:VotingDay,active:boolean){const verb=active?'restore':'archive',past=active?'restored':'archived';if(!window.confirm(`${active?'Restore':'Archive'} “${day.name}” (${day.voting_date})? Its turnout history will be kept.`))return;setError('');setMessage('');try{const {data,error}=await supabase.from('voting_days').update({active}).eq('id',day.id).select('id,name,voting_date,active').single();if(error)throw error;setDays(current=>current.map(item=>item.id===day.id?data as VotingDay:item));const activeDays=days.filter(item=>item.active&&item.id!==day.id);if(!active&&dayId===day.id){setDayId(activeDays[0]?.id||'');setRows([]);setCount(0);setPage(1)}if(active&&!dayId){setDayId(day.id);setPage(1)}setMessage(`Voting day ${past}. Its history is preserved.`)}catch(e){setError(e instanceof Error?e.message:e&&typeof e==='object'&&'message'in e&&typeof e.message==='string'?e.message:`Unable to ${verb} voting day`)}}
  async function setVoted(resident:MDPVotingResident,hasVoted:boolean){setSavingId(resident.id);setError('');setMessage('');try{const {error}=await supabase.rpc('mdp_set_resident_vote',{p_resident_id:resident.id,p_voting_day_id:dayId,p_has_voted:hasVoted});if(error)throw error;setRows(current=>current.map(row=>row.id===resident.id?{...row,has_voted:hasVoted,voted_at:hasVoted?new Date().toISOString():null}:row));setMessage(`${resident.name||'Resident'} marked ${hasVoted?'voted':'not yet recorded'}.`);setSummaryRefresh(current=>current+1)}catch(e){const detail=e&&typeof e==='object'&&'message'in e&&typeof e.message==='string'?e.message:e instanceof Error?e.message:'';setError(detail||'Could not update turnout. Check your staff access and try again.')}finally{setSavingId(null)}}
+ const groupedRows=rows.reduce((map,row)=>{const name=String(row.house||'Unknown house').trim()||'Unknown house';const group=/dhafthar|^(no\\s*)?(dh\\s*r|dhr|rs)(\\s*no)?\\s*[0-9]|^no\\s*[0-9]/i.test(name)?'Dhafthar':/sina mal[eé]/i.test(name)?'Sina Malé':name;const members=map.get(group)||[];members.push(row);map.set(group,members);return map},new Map<string,typeof rows>());
+ async function exportFiltered(){
+  if(exporting)return;setExporting(true);setError('');
+  try{
+   const filters={party:'MDP',search:query.trim(),house:'all',gender:'all',age:'all',box:'all'};
+   const first=await getMdpRosterPage(filters,1,500);
+   const second=first.count>500?await getMdpRosterPage(filters,2,500):{rows:[],count:0};
+   const records=[...first.rows,...second.rows];
+   if(records.length!==first.count)throw new Error('Incomplete export results');
+   const ids=records.map(r=>Number(r.id));
+   const [serials,votes,calls,visits]=await Promise.all([
+    supabase.rpc('mdp_visible_pdf_serials',{p_resident_ids:ids}),
+    supabase.from('resident_voting_status').select('resident_id').eq('voting_day_id',dayId).in('resident_id',ids),
+    supabase.from('call_center').select('resident_id').eq('vote_status','will-vote').in('resident_id',ids),
+    supabase.from('door_to_door').select('resident_id').eq('vote_status','will-vote').in('resident_id',ids)
+   ]);
+   const err=serials.error||votes.error||calls.error||visits.error;if(err)throw err;
+   const serialMap=new Map(((serials.data||[]) as {resident_id:number;pdf_serial:number}[]).map(r=>[Number(r.resident_id),r.pdf_serial]));
+   const votedIds=new Set((votes.data||[]).map(r=>Number(r.resident_id)));
+   const plannedIds=new Set([...(calls.data||[]),...(visits.data||[])].map(r=>Number(r.resident_id)));
+   let filtered=records.filter(r=>(statusFilter==='all'||(statusFilter==='voted'?votedIds.has(Number(r.id)):statusFilter==='remaining'?!votedIds.has(Number(r.id)):plannedIds.has(Number(r.id))))&&(!serial.trim()||serialMap.get(Number(r.id))===Number(serial))&&(houseFilter==='all'||String(r.house||'').toLowerCase().includes(houseFilter.toLowerCase())));
+   filtered.sort((a,b)=>(serialMap.get(Number(a.id))||9999)-(serialMap.get(Number(b.id))||9999));
+   const escape=(value:unknown)=>{let text=String(value??'');if(/^[=+@-]/.test(text))text="'"+text;return '"'+text.replace(/"/g,'""')+'"'};
+   const table=[['MDP Serial','Resident ID','Name','House','National ID','Phone','Voting Plan','Voted'],...filtered.map(r=>[serialMap.get(Number(r.id))||'',r.id,r.name,r.house,r.national_id,r.phone,plannedIds.has(Number(r.id))?'Will vote':'Not recorded',votedIds.has(Number(r.id))?'Voted':'Not yet voted'])];
+   const blob=new Blob(['\\uFEFF'+table.map(row=>row.map(escape).join(',')).join('\\r\\n')],{type:'text/csv;charset=utf-8;'});
+   const url=URL.createObjectURL(blob);const link=document.createElement('a');link.href=url;link.download='mdp-voting-'+statusFilter+'-'+new Date().toISOString().slice(0,10)+'.csv';link.click();URL.revokeObjectURL(url);
+  }catch(e){setError(e instanceof Error?e.message:'Export failed')}finally{setExporting(false)}
+ }
  const pages=pageCount(count,pageSize);
  return <div className="space-y-4">
   <section className="panel mdp-vote-hero"><div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_minmax(300px,380px)]"><div className="mdp-vote-hero-left"><p className="eyebrow">Election day</p><h1 className="mt-1 text-2xl">Voting day</h1>
