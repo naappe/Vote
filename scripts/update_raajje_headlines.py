@@ -1,3 +1,4 @@
+from news_dates import today_only
 #!/usr/bin/env python3
 """Extract headline links from Raajje.mv for GitHub Pages. No login or private data."""
 import json, pathlib, re, urllib.request
@@ -35,7 +36,7 @@ def collect():
         seen.add(url);result.append({"title":title,"url":url})
         if len(result)==15:break
     if len(result)<3:raise RuntimeError("No reliable article links found. Keeping the last good headlines.")
-    return {"source":"Raajje.mv","updatedAt":datetime.now(timezone.utc).isoformat(),"items":result}
+    return {"source":"Raajje.mv","updatedAt":datetime.now(timezone.utc).isoformat(),"items":today_only(result)}
 if __name__=="__main__":
     try:
         news=collect()
