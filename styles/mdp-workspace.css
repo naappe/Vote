@@ -428,3 +428,19 @@
 .mdp-election-countdown strong{font-size:20px;line-height:1.25;font-variant-numeric:tabular-nums}
 .mdp-election-countdown small{font-size:10px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 @media(max-width:640px){.mdp-election-countdown{right:8px;bottom:8px;padding:8px 11px}.mdp-election-countdown strong{font-size:16px}}
+
+/* Raajje.mv source-attributed, pausable scrolling news strip. */
+.mdp-raajje-news{display:flex;align-items:center;min-height:46px;gap:0;margin:14px 0;border:1px solid #d8e2f0;border-radius:12px;background:white;overflow:hidden}
+.mdp-raajje-label{flex:none;align-self:stretch;display:flex;align-items:center;gap:6px;padding:0 14px;background:#1557b0;color:white;font-size:12px;font-weight:800;white-space:nowrap}
+.mdp-raajje-label span{color:#ffe57c}
+.mdp-raajje-window{flex:1;min-width:0;overflow:hidden;white-space:nowrap;padding:10px 0}
+.mdp-raajje-window>a{padding:0 12px;color:#1557b0;font-size:12px}
+.mdp-raajje-track{display:flex;width:max-content;gap:32px;animation:mdp-raajje-scroll 80s linear infinite}
+.mdp-raajje-track:hover,.mdp-raajje-track:focus-within{animation-play-state:paused}
+.mdp-raajje-track a{flex:none;text-decoration:none;color:#16345e;font-size:13px;font-weight:650}
+.mdp-raajje-track a:hover{text-decoration:underline}
+.mdp-raajje-track a span{margin:0 10px;color:#e1bb40}
+.mdp-raajje-open{flex:none;padding:0 12px;font-size:11px;font-weight:750;color:#1557b0;text-decoration:none}
+@keyframes mdp-raajje-scroll{to{transform:translateX(-50%)}}
+@media(prefers-reduced-motion:reduce){.mdp-raajje-track{animation:none;max-width:100%;overflow-x:auto}}
+@media(max-width:600px){.mdp-raajje-label{padding:0 8px;font-size:10px}.mdp-raajje-open{padding:0 7px;font-size:10px}}
