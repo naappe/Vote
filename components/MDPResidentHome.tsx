@@ -4,6 +4,7 @@ import {useEffect,useState} from 'react';
 import {supabase} from '../lib/supabase';
 import {useStaffAccess} from './AuthGate';
 import MDPUserWork from './MDPUserWork';
+import RaajjeHeadlines from './RaajjeHeadlines';
 
 const dailyTasks=[
  {title:'Find a resident',detail:'Search by name, ID, house or phone number.',href:'/mdp/residents/',mark:'01'},
@@ -39,6 +40,7 @@ export default function MDPResidentHome(){
    <div><p className="mdp-eyebrow">MDP Resident Voters</p><h1 id="mdp-home-title">What would you like to do?</h1><p>Choose a task below. You can search for a resident and save your work in a few steps.</p></div>
    <Link prefetch={false} href="/mdp/residents/" className="mdp-home-main-link">Open Residents <span aria-hidden="true">→</span></Link>
   </section>
+  <RaajjeHeadlines/>
   <MDPUserWork/>
   <section className="mdp-home-section" aria-labelledby="mdp-daily-heading">
    <div className="mdp-home-section-heading"><h2 id="mdp-daily-heading">Everyday tasks</h2><p>Choose what you need to do now.</p></div>
