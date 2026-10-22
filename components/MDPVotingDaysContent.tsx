@@ -79,7 +79,7 @@ export default function MDPVotingDaysContent(){
    const serialMap=new Map(((serials.data||[]) as {resident_id:number;pdf_serial:number}[]).map(r=>[Number(r.resident_id),r.pdf_serial]));
    const votedIds=new Set((votes.data||[]).map(r=>Number(r.resident_id)));
    const plannedIds=new Set([...(calls.data||[]),...(visits.data||[])].map(r=>Number(r.resident_id)));
-   let filtered=records.filter(r=>(statusFilter==='all'||(statusFilter==='voted'?votedIds.has(Number(r.id)):statusFilter==='remaining'?!votedIds.has(Number(r.id)):plannedIds.has(Number(r.id))))&&(!serial.trim()||serialMap.get(Number(r.id))===Number(serial))));
+   let filtered=records.filter(r=>(statusFilter==='all'||(statusFilter==='voted'?votedIds.has(Number(r.id)):statusFilter==='remaining'?!votedIds.has(Number(r.id)):plannedIds.has(Number(r.id))))&&(!serial.trim()||serialMap.get(Number(r.id))===Number(serial)));
    filtered.sort((a,b)=>(serialMap.get(Number(a.id))||9999)-(serialMap.get(Number(b.id))||9999));
    const escape=(value:unknown)=>{let text=String(value??'');if(/^[=+@-]/.test(text))text="'"+text;return '"'+text.replace(/"/g,'""')+'"'};
    const table=[['MDP Serial','Resident ID','Name','House','National ID','Phone','Voting Plan','Voted'],...filtered.map(r=>[serialMap.get(Number(r.id))||'',r.id,r.name,r.house,r.national_id,r.phone,plannedIds.has(Number(r.id))?'Will vote':'Not recorded',votedIds.has(Number(r.id))?'Voted':'Not yet voted'])];
