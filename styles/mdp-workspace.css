@@ -473,3 +473,20 @@
 .mdp-workspace .mdp-raajje-track{direction:rtl;animation-name:mdp-raajje-right-to-left}
 @keyframes mdp-raajje-right-to-left{from{transform:translateX(12%)}to{transform:translateX(-50%)}}
 @media(prefers-reduced-motion:reduce){.mdp-workspace .mdp-raajje-track{animation:none}}
+
+/* Shared compact election/news feed bar */
+.mdp-global-news{display:flex;align-items:center;min-width:0;min-height:44px;margin-bottom:14px;border:1px solid #d8e2f0;border-radius:11px;background:white;overflow:hidden}
+.mdp-global-news-tabs{display:flex;flex:none;align-self:stretch;align-items:stretch;background:#eef3fd}
+.mdp-global-news-tabs button{padding:0 11px;white-space:nowrap;font-size:11px;font-weight:750;color:#0b3678}
+.mdp-global-news-tabs button.active{background:#1557b0;color:white}
+.mdp-global-news-window{flex:1;min-width:0;overflow:hidden;white-space:nowrap;padding:8px 0}
+.mdp-global-news-window>a{padding-left:12px;color:#1557b0;font-size:12px}
+.mdp-global-news-track{display:flex;width:max-content;gap:28px;animation:mdp-news-travel 95s linear infinite}
+.mdp-global-news-track:hover,.mdp-global-news-track:focus-within{animation-play-state:paused}
+.mdp-global-news-track a{flex:none;font-family:"MV Waheed Web","MV Waheed","Noto Sans Thaana",sans-serif;font-size:19px;font-weight:500;line-height:1.45;color:#153a70;text-decoration:none}
+.mdp-global-news-track a:hover{text-decoration:underline}
+.mdp-global-news-track span{margin:0 12px;color:#d5ae34}
+.mdp-global-news-all{flex:none;padding:0 13px;color:#1557b0;font-size:16px}
+@keyframes mdp-news-travel{from{transform:translateX(12%)}to{transform:translateX(-50%)}}
+@media(max-width:700px){.mdp-global-news-tabs button{padding:0 7px;font-size:10px}.mdp-global-news-track a{font-size:17px}.mdp-global-news-all{padding:0 7px}}
+@media(prefers-reduced-motion:reduce){.mdp-global-news-track{animation:none;max-width:100%;overflow:auto}}
