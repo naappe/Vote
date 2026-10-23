@@ -13,7 +13,7 @@ const primary:NavItem[]=[
  {label:'Vote',href:'/mdp/residents/?focus=vote-pending',icon:'vote'},
  {label:'Calls',href:'/mdp/calls/?status=need-call',icon:'phone'},
  {label:'Remarks',href:'/mdp/residents/?focus=remarks-pending',icon:'note'},
- {label:'Transport',href:'/mdp/transportation/?status=needed',icon:'truck'},
+ {label:'Transport',href:'/mdp/transportation/?status=pending',icon:'truck'},
  {label:'Assignments',href:'/mdp/assignments/?status=pending',icon:'tasks',roles:['admin','supervisor']},
  {label:'Reports',href:'/mdp/reports/',icon:'chart'},
  {label:'Voting day',href:'/mdp/voting-days/?status=pending',icon:'vote',roles:['admin','supervisor','election_operator']},
