@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="MDP Resident Voters">
+<rect width="512" height="512" rx="110" fill="#FFE47A"/>
+<rect x="22" y="22" width="468" height="468" rx="94" fill="none" stroke="#164B9F" stroke-width="15"/>
+<rect x="62" y="68" width="388" height="300" rx="53" fill="#164B9F"/>
+<text x="256" y="270" text-anchor="middle" font-family="Arial,Helvetica,sans-serif" font-size="150" font-weight="900" letter-spacing="-8" fill="#FFFFFF">MDP</text>
+<rect x="164" y="403" width="184" height="19" rx="9" fill="#164B9F"/>
+</svg>
