@@ -1,3 +1,2 @@
-import MDPResidentHome from '../../components/MDPResidentHome';
-
-export default function Page(){return <MDPResidentHome/>}
+import {redirect} from 'next/navigation';
+export default function Page(){redirect('/mdp/residents/');}
