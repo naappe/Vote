@@ -561,3 +561,11 @@
 }
 .mdp-workspace .mdp-nav-link{border-radius:11px;transition:background-color .15s ease,color .15s ease}
 .mdp-workspace .mdp-nav-link:hover{background:#edf4ff}
+
+/* Compact flip-board election countdown */
+.mdp-flip-countdown{display:flex;align-items:center;gap:8px;margin:3px 0}
+.mdp-flip-digits{display:flex;gap:3px}
+.mdp-flip-digit{position:relative;display:grid;place-items:center;min-width:32px;height:46px;border:1px solid #c8cbd0;border-radius:4px;background:linear-gradient(#f8f9fa 49%,#c9ccd0 50%,#f3f4f6 52%);box-shadow:0 2px 3px #0002;color:#121212;font-size:36px;font-weight:900;font-variant-numeric:tabular-nums;line-height:1}
+.mdp-flip-words{display:flex;flex-direction:column;color:#151515;font-size:15px;font-weight:900;line-height:1.05}
+.mdp-flip-words b{background:#171717;color:#fff;padding:2px 3px;font-size:13px}
+.mdp-workspace .mdp-nav-countdown .mdp-flip-time{font-size:10px}
