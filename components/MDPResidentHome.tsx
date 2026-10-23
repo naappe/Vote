@@ -1,7 +1,7 @@
 'use client';
 import Link from 'next/link';
 import {useEffect,useState} from 'react';
-import {supabase} from '../lib/supabase';
+import {getMdpHouseOptions} from '../lib/supabase';
 import {useStaffAccess} from './AuthGate';
 import MDPUserWork from './MDPUserWork';
 
@@ -22,17 +22,15 @@ export default function MDPResidentHome(){
  const access=useStaffAccess(),role=access?.role||'';
  const canManage=role==='admin'||role==='supervisor';
  const [houses,setHouses]=useState<{name:string;count:number}[]>([]),[houseLoading,setHouseLoading]=useState(true),[houseError,setHouseError]=useState('');
- useEffect(()=>{let active=true;void(async()=>{try{
-  const all:{house:string|null}[]=[];
-  for(let start=0;start<10000;start+=1000){const {data,error}=await supabase.from('Resident').select('house').ilike('party','MDP').order('id',{ascending:true}).range(start,start+999);if(error)throw error;const batch=(data||[]) as {house:string|null}[];all.push(...batch);if(batch.length<1000)break;}
-  const grouped=new Map<string,number>();
-  for(const item of all){const raw=String(item.house||'').trim();if(!raw)continue;
-   const name=/dhafthar|^(no\s*)?(dh\s*r|dhr|rs)(\s*no)?\s*[0-9]|^no\s*[0-9]/i.test(raw)?'Dhafthar':/sina mal[eé]/i.test(raw)?'Sina Malé':raw;
-   grouped.set(name,(grouped.get(name)||0)+1);
-  }
-  const result=[...grouped].map(([name,count])=>({name,count})).sort((a,b)=>b.count-a.count||a.name.localeCompare(b.name)).slice(0,10);
-  if(active)setHouses(result);
- }catch(e){if(active)setHouseError(e instanceof Error?e.message:'Unable to load houses')}finally{if(active)setHouseLoading(false)}})();return()=>{active=false}},[]);
+ useEffect(()=>{
+  let active=true;
+  void getMdpHouseOptions().then(all=>{
+   if(active)setHouses([...all].sort((a,b)=>b.count-a.count||a.name.localeCompare(b.name)).slice(0,10));
+  }).catch(e=>{if(active)setHouseError(e instanceof Error?e.message:'Unable to load houses')})
+   .finally(()=>{if(active)setHouseLoading(false)});
+  return()=>{active=false};
+ },[]);
+
  const canHandleVotingDay=canManage||role==='election_operator';
  return <div className="mdp-home mdp-home-simple">
   <MDPUserWork/>
