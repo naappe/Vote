@@ -552,3 +552,12 @@
 .mdp-workspace .mdp-home-quick-card small{font-size:12px;line-height:1.45}
 .mdp-workspace .mdp-home-quick-arrow{margin-top:auto;font-size:12px;font-weight:800}
 @media(max-width:700px){.mdp-workspace .mdp-home-quick-card{min-height:148px;padding:15px}}
+
+/* All primary workflows visible vertically without an expandable menu. */
+@media(min-width:1100px){
+ .mdp-workspace .mdp-navigation-items{gap:3px}
+ .mdp-workspace .mdp-nav-link{min-height:41px;padding-block:8px}
+ .mdp-workspace .mdp-nav-countdown{padding-top:8px}
+}
+.mdp-workspace .mdp-nav-link{border-radius:11px;transition:background-color .15s ease,color .15s ease}
+.mdp-workspace .mdp-nav-link:hover{background:#edf4ff}
