@@ -9,17 +9,14 @@ import MDPElectionCountdown from './MDPElectionCountdown';
 type NavItem={label:string;href:string;icon:string;roles?:string[]};
 const primary:NavItem[]=[
  {label:'Residents',href:'/mdp/residents/',icon:'users'},
+ {label:'Door-to-door',href:'/mdp/residents/?focus=visited',icon:'home'},
+ {label:'Vote',href:'/mdp/residents/?focus=undecided',icon:'vote'},
  {label:'Calls',href:'/mdp/calls/',icon:'phone'},
- {label:'Assignments',href:'/mdp/assignments/',icon:'tasks',roles:['admin','supervisor']},
+ {label:'Remarks',href:'/mdp/residents/?focus=remarks',icon:'note'},
  {label:'Transport',href:'/mdp/transportation/',icon:'truck'},
+ {label:'Assignments',href:'/mdp/assignments/',icon:'tasks',roles:['admin','supervisor']},
  {label:'Reports',href:'/mdp/reports/',icon:'chart'},
-];
-const secondary:NavItem[]=[
- {label:'House visits',href:'/mdp/residents/?focus=visited',icon:'home'},
- {label:'Voting plans',href:'/mdp/residents/?focus=undecided',icon:'vote'},
- {label:'Notes',href:'/mdp/residents/?focus=remarks',icon:'note'},
- {label:'Record who voted',href:'/mdp/voting-days/',icon:'vote',roles:['admin','supervisor','election_operator']},
- {label:'Arrange transport',href:'/mdp/transport-links/',icon:'truck',roles:['admin','supervisor','election_operator']},
+ {label:'Voting day',href:'/mdp/voting-days/',icon:'vote',roles:['admin','supervisor','election_operator']},
 ];
 const iconPaths:Record<string,string>={
  users:'M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2 M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8 M22 21v-2a4 4 0 0 0-3-3.87 M16 3.13a4 4 0 0 1 0 7.75',
@@ -34,10 +31,10 @@ const iconPaths:Record<string,string>={
 function NavIcon({name}:{name:string}){return <svg aria-hidden="true" width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d={iconPaths[name]||iconPaths.note}/></svg>}
 function isActive(pathname:string,focus:string|null,href:string){const [path,query]=href.split('?');if(pathname!==path.replace(/\/$/,'')&&!pathname.startsWith(path.replace(/\/$/,'')+'/'))return false;const selected=new URLSearchParams(query||'').get('focus');return selected?focus===selected:!focus}
 export default function MDPWorkspaceNavigation(){
- const access=useStaffAccess(),role=access?.role||'',pathname=(usePathname()||'/mdp/').replace(/\/$/,'')||'/mdp',params=useSearchParams(),focus=params.get('focus'),moreRef=useRef<HTMLDetailsElement>(null);
+ const access=useStaffAccess(),role=access?.role||'',pathname=(usePathname()||'/mdp/').replace(/\/$/,'')||'/mdp',params=useSearchParams(),focus=params.get('focus');
  const [menuOpen,setMenuOpen]=useState(false);
  const drawerRef=useRef<HTMLDivElement>(null),menuTriggerRef=useRef<HTMLButtonElement>(null);
- useEffect(()=>{if(moreRef.current)moreRef.current.open=false;setMenuOpen(false)},[pathname,focus]);
+ useEffect(()=>{setMenuOpen(false)},[pathname,focus]);
  useEffect(()=>{
   if(!menuOpen)return;
   const previousOverflow=document.body.style.overflow;
@@ -57,14 +54,13 @@ export default function MDPWorkspaceNavigation(){
   return()=>{window.removeEventListener('keydown',handleKey);document.body.style.overflow=previousOverflow;if(previousFocus?.isConnected)previousFocus.focus()};
  },[menuOpen]);
  const visible=(items:NavItem[])=>items.filter(item=>!item.roles||item.roles.includes(role));
- const moreActive=visible(secondary).some(item=>isActive(pathname,focus,item.href));
  return <nav aria-label="Main navigation" className="mdp-nav">
   <button className="mdp-mobile-menu-toggle" ref={menuTriggerRef} type="button" aria-expanded={menuOpen} aria-controls="mdp-navigation-items" onClick={()=>setMenuOpen(value=>!value)}><span aria-hidden="true">☰</span> Menu</button>
   {menuOpen&&<button type="button" className="mdp-mobile-menu-backdrop" aria-label="Close navigation menu" onClick={()=>setMenuOpen(false)}/>}
   <div ref={drawerRef} id="mdp-navigation-items" className={`mdp-navigation-items${menuOpen?" is-open":""}`}>
    <div className="mdp-mobile-menu-heading"><strong>MDP Resident Voters</strong><button type="button" aria-label="Close menu" onClick={()=>setMenuOpen(false)}>✕</button></div>
   <Link href="/mdp/" aria-current={pathname==='/mdp'?'page':undefined} className={`mdp-nav-link mdp-nav-home${pathname==='/mdp'?' is-active':''}`}><NavIcon name="home"/><span>Home</span></Link>
-  {visible(primary).map(item=><Link key={item.href} prefetch={false} href={item.href} aria-current={isActive(pathname,focus,item.href)?'page':undefined} className={`mdp-nav-link${isActive(pathname,focus,item.href)?' is-active':''}`}><NavIcon name={item.icon}/><span>{item.label}</span></Link>)}
+  {visible(primary).map(item=><Link key={item.href} href={item.href} aria-current={isActive(pathname,focus,item.href)?'page':undefined} className={`mdp-nav-link${isActive(pathname,focus,item.href)?' is-active':''}`}><NavIcon name={item.icon}/><span>{item.label}</span></Link>)}
   <div className="mdp-nav-countdown"><MDPElectionCountdown/></div>
   <div className="mdp-nav-account"><AuthControl/></div>
   </div>
