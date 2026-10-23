@@ -12,7 +12,7 @@ const primary:NavItem[]=[
  {label:'Door-to-door',href:'/mdp/residents/?focus=visit-pending',icon:'home'},
  {label:'Vote',href:'/mdp/residents/?focus=vote-pending',icon:'vote'},
  {label:'Calls',href:'/mdp/calls/?status=need-call',icon:'phone'},
- {label:'Remarks',href:'/mdp/residents/?focus=remarks-pending',icon:'note'},
+ {label:'Remarks',href:'/mdp/residents/?focus=remarks',icon:'note'},
  {label:'Transport',href:'/mdp/transportation/?status=pending',icon:'truck'},
  {label:'Assignments',href:'/mdp/assignments/?status=pending',icon:'tasks',roles:['admin','supervisor']},
  {label:'Reports',href:'/mdp/reports/',icon:'chart'},
