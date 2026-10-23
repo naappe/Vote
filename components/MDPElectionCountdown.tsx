@@ -25,7 +25,6 @@ export default function MDPElectionCountdown(){
  const left=remaining(day.voting_date,now);
  return <Link href="/mdp/voting-days/" className="mdp-election-countdown" title={'Voting day: '+day.name+' · '+day.voting_date} aria-label={left.started?'Voting day has arrived':left.days+' days '+left.hours+' hours until voting day'}>
   <span className="mdp-election-countdown-title">ELECTION COUNTDOWN</span>
-  <div className="mdp-flip-countdown"><span className="mdp-flip-digits" aria-hidden="true">{String(left.days).padStart(2,'0').split('').map((digit,index)=><span className="mdp-flip-digit" key={index}>{digit}</span>)}</span><span className="mdp-flip-words">{left.started?'VOTING':'DAYS'}<b>{left.started?'TODAY':'TO GO'}</b></span></div><small className="mdp-flip-time">{String(left.hours).padStart(2,'0')}h {String(left.minutes).padStart(2,'0')}m remaining</small>
-  <small>{day.name} · {day.voting_date}</small>
+  <div className="mdp-flip-countdown"><span className="mdp-flip-digits" aria-hidden="true">{String(left.days).padStart(2,'0').split('').map((digit,index)=><span className="mdp-flip-digit" key={index}>{digit}</span>)}</span><span className="mdp-flip-words">{left.started?'VOTING':'DAYS'}<b>{left.started?'TODAY':'TO GO'}</b></span></div>
  </Link>;
 }
