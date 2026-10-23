@@ -1,5 +1,5 @@
 'use client';
-import {createContext,useContext,useEffect,useState} from 'react';
+import {createContext,useContext,useEffect,useRef,useState} from 'react';
 import {usePathname} from 'next/navigation';
 import type {User} from '@supabase/supabase-js';
 import {supabase,invalidateResidentCache} from '../lib/supabase';
@@ -14,6 +14,7 @@ export default function AuthGate({children}:{children:React.ReactNode}){
  const [access,setAccess]=useState<Access>(null),[ready,setReady]=useState(false),[error,setError]=useState(''),[attempt,setAttempt]=useState(0),[recovery,setRecovery]=useState(false),[mdpAccess,setMdpAccess]=useState<{userId:string;allowed:boolean;checkFailed?:boolean}|null>(null),[mdpAttempt,setMdpAttempt]=useState(0);
  const [featureAccess,setFeatureAccess]=useState<{route:string;allowed:boolean;failed:boolean}|null>(null);
  const pathname=usePathname();
+ const permissionCache=useRef<Map<string,{allowed:boolean;checkedAt:number}>>(new Map());
  const route=pathname.replace(/^\/Vote(?=\/|$)/i,'').replace(/\/$/,'');
  const isMdpRoute=route==='/mdp'||route.startsWith('/mdp/');
  const featurePaths:[string,string][]=[['/mdp/calls','calls'],['/mdp/door-to-door','door_to_door'],['/mdp/voting-days','election_day'],['/mdp/voting','voting'],['/mdp/transportation','transport'],['/mdp/transport-links','transport'],['/mdp/assignments','assignments'],['/mdp/remarks','remarks'],['/mdp/reports','reports'],['/mdp/residents','residents']];
@@ -21,10 +22,23 @@ export default function AuthGate({children}:{children:React.ReactNode}){
  useEffect(()=>{
   let active=true;
   if(!access||!isMdpRoute||!feature){setFeatureAccess(null);return()=>{active=false}}
+  const cacheKey=access.user.id+':'+access.role+':'+feature;
+  const cached=permissionCache.current.get(cacheKey);
+  const valid=Boolean(cached&&Date.now()-cached.checkedAt<30000);
+  if(valid&&cached){
+   setFeatureAccess({route,allowed:cached.allowed,failed:false});
+   return()=>{active=false};
+  }
   setFeatureAccess(null);
-  void supabase.rpc('staff_has_feature_permission',{p_feature:feature}).then(({data,error})=>{if(active)setFeatureAccess({route,allowed:!error&&data===true,failed:!!error})});
+  void supabase.rpc('staff_has_feature_permission',{p_feature:feature}).then(({data,error})=>{
+   if(!active)return;
+   const allowed=!error&&data===true;
+   if(!error)permissionCache.current.set(cacheKey,{allowed,checkedAt:Date.now()});
+   setFeatureAccess({route,allowed,failed:!!error});
+  });
   return()=>{active=false}
  },[access?.user.id,access?.role,isMdpRoute,feature,route,attempt]);
+
  useEffect(()=>{
   let active=true,generation=0;
   const hashParams=new URLSearchParams(window.location.hash.replace(/^#/,'?'));
@@ -54,7 +68,7 @@ export default function AuthGate({children}:{children:React.ReactNode}){
   }
   const {data:{subscription}}=supabase.auth.onAuthStateChange((event)=>{
    // Supabase auth callbacks must stay synchronous; schedule network work outside the lock.
-   if(event==='SIGNED_OUT'){generation++;invalidateResidentCache();setAccess(null);setMdpAccess(null);setRecovery(false);setReady(true)}
+   if(event==='SIGNED_OUT'){generation++;permissionCache.current.clear();invalidateResidentCache();setAccess(null);setMdpAccess(null);setRecovery(false);setReady(true)}
    else if(event==='PASSWORD_RECOVERY'){setRecovery(true);setTimeout(()=>{if(active)void check()},0)}
    else if(event==='SIGNED_IN'||event==='TOKEN_REFRESHED'||event==='USER_UPDATED')setTimeout(()=>{if(active)void check()},0);
   });
