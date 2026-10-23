@@ -521,3 +521,25 @@
 .mdp-workspace .resident-card-standard dl dd{min-width:0;flex:1;overflow-wrap:anywhere;line-height:1.45;text-align:right}
 .mdp-workspace .resident-card-standard .btn-primary,.mdp-workspace .resident-card-standard .btn-secondary{min-height:40px;white-space:normal;text-wrap:balance}
 @media(max-width:680px){.mdp-workspace .resident-card-standard{padding:14px}.mdp-workspace .resident-card-standard .resident-photo{width:60px;height:60px}.mdp-workspace .resident-card-standard dl dt{flex-basis:36%}}
+
+/* 2026 UI refinement: readable resident cards and clearer navigation hierarchy. */
+.mdp-workspace .mdp-master-card{padding:19px 20px;min-height:246px;border-radius:16px}
+.mdp-workspace .mdp-master-identity{gap:15px;align-items:flex-start}
+.mdp-workspace .mdp-master-identity .mdp-card-photo{width:76px;height:76px;flex:none}
+.mdp-workspace .mdp-master-resident-name{font-size:15px;line-height:1.4;letter-spacing:0;overflow-wrap:break-word}
+.mdp-workspace .mdp-master-id{font-size:12px;line-height:1.55;margin-top:5px}
+.mdp-workspace .mdp-master-vote-badge{font-size:11px;line-height:1.4;white-space:normal}
+.mdp-workspace .mdp-master-actions{margin-top:15px;gap:9px}
+.mdp-workspace .mdp-master-card .mdp-master-chevron{width:28px;min-width:28px}
+.mdp-workspace .mdp-nav-link{min-height:44px;padding-inline:14px;gap:12px;line-height:1.4;font-size:13px}
+.mdp-workspace .mdp-nav-link svg{width:19px;height:19px}
+.mdp-workspace .mdp-nav-account{padding-top:12px}
+.mdp-workspace .mdp-home-quick-grid{gap:16px}
+.mdp-workspace .mdp-home-quick-card{padding:19px;gap:12px}
+@media(max-width:700px){
+ .mdp-workspace .mdp-master-card{padding:15px;min-height:0}
+ .mdp-workspace .mdp-master-identity{gap:11px}
+ .mdp-workspace .mdp-master-identity .mdp-card-photo{width:64px;height:64px}
+ .mdp-workspace .mdp-master-resident-name{font-size:14px}
+ .mdp-workspace .mdp-master-id{font-size:11px}
+}
