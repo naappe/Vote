@@ -575,3 +575,12 @@
 .mdp-master-actions .mdp-master-action{width:52px;height:52px;min-width:52px;min-height:52px;border-radius:16px;display:inline-flex;align-items:center;justify-content:center;touch-action:manipulation}
 .mdp-master-actions .mdp-master-action svg{width:25px;height:25px}
 @media(max-width:640px){.mdp-master-actions{gap:18px}.mdp-master-actions .mdp-master-action{width:58px;height:58px;min-width:58px;min-height:58px;border-radius:18px}.mdp-master-actions .mdp-master-action svg{width:28px;height:28px}}
+
+/* Compact, balanced mobile resident cards: eliminate dead space beside actions. */
+@media(max-width:650px){
+ .mdp-workspace .mdp-master-card{min-height:0;justify-content:flex-start;padding:16px;border-radius:20px;gap:0}
+ .mdp-workspace .mdp-master-identity{gap:12px}
+ .mdp-workspace .mdp-master-actions{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin:12px 0 14px;padding:0}
+ .mdp-workspace .mdp-master-actions .mdp-master-action{box-sizing:border-box;width:100%;height:58px;min-height:58px;min-width:0;max-width:none;flex:none;border-radius:15px;justify-self:stretch}
+ .mdp-workspace .mdp-master-data{padding-top:12px}
+}
