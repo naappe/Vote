@@ -229,11 +229,9 @@ function ResidentGalleryCard({resident:r,profilePath,workflow,workflowError,pdfS
   </div>
   <div className="mdp-master-actions" aria-label="Resident tasks">
    <button type="button" title={taskTooltip('call','Call')} aria-label={taskTooltip('call','Call')} onClick={()=>onViewTasks('call')} className={taskClass('call')}><ResidentTaskIcon name="phone"/></button>
-   <button type="button" title={taskTooltip('door-to-door','House visit')} aria-label={taskTooltip('door-to-door','House visit')} onClick={()=>onViewTasks('door-to-door')} className={taskClass('door-to-door')}><ResidentTaskIcon name="home"/></button>
-   {canAssign?<Link prefetch={false} href="/mdp/assignments/" title="Manage staff assignment" aria-label="Manage staff assignment" className="mdp-master-action"><ResidentTaskIcon name="person"/></Link>:<button type="button" title={taskTooltip('in-person-meeting','Meeting')} aria-label={taskTooltip('in-person-meeting','Meeting')} onClick={()=>onViewTasks('in-person-meeting')} className={taskClass('in-person-meeting')}><ResidentTaskIcon name="person"/></button>}
    <button type="button" title={taskTooltip('voting-intention','Voting plan')} aria-label={taskTooltip('voting-intention','Voting plan')} onClick={()=>onViewTasks('voting-intention')} className={taskClass('voting-intention')}><ResidentTaskIcon name="vote"/></button>
    <button type="button" title={taskTooltip('remarks','Remarks')} aria-label={taskTooltip('remarks','Remarks')} onClick={()=>onViewTasks('remarks')} className={taskClass('remarks')}><ResidentTaskIcon name="remark"/></button>
-   <button type="button" title={taskTooltip('transport','Transport')} aria-label={taskTooltip('transport','Transport')} onClick={()=>onViewTasks('transport')} className={taskClass('transport')}><ResidentTaskIcon name="transport"/></button>
+
   </div>
   <div className="mdp-master-data">
    <div><span>House</span><strong title={r.house||''}>{r.house||'Not recorded'}</strong></div>
