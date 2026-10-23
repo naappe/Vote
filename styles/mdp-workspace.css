@@ -543,3 +543,12 @@
  .mdp-workspace .mdp-master-resident-name{font-size:14px}
  .mdp-workspace .mdp-master-id{font-size:11px}
 }
+
+/* Workflow cards: clear sequence, comfortable targets and consistent hierarchy. */
+.mdp-workspace .mdp-home-quick-card{position:relative;min-height:176px;padding:19px 20px;gap:9px;border-radius:16px;transition:box-shadow .18s ease,border-color .18s ease,transform .18s ease}
+.mdp-workspace .mdp-home-quick-card:hover{border-color:#9bbbee;box-shadow:0 10px 22px rgba(12,50,115,.10);transform:translateY(-2px)}
+.mdp-workspace .mdp-home-step-number{display:grid;place-items:center;width:34px;height:34px;border-radius:11px;background:#eaf1fe;color:#1252b1;font-size:12px;font-weight:850;font-variant-numeric:tabular-nums}
+.mdp-workspace .mdp-home-quick-card strong{font-size:15px;line-height:1.3}
+.mdp-workspace .mdp-home-quick-card small{font-size:12px;line-height:1.45}
+.mdp-workspace .mdp-home-quick-arrow{margin-top:auto;font-size:12px;font-weight:800}
+@media(max-width:700px){.mdp-workspace .mdp-home-quick-card{min-height:148px;padding:15px}}
