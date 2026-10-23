@@ -569,3 +569,11 @@
 .mdp-flip-words{display:flex;flex-direction:column;color:#151515;font-size:15px;font-weight:900;line-height:1.05}
 .mdp-flip-words b{background:#171717;color:#fff;padding:2px 3px;font-size:13px}
 .mdp-workspace .mdp-nav-countdown .mdp-flip-time{font-size:10px}
+
+/* Compact circular activity distribution on the MDP home page. */
+.mdp-workspace .mdp-home-circle-stats .mdp-home-circle-stat{align-items:center;text-align:center;justify-content:center;gap:8px}
+.mdp-workspace .mdp-home-circle{width:92px;height:92px;border-radius:50%;display:grid;place-items:center;flex:none}
+.mdp-workspace .mdp-home-circle-inner{width:72px;height:72px;border-radius:50%;background:#fff;display:grid;place-items:center}
+.mdp-workspace .mdp-home-circle-inner strong{font-size:22px;font-variant-numeric:tabular-nums}
+.mdp-workspace .mdp-home-circle-stat small{font-size:11px;color:#64748b}
+@media(max-width:420px){.mdp-workspace .mdp-home-circle{width:76px;height:76px}.mdp-workspace .mdp-home-circle-inner{width:59px;height:59px}}

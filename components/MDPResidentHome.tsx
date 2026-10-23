@@ -2,7 +2,6 @@
 import Link from 'next/link';
 import {useEffect,useState} from 'react';
 import {getMdpHouseOptions} from '../lib/supabase';
-import {useStaffAccess} from './AuthGate';
 import MDPUserWork from './MDPUserWork';
 
 const dailyTasks=[
@@ -12,15 +11,7 @@ const dailyTasks=[
  {title:'Voting plan',detail:'Save intention and follow-up',href:'/mdp/residents/?focus=vote-pending',mark:'04'},
 ];
 
-const otherTasks=[
- {title:'Write or read notes',detail:'Check saved notes about residents.',href:'/mdp/residents/?focus=remarks'},
- {title:'Arrange transport',detail:'See residents who have a transport request.',href:'/mdp/transportation/'},
- {title:'View reports',detail:'See progress and saved results.',href:'/mdp/reports/'},
-];
-
 export default function MDPResidentHome(){
- const access=useStaffAccess(),role=access?.role||'';
- const canManage=role==='admin'||role==='supervisor';
  const [houses,setHouses]=useState<{name:string;count:number}[]>([]),[houseLoading,setHouseLoading]=useState(true),[houseError,setHouseError]=useState('');
  useEffect(()=>{
   let active=true;
@@ -31,7 +22,6 @@ export default function MDPResidentHome(){
   return()=>{active=false};
  },[]);
 
- const canHandleVotingDay=canManage||role==='election_operator';
  return <div className="mdp-home mdp-home-simple">
   <MDPUserWork/>
   <section className="mdp-home-section" aria-labelledby="mdp-daily-heading">
@@ -41,7 +31,7 @@ export default function MDPResidentHome(){
    </Link>)}</div>
   </section>
   <section className="mdp-home-section" aria-labelledby="mdp-top-houses-heading">
-   <div className="mdp-home-section-heading"><h2 id="mdp-top-houses-heading">Top 10 houses</h2></div>
+   <div className="mdp-home-section-heading"><h2 id="mdp-top-houses-heading">10 houses with the most residents</h2></div>
    {houseLoading?<div role="status" className="mdp-home-house-loading">Loading house counts…</div>:houseError?<p role="alert" className="mdp-home-house-loading">House counts unavailable. <Link prefetch={false} href="/mdp/residents/">Open Residents</Link></p>:houses.length?<div className="mdp-home-houses">{houses.map((house,index)=><Link prefetch={false} key={house.name} href={'/mdp/residents/?house='+encodeURIComponent(house.name)} className="mdp-home-house-row" title={'View residents in '+house.name}><span className="mdp-home-house-rank">{index+1}</span><strong>{house.name}</strong><span className="mdp-home-house-count">{house.count} {house.count===1?'resident':'residents'}</span><span className="mdp-home-house-arrow" aria-hidden="true">›</span></Link>)}</div>:<p className="mdp-home-house-loading">No house records are available.</p>}
   </section>
   <section className="mdp-home-section" aria-labelledby="mdp-other-heading">
