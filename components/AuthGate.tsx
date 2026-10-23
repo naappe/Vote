@@ -70,7 +70,7 @@ export default function AuthGate({children}:{children:React.ReactNode}){
    // Supabase auth callbacks must stay synchronous; schedule network work outside the lock.
    if(event==='SIGNED_OUT'){generation++;permissionCache.current.clear();invalidateResidentCache();setAccess(null);setMdpAccess(null);setRecovery(false);setReady(true)}
    else if(event==='PASSWORD_RECOVERY'){setRecovery(true);setTimeout(()=>{if(active)void check()},0)}
-   else if(event==='SIGNED_IN'||event==='TOKEN_REFRESHED'||event==='USER_UPDATED')setTimeout(()=>{if(active)void check()},0);
+   else if(event==='SIGNED_IN'||event==='USER_UPDATED')setTimeout(()=>{if(active)void check()},0);
   });
   void check();
   return()=>{active=false;generation++;subscription.unsubscribe()};
