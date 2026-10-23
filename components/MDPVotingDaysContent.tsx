@@ -1,7 +1,6 @@
 'use client';
 import {Fragment,useCallback,useEffect,useRef,useState} from 'react';
 import Link from 'next/link';
-import MDPBackButton from './MDPBackButton';
 import {getMdpRosterPage,supabase} from '../lib/supabase';
 import {clampPage,pageCount,votingStatusLabel,type MDPVotingResident} from '../lib/mdp-voting-utils';
 import type {Resident} from '../lib/types';
@@ -91,7 +90,7 @@ export default function MDPVotingDaysContent(){
  }
  const pages=pageCount(count,pageSize);
  return <div className="space-y-4">
-  <div className="flex items-center"><MDPBackButton/></div><section className="panel mdp-vote-hero"><div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_minmax(300px,380px)]"><div className="mdp-vote-hero-left"><p className="eyebrow">Election day</p><h1 className="mt-1 text-2xl">Voting day</h1>
+  <section className="panel mdp-vote-hero"><div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_minmax(300px,380px)]"><div className="mdp-vote-hero-left"><p className="eyebrow">Election day</p><h1 className="mt-1 text-2xl">Voting day</h1>
    {days.some(day=>day.active)&&<label className="mt-5 block max-w-lg"><span className="field-label">Choose voting day</span><select className="field" value={dayId} onChange={e=>{setDayId(e.target.value);setPage(1);setMessage('')}}>{days.filter(day=>day.active).map(day=><option key={day.id} value={day.id}>{day.name} · {new Date(day.voting_date+'T00:00:00').toLocaleDateString()}</option>)}</select></label>}
    {canManage&&<details className="mt-4"><summary className="cursor-pointer text-sm font-bold text-primary">Manage voting days</summary><div className="mt-3 grid gap-3 sm:grid-cols-[1fr_1fr_auto]"><input className="field" aria-label="Voting day name" value={name} onChange={e=>setName(e.target.value)} placeholder="Name, e.g. Day 1"/><input className="field" aria-label="Voting date" type="date" value={date} onChange={e=>setDate(e.target.value)}/><button className="btn-primary" onClick={createDay}>Add voting day</button></div>{dayId&&<button className="btn-secondary mt-4" onClick={()=>{const day=days.find(item=>item.id===dayId);if(day)void setDayActive(day,false)}}>Archive selected day</button>}<div className="mt-4 border-t border-border pt-4"><p className="text-sm font-semibold text-navy">Archived days</p><div className="mt-2 space-y-2">{days.filter(day=>!day.active).map(day=><div key={day.id} className="flex flex-wrap items-center justify-between gap-2 rounded-lg bg-slate-50 p-3 text-sm"><span>{day.name} · {new Date(day.voting_date+'T00:00:00').toLocaleDateString()}</span><button className="btn-secondary" onClick={()=>void setDayActive(day,true)}>Restore</button></div>)}{!days.some(day=>!day.active)&&<p className="text-xs text-body">No archived voting days.</p>}</div></div></details>}
   <div className="mdp-vote-shortcuts"><button type="button" onClick={()=>{setStatusFilter('all');setSerial('');setQuery('');setPage(1)}}><strong>540</strong><span>PDF residents</span></button><button type="button" onClick={()=>{setStatusFilter('remaining');setSerial('');setQuery('');setPage(1)}}><strong>Find</strong><span>Remaining voters →</span></button><Link href="/mdp/residents/"><strong>Search</strong><span>Resident directory →</span></Link></div>
