@@ -23,10 +23,12 @@ export default function MDPUserWork(){
   return()=>{active=false};
  },[access?.user.id,admin]);
  const totals=items.reduce((acc,item)=>({calls:acc.calls+Number(item.call_records||0),visits:acc.visits+Number(item.visit_records||0),meetings:acc.meetings+Number(item.meeting_records||0),plans:acc.plans+Number(item.voting_plan_records||0)}),{calls:0,visits:0,meetings:0,plans:0});
+ const totalUpdates=totals.calls+totals.visits+totals.meetings+totals.plans;
+ const metrics=[{label:'Call updates',value:totals.calls},{label:'House visits',value:totals.visits},{label:'Meetings',value:totals.meetings},{label:'Vote plan updates',value:totals.plans}];
  return <section className="mdp-home-section" aria-labelledby="mdp-work-heading">
   <div className="mdp-home-section-heading"><h2 id="mdp-work-heading">{admin?'Work by Login User':'My Saved Work'}</h2><p>{admin?'Updates recorded by staff login accounts.':'Only updates recorded under your signed-in account.'}</p></div>
   {loading?<p role="status" className="mdp-home-house-loading">Loading saved work…</p>:error?<p role="alert" className="mdp-home-house-loading">{error}</p>:<>
-   <div className="mdp-home-task-stats"><div><span>Call updates</span><strong>{totals.calls}</strong></div><div><span>House visits</span><strong>{totals.visits}</strong></div><div><span>Meetings</span><strong>{totals.meetings}</strong></div><div><span>Vote plan updates</span><strong>{totals.plans}</strong></div></div>
+   <div className="mdp-home-task-stats mdp-home-circle-stats">{metrics.map(metric=>{const percent=totalUpdates?Math.round(100*metric.value/totalUpdates):0;return <div key={metric.label} className="mdp-home-circle-stat"><div className="mdp-home-circle" role="img" aria-label={`${metric.label}: ${metric.value} of ${totalUpdates} tracked updates`} style={{background:`conic-gradient(#2463c5 ${percent}%,#e7eef8 ${percent}% 100%)`}}><div className="mdp-home-circle-inner"><strong>{metric.value}</strong></div></div><span>{metric.label}</span><small>{percent}% of tracked updates</small></div>})}</div>
    {admin&&items.length>0&&<div className="mdp-home-task-list">{items.map(item=><div className="mdp-home-task-row" key={item.recorder_email}><span className="mdp-home-task-info"><strong>{item.recorder_email}</strong><small>{Number(item.call_records)} calls · {Number(item.visit_records)} visits · {Number(item.meeting_records)} meetings · {Number(item.voting_plan_records)} vote plans</small></span><span className="mdp-home-task-state">{Number(item.total_records)} updates</span></div>)}</div>}
    {!items.length&&<p className="mdp-home-house-loading">{admin?'No recorded user activity is available.':'No saved updates are recorded under your login yet.'}</p>}
 
