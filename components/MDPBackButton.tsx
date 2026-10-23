@@ -1,40 +1,31 @@
 'use client';
+import {useEffect,useRef,useState} from 'react';
+import {usePathname,useRouter,useSearchParams} from 'next/navigation';
 
-import {useEffect} from 'react';
-import {usePathname, useRouter} from 'next/navigation';
-
-const LAST_MDP_PAGE = 'mdp:last-page';
-
+const KEY='mdp:page-history';
+const HOME='/mdp/';
+function readHistory():string[]{try{const value=JSON.parse(sessionStorage.getItem(KEY)||'[]');return Array.isArray(value)?value.filter((x):x is string=>typeof x==='string'&&x.startsWith('/mdp/')&&!x.startsWith('//')).slice(-30):[]}catch{return []}}
 export default function MDPBackButton(){
  const pathname=usePathname();
+ const params=useSearchParams();
  const router=useRouter();
- const fallback=pathname?.includes('/resident-profile')?'/mdp/residents/':'/mdp/';
-
+ const current=(pathname||HOME)+(params.toString()?'?'+params.toString():'');
+ const [,setPrevious]=useState<string|null>(null);
+ const navigatingBack=useRef(false);
  useEffect(()=>{
-  const rememberCurrentPage=(event:MouseEvent)=>{
-   if(event.defaultPrevented||event.button!==0||event.metaKey||event.ctrlKey||event.shiftKey||event.altKey)return;
-   const target=event.target;
-   if(!(target instanceof Element))return;
-   const anchor=target.closest('a[href]');
-   if(!(anchor instanceof HTMLAnchorElement)||anchor.target==='_blank')return;
-   const destination=new URL(anchor.href,window.location.href);
-   if(destination.origin!==window.location.origin||!destination.pathname.includes('/mdp/'))return;
-   const current=(pathname||'/mdp/')+window.location.search;
-   if(destination.pathname+destination.search!==current)sessionStorage.setItem(LAST_MDP_PAGE,current);
-  };
-  document.addEventListener('click',rememberCurrentPage,true);
-  return ()=>document.removeEventListener('click',rememberCurrentPage,true);
- },[pathname]);
-
+  const stack=readHistory();
+  if(navigatingBack.current){navigatingBack.current=false}
+  else if(stack[stack.length-1]!==current){stack.push(current);sessionStorage.setItem(KEY,JSON.stringify(stack.slice(-30)))}
+  setPrevious(stack.length>1?stack[stack.length-2]:null);
+ },[current]);
  function goBack(){
-  const previous=sessionStorage.getItem(LAST_MDP_PAGE);
-  sessionStorage.removeItem(LAST_MDP_PAGE);
-  router.push(previous||fallback);
+  const stack=readHistory();
+  if(stack[stack.length-1]===current)stack.pop();
+  const destination=stack[stack.length-1]||(pathname?.includes('/resident-profile')?'/mdp/residents/':HOME);
+  sessionStorage.setItem(KEY,JSON.stringify(stack));
+  navigatingBack.current=true;
+  router.push(destination);
  }
-
- if(pathname==='/mdp'||pathname==='/mdp/')return null;
-
- return <button type="button" className="mdp-back-button" onClick={goBack}>
-  <span aria-hidden="true">←</span> Back
- </button>;
+ if(pathname===HOME||pathname==='/mdp')return null;
+ return <button type="button" className="mdp-back-button" onClick={goBack} aria-label="Back to previous page"><span aria-hidden="true">←</span> Back</button>;
 }
