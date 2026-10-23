@@ -59,8 +59,8 @@ export default function MDPWorkspaceNavigation(){
   {menuOpen&&<button type="button" className="mdp-mobile-menu-backdrop" aria-label="Close navigation menu" onClick={()=>setMenuOpen(false)}/>}
   <div ref={drawerRef} id="mdp-navigation-items" className={`mdp-navigation-items${menuOpen?" is-open":""}`}>
    <div className="mdp-mobile-menu-heading"><strong>MDP Resident Voters</strong><button type="button" aria-label="Close menu" onClick={()=>setMenuOpen(false)}>✕</button></div>
-  <Link href="/mdp/" aria-current={pathname==='/mdp'?'page':undefined} className={`mdp-nav-link mdp-nav-home${pathname==='/mdp'?' is-active':''}`}><NavIcon name="home"/><span>Home</span></Link>
-  {visible(primary).map(item=><Link key={item.href} href={item.href} aria-current={isActive(pathname,focus,item.href)?'page':undefined} className={`mdp-nav-link${isActive(pathname,focus,item.href)?' is-active':''}`}><NavIcon name={item.icon}/><span>{item.label}</span></Link>)}
+  <Link prefetch={false} href="/mdp/" aria-current={pathname==='/mdp'?'page':undefined} className={`mdp-nav-link mdp-nav-home${pathname==='/mdp'?' is-active':''}`}><NavIcon name="home"/><span>Home</span></Link>
+  {visible(primary).map(item=><Link key={item.href} prefetch={item.href==='/mdp/residents/'} href={item.href} aria-current={isActive(pathname,focus,item.href)?'page':undefined} className={`mdp-nav-link${isActive(pathname,focus,item.href)?' is-active':''}`}><NavIcon name={item.icon}/><span>{item.label}</span></Link>)}
   <div className="mdp-nav-countdown"><MDPElectionCountdown/></div>
   <div className="mdp-nav-account"><AuthControl/></div>
   </div>
