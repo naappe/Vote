@@ -1,24 +1,22 @@
-const CACHE_NAME='campaignops-shell-v3';
-const APP_SHELL=['/Vote/','/Vote/manifest.webmanifest','/Vote/favicon.svg'];
-
-self.addEventListener('install',event=>{
-  event.waitUntil(caches.open(CACHE_NAME).then(cache=>cache.addAll(APP_SHELL)).then(()=>self.skipWaiting()));
-});
-
-self.addEventListener('activate',event=>{
-  event.waitUntil(caches.keys().then(keys=>Promise.all(keys.filter(key=>key.startsWith('campaignops-shell-')&&key!==CACHE_NAME).map(key=>caches.delete(key)))).then(()=>self.clients.claim()));
-});
-
+/* Generic app worker: public static files only; never cache authenticated pages. */
+const NAME='campaignops-static-v4';
+self.addEventListener('install',event=>event.waitUntil(self.skipWaiting()));
+self.addEventListener('activate',event=>event.waitUntil((async()=>{
+ for(const name of await caches.keys())if(name.startsWith('campaignops-shell-')||name.startsWith('campaignops-static-')&&name!==NAME)await caches.delete(name);
+ await self.clients.claim();
+})()));
 self.addEventListener('fetch',event=>{
-  const request=event.request;
-  if(request.method!=='GET')return;
-  const url=new URL(request.url);
-  if(url.origin!==self.location.origin)return;
-  if(url.pathname.startsWith('/Vote/_next/static/')||url.pathname==='/Vote/favicon.svg'||url.pathname==='/Vote/manifest.webmanifest'){
-    event.respondWith(fetch(request).then(response=>{const copy=response.clone();caches.open(CACHE_NAME).then(cache=>cache.put(request,copy));return response;}).catch(()=>caches.match(request)));
-    return;
-  }
-  if(request.mode==='navigate'){
-    event.respondWith(fetch(request).then(response=>{const copy=response.clone();caches.open(CACHE_NAME).then(cache=>cache.put(request,copy));return response;}).catch(()=>caches.match(request).then(cached=>cached||caches.match('/Vote/'))));
-  }
+ const request=event.request;
+ if(request.method!=='GET'||request.mode==='navigate')return;
+ const url=new URL(request.url);
+ if(url.origin!==self.location.origin)return;
+ if(!url.pathname.startsWith('/Vote/_next/static/')&&url.pathname!=='/Vote/favicon.svg')return;
+ event.respondWith((async()=>{
+  const cache=await caches.open(NAME);
+  const saved=await cache.match(request);
+  if(saved)return saved;
+  const response=await fetch(request);
+  if(response.ok&&response.type!=='opaque')await cache.put(request,response.clone());
+  return response;
+ })());
 });
