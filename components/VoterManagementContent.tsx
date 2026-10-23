@@ -175,14 +175,7 @@ export default function VoterManagementContent({profilePath='/resident-profile/'
       </label>
       {!partyControls&&<div className="mdp-reference-area"><HousePicker houses={houses} value={house} onOpen={loadFilters} loading={filtersLoading} onChange={v=>changeFilter(setHouse,v)}/></div>}
       {!partyControls&&<label className="mdp-reference-serial"><span className="text-xs font-semibold text-slate-700">MDP Serial</span><input aria-label="Find resident by MDP serial number" className="field w-full" inputMode="numeric" autoComplete="off" type="text" maxLength={5} placeholder="e.g. 445" value={serialInput} onChange={e=>{setSerialInput(e.target.value.replace(/[^0-9]/g,''));setPage(1)}}/></label>}
-      <label className="mdp-reference-status"><span className="sr-only">Report / task status</span><select aria-label="Report / task status" className="field" value={focus} onChange={e=>e.target.value==='__voting_day'?router.push('/mdp/voting-days/'):selectSummaryFocus(e.target.value)}><option value="all">All residents</option>
-        <optgroup label="Calls">{focusOptions.filter(([value])=>['missing-phone','call-pending','need-call','called','reached','connected'].includes(value)).map(([value,label])=><option key={value} value={value}>{label}</option>)}</optgroup>
-        <optgroup label="Door-to-door">{focusOptions.filter(([value])=>['visit-pending','visited','not-visited'].includes(value)).map(([value,label])=><option key={value} value={value}>{label}</option>)}</optgroup>
-        <optgroup label="Voting plans">{focusOptions.filter(([value])=>['vote-pending','vote-unsure','will-vote','not-vote','undecided'].includes(value)).map(([value,label])=><option key={value} value={value}>{label}</option>)}</optgroup>
-        <optgroup label="Remarks"><option value="remarks-pending">No remarks yet</option><option value="remarks">Remarks recorded</option></optgroup>
-        <optgroup label="Transport"><option value="transport-pending">No transport request</option><option value="transport">Transport recorded</option></optgroup>
-        <optgroup label="Assignments"><option value="assignment-pending">Unassigned</option></optgroup>
-        {!partyControls&&<optgroup label="Voting day"><option value="__voting_day">Record who voted →</option></optgroup>}</select></label>
+      
       {partyControls&&<Select label="Party" value={party} onChange={v=>changeFilter(setParty,v)} options={[["all","All parties"],...parties.map(p=>[p.name,`${p.name==='Unspecified'?'No party':p.name} (${p.count})`])]}/>}
       <button className="btn-secondary mdp-reference-clear" onClick={clearFilters} disabled={!hasFilters}>Clear</button>
     </div>
