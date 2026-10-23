@@ -6,10 +6,10 @@ import {useStaffAccess} from './AuthGate';
 import MDPUserWork from './MDPUserWork';
 
 const dailyTasks=[
- {title:'Find a resident',detail:'Search by name, ID, house or phone number.',href:'/mdp/residents/',mark:'01'},
- {title:'Record a phone call',detail:'See who was called and save the call result.',href:'/mdp/calls/',mark:'02'},
- {title:'Record a house visit',detail:'Find residents visited at home and update their visit result.',href:'/mdp/residents/?focus=visited',mark:'03'},
- {title:'Check voting plans',detail:'See who plans to vote, who is unsure, and who needs follow-up.',href:'/mdp/residents/?focus=undecided',mark:'04'},
+ {title:'Find resident',detail:'Search by MDP serial, name or house',href:'/mdp/residents/',mark:'01'},
+ {title:'Call',detail:'Contact and record the result',href:'/mdp/calls/',mark:'02'},
+ {title:'House visit',detail:'Record visit and resident remarks',href:'/mdp/residents/?focus=visited',mark:'03'},
+ {title:'Voting plan',detail:'Save intention and follow-up',href:'/mdp/residents/?focus=undecided',mark:'04'},
 ];
 
 const otherTasks=[
@@ -38,8 +38,8 @@ export default function MDPResidentHome(){
   <MDPUserWork/>
   <section className="mdp-home-section" aria-labelledby="mdp-daily-heading">
    <div className="mdp-home-section-heading"><h2 id="mdp-daily-heading">Quick actions</h2></div>
-   <div className="mdp-home-quick-grid">{dailyTasks.map(task=><Link prefetch={false} key={task.title} href={task.href} className="mdp-home-quick-card">
-    <strong>{task.title}</strong><small>{task.detail}</small><span className="mdp-home-quick-arrow" aria-hidden="true">Open →</span>
+   <div className="mdp-home-quick-grid">{dailyTasks.map(task=><Link key={task.title} href={task.href} className="mdp-home-quick-card">
+    <span className="mdp-home-step-number">{task.mark}</span><strong>{task.title}</strong><small>{task.detail}</small><span className="mdp-home-quick-arrow" aria-hidden="true">Continue →</span>
    </Link>)}</div>
   </section>
   <section className="mdp-home-section" aria-labelledby="mdp-top-houses-heading">
