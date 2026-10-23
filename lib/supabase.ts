@@ -121,19 +121,19 @@ export async function getMdpHouseOptions():Promise<HouseOption[]>{
  try{return await request}finally{if(mdpHousesRequest===request)mdpHousesRequest=null}
 }
 
-export async function getMdpRosterPage(filters:DirectoryFilters,page=1,pageSize=50,fresh=false):Promise<ResidentPage>{
+export async function getMdpRosterPage(filters:DirectoryFilters,page=1,pageSize=50,fresh=false,focus='all'):Promise<ResidentPage>{
  const args={p_page:page,p_page_size:pageSize,p_search:filters.search||'',p_house:filters.house||'all',p_gender:filters.gender||'all',p_age:filters.age||'all',p_box:filters.box||'all'};
- const cacheKey=JSON.stringify(args),cached=mdpRosterCache.get(cacheKey);
+ const cacheKey=JSON.stringify({...args,focus}),cached=mdpRosterCache.get(cacheKey);
  if(!fresh&&cached&&cached.expires>Date.now())return cached.data;
  if(!fresh&&mdpRosterRequests.has(cacheKey))return mdpRosterRequests.get(cacheKey)!;
  const epoch=mdpRosterEpoch;
  const request=(async()=>{
-  const {data,error}=await supabase.rpc('mdp_2026_roster_directory',args);
+  const {data,error}=focus==='all'?await supabase.rpc('mdp_2026_roster_directory',args):await supabase.rpc('mdp_2026_task_directory',{...args,p_focus:focus});
   if(error)throw new Error('MDP 2026 roster failed: '+error.message);
   const result:ResidentPage={count:Number(data.count||0),rows:(data.rows||[]).map((row:any)=>({...row,phone:row.phone==null?null:String(row.phone),party:normalizeParty(row.party)} as Resident))};
   if(epoch===mdpRosterEpoch){
    if(mdpRosterCache.size>=40)mdpRosterCache.clear();
-   mdpRosterCache.set(cacheKey,{expires:Date.now()+25000,data:result});
+   mdpRosterCache.set(cacheKey,{expires:Date.now()+(focus==='all'?25000:10000),data:result});
   }
   return result;
  })();
