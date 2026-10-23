@@ -167,9 +167,26 @@ export default function VoterManagementContent({profilePath='/resident-profile/'
     <button className="btn-primary mdp-reference-export" onClick={exportResults} disabled={exporting||loading||focus!=='all'||Boolean(serialFilter)} title={focus==='all'&&!serialFilter?'Download all matching residents across every page':'Clear the task status filter to export the full directory'}>{exporting?`Exporting ${exportProgress}`:partyControls?'Export CSV':'↓ Export Excel'}</button>
   </section>
 
-<style>{`@media(max-width:640px){.mdp-reference-filters{padding:12px!important;margin-bottom:8px!important}.mdp-polished-filter-grid{display:grid!important;grid-template-columns:minmax(0,1fr) minmax(0,1fr)!important;gap:10px!important;align-items:end!important}.mdp-polished-filter-grid>.mdp-reference-search{grid-column:1/-1!important;min-width:0}.mdp-polished-filter-grid>.mdp-reference-area,.mdp-polished-filter-grid>.mdp-reference-serial{grid-column:auto!important;min-width:0!important;width:100%!important}.mdp-polished-filter-grid>.mdp-reference-clear{grid-column:1/-1!important;justify-self:end!important;min-height:34px!important;padding:5px 14px!important}.mdp-polished-filter-grid .field{width:100%!important;min-width:0!important}.mdp-polished-secondary{display:flex!important;align-items:center!important;justify-content:space-between!important;gap:8px!important;margin-top:8px!important}.mdp-polished-secondary>.group{min-width:0}.mdp-polished-secondary>.btn-secondary{min-height:38px!important;padding:7px 10px!important;font-size:12px!important;white-space:nowrap}.mdp-directory-paging{padding:8px 0!important;gap:7px!important}.mdp-directory-paging>div{justify-content:space-between!important;gap:5px!important}.mdp-directory-paging button{padding-left:9px!important;padding-right:9px!important;min-height:36px!important}.mdp-directory-paging select{min-height:36px!important}.mdp-directory-paging p{font-size:12px!important}}`}</style>
+<style>{`@media(max-width:640px){
+.mdp-reference-filters{padding:10px 12px!important;margin:0 0 6px!important}
+.mdp-polished-filter-grid{display:grid!important;grid-template-columns:minmax(0,1fr) minmax(0,1fr)!important;column-gap:10px!important;row-gap:8px!important;align-items:end!important}
+.mdp-polished-filter-grid>.mdp-reference-search{grid-column:1/-1!important;min-width:0!important}
+.mdp-polished-filter-grid>.mdp-reference-area{grid-column:1!important;grid-row:2!important;min-width:0!important;width:100%!important}
+.mdp-polished-filter-grid>.mdp-reference-serial{grid-column:2!important;grid-row:2!important;min-width:0!important;width:100%!important}
+.mdp-polished-filter-grid>.mdp-reference-clear{grid-column:2!important;grid-row:3!important;justify-self:end!important;min-height:32px!important;padding:5px 12px!important}
+.mdp-polished-filter-grid .field,.mdp-polished-filter-grid select{width:100%!important;min-width:0!important;max-width:100%!important}
+.mdp-polished-filter-grid label{min-width:0!important}
+.mdp-polished-secondary{display:flex!important;align-items:center!important;justify-content:space-between!important;gap:8px!important;margin-top:4px!important;padding:0!important}
+.mdp-polished-secondary>.group{min-width:0!important}
+.mdp-polished-secondary>.btn-secondary{min-height:36px!important;padding:6px 9px!important;font-size:12px!important;white-space:nowrap}
+.mdp-directory-paging{padding:7px 0!important;gap:6px!important}
+.mdp-directory-paging>div{justify-content:space-between!important;gap:5px!important}
+.mdp-directory-paging button{padding:6px 9px!important;min-height:36px!important}
+.mdp-directory-paging select{min-height:36px!important}
+.mdp-directory-paging p{font-size:12px!important}
+}`}</style>
   <section className={partyControls?"panel space-y-3 !p-4":"mdp-reference-filters"}>
-    <div className={partyControls?"grid gap-3":"mdp-reference-filter-main"}>
+    <div className={partyControls?"grid gap-3":"mdp-reference-filter-main mdp-polished-filter-grid"}>
       <label className="mdp-reference-search">
         <span className="sr-only">Search residents</span>
         <span aria-hidden="true" className="mdp-search-icon">⌕</span>
