@@ -15,7 +15,7 @@ import {useStaffAccess} from './AuthGate';
 type ViewMode='list'|'gallery';
 type Props={profilePath?:string;partyControls?:boolean};
 type WorkflowSummary={hasCallRecord:boolean;callOutcome:string|null;callAttempts:number;voteStatus:string|null;hasVoteIntention:boolean;lastCallAt:string|null;visitStatus:string|null;lastVisitAt:string|null;transportStatus:string|null;transportNote:string|null;latestRemark:string|null;writtenRemarks:string[];hasRemarks:boolean;hasInPersonMeeting:boolean};
-const focusOptions=[['all','All residents'],['missing-phone','Missing phone'],['call-pending','Pending calls'],['need-call','Need call'],['called','Called'],['reached','Reached'],['connected','Connected'],['visit-pending','Pending visits'],['visited','Visited'],['not-visited','Not visited'],['assignment-pending','Unassigned'],['unassigned','Unassigned (legacy)'],['remarks-pending','No remarks yet'],['remarks','Remarks recorded'],['transport-pending','Not requested'],['transport','Transport recorded'],['vote-pending','Not asked yet'],['vote-unsure','Not sure yet'],['will-vote','Will vote'],['not-vote','Will not vote'],['undecided','Undecided (all)']] as const;
+const focusOptions=[['all','All residents'],['missing-phone','Missing phone'],['call-pending','Pending calls'],['need-call','Need call'],['called','Called'],['reached','Reached'],['connected','Connected'],['visit-pending','Pending visits'],['visited','Visited'],['not-visited','Not visited'],['assignment-pending','Unassigned'],['unassigned','Unassigned (legacy)'],['remarks','Remarks recorded'],['remarks-pending','No remarks yet'],['transport-pending','Not requested'],['transport','Transport recorded'],['vote-pending','Not asked yet'],['vote-unsure','Not sure yet'],['will-vote','Will vote'],['not-vote','Will not vote'],['undecided','Undecided (all)']] as const;
 const meetingWasCompleted=(remark:string)=>/^Meeting result:\s*Met resident in person\b|^Met resident in person\b/i.test(remark.trim());
 export default function VoterManagementContent({profilePath='/resident-profile/',partyControls=true}:Props={}){
  const pathname=usePathname(),router=useRouter(),params=useSearchParams(),resultsRef=useRef<HTMLElement>(null);
@@ -249,7 +249,7 @@ function ResidentGalleryCard({resident:r,profilePath,workflow,workflowError,pdfS
    <div><span>Sex</span><strong>{r.sex||'—'}</strong></div>
   </div>
   {workflowError&&<p className="mt-2 text-xs text-amber-700" role="status">Task status unavailable</p>}
-  {showRemark&&<div className="mt-3 flex flex-wrap gap-1.5" aria-label="Written resident remarks">{workflow?.writtenRemarks?.length?workflow.writtenRemarks.map((remark,index)=><span key={index} className="max-w-full break-words rounded-md border border-blue-100 bg-blue-50 px-2 py-1 text-xs text-blue-900" title={remark}>{remark}</span>):<span className="text-xs text-body">No saved remarks on this page.</span>}</div>}
+  {showRemark&&<div className="mt-3 space-y-2" aria-label="Written resident remarks">{workflow?.writtenRemarks?.length?workflow.writtenRemarks.map((remark,index)=><span key={index} className="block w-full break-words rounded-xl border-l-4 border-amber-400 bg-amber-50 px-4 py-3 text-base font-semibold leading-relaxed text-slate-900" title={remark}>{remark}</span>):<span className="text-xs text-body">Remark details loading or unavailable.</span>}</div>}
  </article>;
 }
 function ResidentFlipCard({resident:r,profilePath,partyControls,workflow,workflowError}:{resident:Resident;profilePath:string;partyControls:boolean;workflow?:WorkflowSummary;workflowError:string}){
