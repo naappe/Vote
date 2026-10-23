@@ -5,8 +5,8 @@
   "start_url": "/Vote/mdp/",
   "scope": "/Vote/mdp/",
   "display": "standalone",
-  "background_color": "#FFE47A",
-  "theme_color": "#164B9F",
+  "background_color": "#0750C5",
+  "theme_color": "#0750C5",
   "icons": [
     {
       "src": "/Vote/mdp-icon.svg",
