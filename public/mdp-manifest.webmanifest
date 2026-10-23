@@ -1,6 +1,6 @@
 {
   "name": "MDP Residents",
-  "short_name": "MDP",
+  "short_name": "MDP Voters",
   "description": "Villimalé MDP Resident Voters",
   "start_url": "/Vote/mdp/",
   "scope": "/Vote/mdp/",
@@ -9,7 +9,7 @@
   "theme_color": "#0750C5",
   "icons": [
     {
-      "src": "/Vote/mdp-icon.svg?v=20261023",
+      "src": "/Vote/mdp-icon.svg?v=20261023b",
       "sizes": "any",
       "type": "image/svg+xml",
       "purpose": "any maskable"
