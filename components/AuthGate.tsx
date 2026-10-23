@@ -26,7 +26,7 @@ export default function AuthGate({children}:{children:React.ReactNode}){
   const cached=permissionCache.current.get(cacheKey);
   const valid=Boolean(cached&&Date.now()-cached.checkedAt<30000);
   if(valid&&cached){
-   setFeatureAccess({route,allowed:cached.allowed,failed:false});
+   setFeatureAccess({route:feature,allowed:cached.allowed,failed:false});
    return()=>{active=false};
   }
   setFeatureAccess(null);
@@ -34,10 +34,10 @@ export default function AuthGate({children}:{children:React.ReactNode}){
    if(!active)return;
    const allowed=!error&&data===true;
    if(!error)permissionCache.current.set(cacheKey,{allowed,checkedAt:Date.now()});
-   setFeatureAccess({route,allowed,failed:!!error});
+   setFeatureAccess({route:feature,allowed,failed:!!error});
   });
   return()=>{active=false}
- },[access?.user.id,access?.role,isMdpRoute,feature,route,attempt]);
+ },[access?.user.id,access?.role,isMdpRoute,feature,attempt]);
 
  useEffect(()=>{
   let active=true,generation=0;
@@ -104,7 +104,7 @@ export default function AuthGate({children}:{children:React.ReactNode}){
  }
  if(['/users','/backup'].includes(route)&&access.role!=='admin')return <main className="p-6"><h1>Administrator access required</h1><a href="/Vote/">Return to dashboard</a></main>;
  if((route==='/mdp/verification'||route.startsWith('/mdp/verification/'))&&access.role!=='admin')return <main className="p-6"><h1>Administrator access required</h1><a href="/Vote/mdp/">Return to MDP home</a></main>;
- if(isMdpRoute&&feature&&(!featureAccess||featureAccess.route!==route))return <main className="grid min-h-screen place-items-center p-6"><p role="status">Checking task permission…</p></main>;
+ if(isMdpRoute&&feature&&(!featureAccess||featureAccess.route!==feature))return <main className="grid min-h-screen place-items-center p-6"><p role="status">Checking task permission…</p></main>;
  if(isMdpRoute&&feature&&!featureAccess?.allowed)return <main className="grid min-h-screen place-items-center bg-calm-50 p-6"><section className="panel max-w-lg"><h1>Permission required</h1><p className="mt-2 text-sm text-body">{featureAccess?.failed?'Could not verify your task permission. Please retry.':'An administrator has not authorized this feature for your account.'}</p><a className="btn-primary mt-4 inline-flex" href="/Vote/mdp/">Return to MDP home</a></section></main>;
   if(!isMdpRoute&&access.role!=='admin')return <main className="grid min-h-screen place-items-center bg-calm-50 p-6"><section className="panel max-w-lg"><h1>Administrator access required</h1><p className="mt-2 text-sm text-body">The main Vote app is for administrators. Staff approved for MDP operations should use the separate MDP workspace link.</p><a className="btn-primary mt-4 inline-flex" href="/Vote/mdp/">Open MDP workspace</a></section></main>;
  if(route==='/contact-verification'&&!['admin','supervisor'].includes(access.role))return <main className="p-6"><h1>Supervisor access required</h1><a href="/Vote/">Return to dashboard</a></main>;
