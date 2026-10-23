@@ -569,3 +569,9 @@
 .mdp-flip-words{display:flex;flex-direction:column;color:#151515;font-size:15px;font-weight:900;line-height:1.05}
 .mdp-flip-words b{background:#171717;color:#fff;padding:2px 3px;font-size:13px}
 .mdp-workspace .mdp-nav-countdown .mdp-flip-time{font-size:10px}
+
+/* Mobile resident cards: larger, clear primary actions */
+.mdp-master-actions{display:flex;align-items:center;gap:14px;flex-wrap:wrap;padding:14px 0}
+.mdp-master-actions .mdp-master-action{width:52px;height:52px;min-width:52px;min-height:52px;border-radius:16px;display:inline-flex;align-items:center;justify-content:center;touch-action:manipulation}
+.mdp-master-actions .mdp-master-action svg{width:25px;height:25px}
+@media(max-width:640px){.mdp-master-actions{gap:18px}.mdp-master-actions .mdp-master-action{width:58px;height:58px;min-width:58px;min-height:58px;border-radius:18px}.mdp-master-actions .mdp-master-action svg{width:28px;height:28px}}
