@@ -12,9 +12,14 @@ let residentRequest:Promise<Resident[]>|null=null;
 const residentPageCache=new Map<string,{data:ResidentPage;expires:number}>();
 const residentPageRequests=new Map<string,Promise<ResidentPage>>();
 let residentPageEpoch=0;
+const mdpRosterCache=new Map<string,{expires:number;data:ResidentPage}>();
+const mdpRosterRequests=new Map<string,Promise<ResidentPage>>();
+let mdpRosterEpoch=0;
+let mdpHousesCache:{expires:number;data:HouseOption[]}|null=null;
+let mdpHousesRequest:Promise<HouseOption[]>|null=null;
 let optionCache:{houses:HouseOption[];parties:PartyOption[];boxes:string[];timestamp:number}|null=null;
 let optionRequest:Promise<{houses:HouseOption[];parties:PartyOption[];boxes:string[]}>|null=null;
-export function invalidateResidentCache(){directoryEpoch++;residentPageEpoch++;directoryPages.clear();directoryRequests.clear();residentPageCache.clear();residentPageRequests.clear();directoryOptions=null;residentCache=null;residentRequest=null;optionCache=null;optionRequest=null}
+export function invalidateResidentCache(){directoryEpoch++;residentPageEpoch++;mdpRosterEpoch++;mdpRosterCache.clear();mdpRosterRequests.clear();mdpHousesCache=null;mdpHousesRequest=null;directoryPages.clear();directoryRequests.clear();residentPageCache.clear();residentPageRequests.clear();directoryOptions=null;residentCache=null;residentRequest=null;optionCache=null;optionRequest=null}
 supabase.auth.onAuthStateChange(event=>{if(event==='SIGNED_IN'||event==='SIGNED_OUT'||event==='USER_UPDATED')invalidateResidentCache()});
 export interface ResidentPage{rows:Resident[];count:number}
 export interface HouseOption{name:string;count:number}
@@ -101,11 +106,39 @@ export function getDirectoryFilterOptions(){
  })().catch(error=>{directoryOptions=null;throw error});
  return directoryOptions;
 }
-export async function getMdpRosterPage(filters:DirectoryFilters,page=1,pageSize=50):Promise<ResidentPage>{
+export async function getMdpHouseOptions():Promise<HouseOption[]>{
+ if(mdpHousesCache&&mdpHousesCache.expires>Date.now())return mdpHousesCache.data;
+ if(mdpHousesRequest)return mdpHousesRequest;
+ const epoch=mdpRosterEpoch;
+ const request=(async()=>{
+  const {data,error}=await supabase.rpc('mdp_2026_house_options');
+  if(error)throw new Error('MDP house options failed: '+error.message);
+  const result=(Array.isArray(data)?data:[]).map((row:any)=>({name:String(row.name),count:Number(row.count)||0})) as HouseOption[];
+  if(epoch===mdpRosterEpoch)mdpHousesCache={data:result,expires:Date.now()+45000};
+  return result;
+ })();
+ mdpHousesRequest=request;
+ try{return await request}finally{if(mdpHousesRequest===request)mdpHousesRequest=null}
+}
+
+export async function getMdpRosterPage(filters:DirectoryFilters,page=1,pageSize=50,fresh=false):Promise<ResidentPage>{
  const args={p_page:page,p_page_size:pageSize,p_search:filters.search||'',p_house:filters.house||'all',p_gender:filters.gender||'all',p_age:filters.age||'all',p_box:filters.box||'all'};
- const {data,error}=await supabase.rpc('mdp_2026_roster_directory',args);
- if(error)throw new Error('MDP 2026 roster failed: '+error.message);
- return {count:Number(data.count||0),rows:(data.rows||[]).map((row:any)=>({...row,phone:row.phone==null?null:String(row.phone),party:normalizeParty(row.party)} as Resident))};
+ const cacheKey=JSON.stringify(args),cached=mdpRosterCache.get(cacheKey);
+ if(!fresh&&cached&&cached.expires>Date.now())return cached.data;
+ if(!fresh&&mdpRosterRequests.has(cacheKey))return mdpRosterRequests.get(cacheKey)!;
+ const epoch=mdpRosterEpoch;
+ const request=(async()=>{
+  const {data,error}=await supabase.rpc('mdp_2026_roster_directory',args);
+  if(error)throw new Error('MDP 2026 roster failed: '+error.message);
+  const result:ResidentPage={count:Number(data.count||0),rows:(data.rows||[]).map((row:any)=>({...row,phone:row.phone==null?null:String(row.phone),party:normalizeParty(row.party)} as Resident))};
+  if(epoch===mdpRosterEpoch){
+   if(mdpRosterCache.size>=40)mdpRosterCache.clear();
+   mdpRosterCache.set(cacheKey,{expires:Date.now()+25000,data:result});
+  }
+  return result;
+ })();
+ mdpRosterRequests.set(cacheKey,request);
+ try{return await request}finally{if(mdpRosterRequests.get(cacheKey)===request)mdpRosterRequests.delete(cacheKey)}
 }
 
 export async function getDirectoryPage(filters:DirectoryFilters,page=1,pageSize=24,fresh=false):Promise<ResidentPage>{
