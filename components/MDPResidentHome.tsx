@@ -7,9 +7,9 @@ import MDPUserWork from './MDPUserWork';
 
 const dailyTasks=[
  {title:'Find resident',detail:'Search by MDP serial, name or house',href:'/mdp/residents/',mark:'01'},
- {title:'Call',detail:'Contact and record the result',href:'/mdp/calls/',mark:'02'},
- {title:'House visit',detail:'Record visit and resident remarks',href:'/mdp/residents/?focus=visited',mark:'03'},
- {title:'Voting plan',detail:'Save intention and follow-up',href:'/mdp/residents/?focus=undecided',mark:'04'},
+ {title:'Call',detail:'Contact and record the result',href:'/mdp/calls/?status=need-call',mark:'02'},
+ {title:'House visit',detail:'Record visit and resident remarks',href:'/mdp/residents/?focus=visit-pending',mark:'03'},
+ {title:'Voting plan',detail:'Save intention and follow-up',href:'/mdp/residents/?focus=vote-pending',mark:'04'},
 ];
 
 const otherTasks=[
