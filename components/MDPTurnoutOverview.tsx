@@ -49,7 +49,7 @@ export default function MDPTurnoutOverview({dayId,refresh=0,onSelect,selected='a
  const cards=[
   {label:'Voted',n:data.voted,key:'voted' as const,color:'bg-emerald-500',hint:'View confirmed votes'},
   {label:'Not yet voted',n:Math.max(0,data.total-data.voted),key:'remaining' as const,color:'bg-blue-500',hint:'Find residents remaining'},
-  {label:'Will vote',n:data.willVote,key:'will-vote' as const,color:'bg-violet-500',hint:'View recorded voting plans'}
+  {label:'Target',n:data.willVote,key:'will-vote' as const,color:'bg-violet-500',hint:'View recorded voting plans'}
  ];
  return <div aria-label="Election turnout summary" className="rounded-xl border border-slate-200 bg-white p-4">
   <div className="mb-3 flex items-center justify-between"><strong className="text-base text-navy">Voting progress</strong><button onClick={()=>onSelect('all')} className="text-xs font-bold text-blue-700">All {data.total} →</button></div>
