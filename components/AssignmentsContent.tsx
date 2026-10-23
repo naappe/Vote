@@ -11,6 +11,8 @@ type ShareLink={id:number|string;token:string;title?:string|null;status_filter?:
 
 export default function AssignmentsContent({partyControls=true}:{partyControls?:boolean}){
  const access=useStaffAccess(),isAdmin=access?.role==='admin';
+ const [showUnassignedOnly,setShowUnassignedOnly]=useState(false);
+ useEffect(()=>{setShowUnassignedOnly(new URLSearchParams(window.location.search).get('status')==='pending')},[]);
  const [staffAccounts,setStaffAccounts]=useState<{id:string;name:string;email:string;role:string;active:boolean}[]>([]);
  const [residents,setResidents]=useState<Resident[]>([]),[items,setItems]=useState<Assignment[]>([]),[links,setLinks]=useState<ShareLink[]>([]),[query,setQuery]=useState(''),[party,setParty]=useState('all'),[house,setHouse]=useState('all'),[box,setBox]=useState('all'),[linkAssignee,setLinkAssignee]=useState(''),[historyAssignee,setHistoryAssignee]=useState(''),[historySearch,setHistorySearch]=useState(''),[editingId,setEditingId]=useState<string|null>(null),[editingName,setEditingName]=useState(''),[editingLinkId,setEditingLinkId]=useState<string|null>(null),[editingLinkName,setEditingLinkName]=useState(''),[error,setError]=useState(''),[message,setMessage]=useState(''),[creating,setCreating]=useState(false),[residentPage,setResidentPage]=useState(1);
 
@@ -38,7 +40,8 @@ export default function AssignmentsContent({partyControls=true}:{partyControls?:
 
  const houses=useMemo(()=>[...new Set(residents.map(r=>(r.house||'').trim()).filter(Boolean))].sort((a,b)=>a.localeCompare(b)),[residents]);
  const boxes=useMemo(()=>[...new Set(residents.map(r=>(r.election_box||'').trim()).filter(Boolean))].sort((a,b)=>a.localeCompare(b,undefined,{numeric:true})),[residents]);
- const filteredResidents=useMemo(()=>residents.filter(r=>{const text=[r.id,r.name,r.national_id,r.phone,r.house,r.lives_in,r.election_box].join(' ').toLowerCase();return matchesParty(r,partyControls?party:'MDP')&&(house==='all'||r.house===house)&&(box==='all'||r.election_box===box)&&text.includes(query.trim().toLowerCase())}),[residents,party,partyControls,house,box,query]);
+ const activeAssignmentIds=useMemo(()=>new Set(items.filter(item=>item.status!=='inactive'&&item.status!=='cancelled').map(item=>String(item.resident_id))),[items]);
+ const filteredResidents=useMemo(()=>residents.filter(r=>{const text=[r.id,r.name,r.national_id,r.phone,r.house,r.lives_in,r.election_box].join(' ').toLowerCase();return (!showUnassignedOnly||!activeAssignmentIds.has(String(r.id)))&&matchesParty(r,partyControls?party:'MDP')&&(house==='all'||r.house===house)&&(box==='all'||r.election_box===box)&&text.includes(query.trim().toLowerCase())}),[residents,items,showUnassignedOnly,activeAssignmentIds,party,partyControls,house,box,query]);
  const pageSize=20,totalPages=Math.max(1,Math.ceil(filteredResidents.length/pageSize));
  const visibleResidents=filteredResidents.slice((residentPage-1)*pageSize,residentPage*pageSize);
  const residentMap=useMemo(()=>new Map(residents.map(r=>[String(r.id),r])),[residents]);
@@ -77,6 +80,10 @@ export default function AssignmentsContent({partyControls=true}:{partyControls?:
    })()}
   </section>}
   <section className="panel">
+   {!partyControls&&<div className="mb-4 flex flex-wrap gap-2" role="group" aria-label="Assignment status">
+    <button type="button" aria-pressed={showUnassignedOnly} onClick={()=>{setShowUnassignedOnly(true);setResidentPage(1)}} className={showUnassignedOnly?'btn-primary':'btn-secondary'}>Pending · No assignment</button>
+    <button type="button" aria-pressed={!showUnassignedOnly} onClick={()=>{setShowUnassignedOnly(false);setResidentPage(1)}} className={!showUnassignedOnly?'btn-primary':'btn-secondary'}>All residents</button>
+   </div>}
    <div className="grid min-w-0 grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-[minmax(140px,.9fr)_minmax(190px,1.3fr)_minmax(145px,1fr)_minmax(130px,.9fr)_minmax(110px,.8fr)]"><div className="min-w-0"><label className="field-label whitespace-nowrap">Staff member</label><input className="field w-full min-w-0" value={linkAssignee} onChange={e=>setLinkAssignee(e.target.value)} placeholder="Enter staff name"/></div><div className="min-w-0"><label className="field-label whitespace-nowrap">Search residents</label><input className="field w-full min-w-0" value={query} onChange={e=>setQuery(e.target.value)} placeholder="Name, ID, phone or house"/></div><div className="min-w-0"><label className="field-label whitespace-nowrap">House</label><select className="field w-full min-w-0" value={house} onChange={e=>setHouse(e.target.value)}><option value="all">All houses</option>{houses.map(item=><option key={item} value={item}>{item}</option>)}</select></div><div className="min-w-0"><label className="field-label whitespace-nowrap">Election box</label><select className="field w-full min-w-0" value={box} onChange={e=>setBox(e.target.value)}><option value="all">All boxes</option>{boxes.map(item=><option key={item} value={item}>Box {item}</option>)}</select></div><div className="flex min-w-0 items-end"><button className="btn-secondary min-h-12 w-full whitespace-nowrap" onClick={clearFilters}>Clear filters</button></div></div>
    <div className="mt-4 flex flex-col gap-3 rounded-xl border border-border bg-slate-50 p-4 sm:flex-row sm:items-center sm:justify-between"><b className="text-navy">{filteredResidents.length.toLocaleString()} residents</b><div className="flex flex-wrap gap-2"><button className="btn-secondary" disabled={creating} onClick={()=>createShare(false)}>Copy link</button><button className="btn-primary" disabled={creating} onClick={()=>createShare(true)}>{creating?'Creating…':'Send through WhatsApp'}</button></div></div>
    {message&&<p className="mt-3 text-sm font-semibold text-accent">{message}</p>}{error&&<div className="error-banner mt-3">{error}</div>}
