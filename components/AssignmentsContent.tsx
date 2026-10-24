@@ -68,7 +68,7 @@ export default function AssignmentsContent({partyControls=true}:{partyControls?:
  async function deleteAssignee(link:ShareLink){const name=(link.status_filter||'').trim();if(!window.confirm(`Permanently delete ${name||'this assignee'}, the share link, and all of their assignments? This cannot be undone.`))return;setError('');const assignmentDelete=name?await supabase.from('assignments').delete().eq('assignee_name',name):null;if(assignmentDelete?.error){setError(assignmentDelete.error.message);return}const linkDelete=await supabase.from('workflow_shares').delete().eq('id',link.id);if(linkDelete.error){setError(linkDelete.error.message);return}if(historyAssignee===name)setHistoryAssignee('');setMessage('Assignee and assignment link deleted.');load()}
 
  return <div className="space-y-4">
-  <section className="page-hero"><p className="eyebrow">Staff tasks</p><h1 className="mt-2">Assignments</h1><p className="mt-2 text-sm text-body">Choose residents, assign work to staff, and review saved assignments.</p>{partyControls&&<div className="mt-4"><PartyFilter value={party} onChange={setParty}/></div>}</section>
+  <section className="page-hero"><p className="eyebrow">Staff tasks</p><h1 className="mt-2">Assignments</h1>{partyControls&&<div className="mt-4"><PartyFilter value={party} onChange={setParty}/></div>}</section>
 
   {!partyControls&&<MDPTaskKpiSummary title="Assignment KPI summary" items={(()=>{
     const mdpIds=new Set(residents.filter(r=>matchesParty(r,'MDP')).map(r=>String(r.id)));
