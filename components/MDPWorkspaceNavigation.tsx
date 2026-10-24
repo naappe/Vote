@@ -9,10 +9,10 @@ import MDPElectionCountdown from './MDPElectionCountdown';
 type NavItem={label:string;href:string;icon:string;roles?:string[]};
 const primary:NavItem[]=[
  {label:'Residents',href:'/mdp/residents/',icon:'users'},
- {label:'Door-to-door',href:'/mdp/residents/?focus=visit-pending',icon:'home'},
- {label:'Vote Target',href:'/mdp/residents/?focus=all&target=1',icon:'vote'},
+ {label:'Door-to-door',href:'/mdp/door-to-door/',icon:'home'},
+ {label:'Vote Target',href:'/mdp/vote-target/',icon:'vote'},
  {label:'Calls',href:'/mdp/calls/?status=need-call',icon:'phone'},
- {label:'Remarks',href:'/mdp/residents/?focus=remarks',icon:'note'},
+ {label:'Remarks',href:'/mdp/remarks/',icon:'note'},
  {label:'Transport',href:'/mdp/transportation/?status=pending',icon:'truck'},
  {label:'Assignments',href:'/mdp/assignments/?status=pending',icon:'tasks',roles:['admin','supervisor']},
  {label:'Reports',href:'/mdp/reports/',icon:'chart'},
@@ -29,7 +29,7 @@ const iconPaths:Record<string,string>={
  note:'M5 3h14v18H5z M8 8h8 M8 12h8 M8 16h5',
 };
 function NavIcon({name}:{name:string}){return <svg aria-hidden="true" width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d={iconPaths[name]||iconPaths.note}/></svg>}
-function isActive(pathname:string,focus:string|null,href:string,currentTarget:string|null){const [path,query]=href.split('?');if(pathname!==path.replace(/\/$/,'')&&!pathname.startsWith(path.replace(/\/$/,'')+'/'))return false;const intended=new URLSearchParams(query||'');const selected=intended.get('focus');const target=intended.get('target');if(target)return currentTarget===target;return !currentTarget&&(selected?focus===selected:!focus||focus==='all')}
+function isActive(pathname:string,focus:string|null,href:string,currentTarget:string|null){const [path,query]=href.split('?');const route=path.replace(/\/$/,'');if(pathname!==route&&!pathname.startsWith(route+'/'))return false;const intended=new URLSearchParams(query||'');const selected=intended.get('focus');const target=intended.get('target');if(target)return currentTarget===target;return selected?focus===selected:true}
 export default function MDPWorkspaceNavigation(){
  const access=useStaffAccess(),role=access?.role||'',pathname=(usePathname()||'/mdp/').replace(/\/$/,'')||'/mdp',params=useSearchParams(),focus=params.get('focus'),currentTarget=params.get('target');
  const [menuOpen,setMenuOpen]=useState(false);
