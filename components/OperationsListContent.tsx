@@ -1,7 +1,7 @@
 'use client';
 import Link from 'next/link';
 import {useSearchParams,useRouter} from 'next/navigation';
-import {useEffect,useMemo,useState} from 'react';
+import {useDeferredValue,useEffect,useMemo,useState,startTransition} from 'react';
 import {getDirectoryPage,getMdpRosterPage,getResidents,saveDoorToDoorResult,supabase} from '../lib/supabase';
 import {readOperationalRows} from '../lib/operations';
 import type {D2DStatus,Resident} from '../lib/types';
@@ -17,11 +17,12 @@ const PAGE_SIZE=12;
 export default function OperationsListContent({mode,partyControls=true}:{mode:Mode;partyControls?:boolean}){
  const params=useSearchParams(),router=useRouter(),visitFilter=mode==='visits'?params.get('visit'):null;
  const [rows,setRows]=useState<Resident[]>([]),[count,setCount]=useState(0),[loading,setLoading]=useState(true),[error,setError]=useState(''),[party,setParty]=useState('all'),[search,setSearch]=useState('');
+ const deferredSearch=useDeferredValue(search);
  const [page,setPage]=useState(1),[visitTarget,setVisitTarget]=useState<Resident|null>(null),[refreshToken,setRefreshToken]=useState(0);
  const [visitTotals,setVisitTotals]=useState<{all:number;visited:number;pending:number}|null>(null);
  useEffect(()=>{let active=true;if(mode!=='visits')return()=>{active=false};setLoading(true);setError('');
   if(!partyControls){void(async()=>{try{
-   const filters={search,party:'MDP',house:'all',gender:'all',age:'all',box:'all'};
+   const filters={search:deferredSearch,party:'MDP',house:'all',gender:'all',age:'all',box:'all'};
    const taskFocus=visitFilter==='visited'?'visited':visitFilter==='not-visited'?'not-visited':'all';
    const result=await getMdpRosterPage(filters,page,PAGE_SIZE,false,taskFocus);
    if(!active)return;
@@ -34,7 +35,7 @@ export default function OperationsListContent({mode,partyControls=true}:{mode:Mo
   }catch(e){if(active)setError(e instanceof Error?e.message:'Unable to load MDP visits')}finally{if(active)setLoading(false)}})();return()=>{active=false}}
   if(visitFilter==='visited'||visitFilter==='not-visited'){void(async()=>{try{const [residents,visitRows]=await Promise.all([getResidents(),readOperationalRows('door_to_door','resident_id,visit_status,visit_notes,last_visit_at')]);if(!active)return;const visitMap=new Map(visitRows.map(row=>[String(row.resident_id),row]));const filtered=residents.filter(resident=>{const visit=visitMap.get(String(resident.id)),visited=visit?.visit_status==='visited';return matchesParty(resident,partyControls?party:'MDP')&&(visitFilter==='visited'?visited:!visited)}).map(resident=>{const visit=visitMap.get(String(resident.id));return {...resident,d2d_status:visit?.visit_status||'not-visited',visit_notes:visit?.visit_notes||null,last_visit_at:visit?.last_visit_at||null} as Resident});setRows(filtered);setCount(filtered.length)}catch(e){if(active)setError(e instanceof Error?e.message:'Unable to load visit results')}finally{if(active)setLoading(false)}})();return()=>{active=false}}
   void (async()=>{try{
-   const result=await getDirectoryPage({search,party:partyControls?party:'MDP'},page,PAGE_SIZE);
+   const result=await getDirectoryPage({search:deferredSearch,party:partyControls?party:'MDP'},page,PAGE_SIZE);
    const ids=result.rows.map(row=>row.id);let visitRows:any[]=[];
    if(ids.length){const response=await supabase.from('door_to_door').select('resident_id,visit_status,visit_notes,last_visit_at').in('resident_id',ids);if(response.error)throw response.error;visitRows=response.data||[]}
    if(!active)return;
@@ -42,7 +43,7 @@ export default function OperationsListContent({mode,partyControls=true}:{mode:Mo
    const mapped=result.rows.map(r=>{const visit=visitMap.get(String(r.id));return {...r,d2d_status:visit?.visit_status||'not-visited',visit_notes:visit?.visit_notes||null,last_visit_at:visit?.last_visit_at||null} as Resident});
    setRows(mapped);setCount(result.count);
   }catch(e){if(active)setError(e instanceof Error?e.message:'Unable to load residents')}finally{if(active)setLoading(false)}})();return()=>{active=false}
- },[mode,search,party,partyControls,page,visitFilter,refreshToken]);
+ },[mode,deferredSearch,party,partyControls,page,visitFilter,refreshToken]);
  useEffect(()=>{let active=true;if(mode==='visits')return()=>{active=false};setLoading(true);setError('');
   const residentRows=mode==='reports'&&!partyControls?collectDirectoryPages(p=>getMdpRosterPage({search:'',party:'MDP',house:'all',gender:'all',age:'all',box:'all'},p,500)):getResidents();
   const needsAllWorkflow=mode==='reports'||mode==='election';
@@ -59,7 +60,7 @@ export default function OperationsListContent({mode,partyControls=true}:{mode:Mo
    if(active){setRows(merged);setCount(merged.length)}
   }).catch(e=>active&&setError(e.message||'Unable to load campaign data')).finally(()=>active&&setLoading(false));return()=>{active=false}
  },[mode]);
- useEffect(()=>{setPage(1)},[party,mode,search]);
+ useEffect(()=>{startTransition(()=>setPage(1))},[party,mode,deferredSearch]);
  const config={calls:{title:'Call Center',description:'Phone contact results and requested follow-up tasks.',filter:(r:Resident)=>!r.phone_status||r.phone_status==='need-call'},visits:{title:'Door-to-Door',description:'Search the resident list and record household visit outcomes separately from call-center work.',filter:(_:Resident)=>true},election:{title:'Election Day',description:'Turnout and readiness.',filter:(_:Resident)=>true},reports:{title:'Reports',description:'Cross-section totals.',filter:(_:Resident)=>true},notifications:{title:'Notifications',description:'Items needing attention.',filter:(r:Resident)=>r.vote_status==='not-decided'||r.phone_status==='need-call'},settings:{title:'Settings',description:'System configuration.',filter:(_:Resident)=>true}}[mode];
  const visible=useMemo(()=>rows.filter(r=>{const text=[r.id,r.name,r.national_id,r.house,r.lives_in,r.phone].join(' ').toLowerCase();return matchesParty(r,partyControls?party:'MDP')&&config.filter(r)&&(mode!=='visits'||text.includes(search.trim().toLowerCase()))}),[rows,party,partyControls,config,mode,search]);
  const pageRows=mode==='visits'&&!partyControls?visible:mode==='visits'?(visitFilter?visible.slice((page-1)*PAGE_SIZE,page*PAGE_SIZE):visible):visible.slice((page-1)*PAGE_SIZE,page*PAGE_SIZE);
