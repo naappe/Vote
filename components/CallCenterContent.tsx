@@ -31,7 +31,7 @@ export default function CallCenterContent({partyControls=true}:{partyControls?:b
  function applySearch(){setPage(1);setSearch(searchInput.trim());setParty(partyInput);setStatus(statusInput);setOutcome(outcomeInput);setReach(reachInput)}
  function reset(){setSearchInput('');setPartyInput('all');setStatusInput('all');setOutcomeInput('all');setReachInput('all');setSearch('');setParty('all');setStatus('all');setOutcome('all');setReach('all');setPage(1)}
  return <div className="space-y-4">
-  <section className="page-hero"><p className="eyebrow">Resident calls</p><h1 className="mt-2">Calls</h1><p className="mt-2 text-sm text-body">Find residents, make calls, and save the outcome. {count.toLocaleString()} matching residents · 30 per page.</p></section>
+  <section className="page-hero"><p className="eyebrow">Resident calls</p><h1 className="mt-2">Calls</h1></section>
   {!partyControls&&<MDPTaskKpiSummary title="Call task KPI summary" items={[
     {key:'all',label:'Matching residents',value:loading?null:count,detail:'Current search',active:status==='all'&&outcome==='all',onSelect:()=>{setStatus('all');setStatusInput('all');setOutcome('all');setOutcomeInput('all');setPage(1)}},
     {key:'need',label:'Need a call',value:loading?null:rows.filter(r=>r.phone_status!=='called').length,detail:'Current page',active:status==='need-call',onSelect:()=>{setStatus('need-call');setStatusInput('need-call');setOutcome('all');setOutcomeInput('all');setPage(1)}},
