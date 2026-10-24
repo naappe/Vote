@@ -29,9 +29,9 @@ const iconPaths:Record<string,string>={
  note:'M5 3h14v18H5z M8 8h8 M8 12h8 M8 16h5',
 };
 function NavIcon({name}:{name:string}){return <svg aria-hidden="true" width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d={iconPaths[name]||iconPaths.note}/></svg>}
-function isActive(pathname:string,focus:string|null,href:string){const [path,query]=href.split('?');if(pathname!==path.replace(/\/$/,'')&&!pathname.startsWith(path.replace(/\/$/,'')+'/'))return false;const selected=new URLSearchParams(query||'').get('focus');return selected?focus===selected:!focus}
+function isActive(pathname:string,focus:string|null,href:string,currentTarget:string|null){const [path,query]=href.split('?');if(pathname!==path.replace(/\/$/,'')&&!pathname.startsWith(path.replace(/\/$/,'')+'/'))return false;const intended=new URLSearchParams(query||'');const selected=intended.get('focus');const target=intended.get('target');if(target)return currentTarget===target;return !currentTarget&&(selected?focus===selected:!focus||focus==='all')}
 export default function MDPWorkspaceNavigation(){
- const access=useStaffAccess(),role=access?.role||'',pathname=(usePathname()||'/mdp/').replace(/\/$/,'')||'/mdp',params=useSearchParams(),focus=params.get('focus');
+ const access=useStaffAccess(),role=access?.role||'',pathname=(usePathname()||'/mdp/').replace(/\/$/,'')||'/mdp',params=useSearchParams(),focus=params.get('focus'),currentTarget=params.get('target');
  const [menuOpen,setMenuOpen]=useState(false);
  const drawerRef=useRef<HTMLDivElement>(null),menuTriggerRef=useRef<HTMLButtonElement>(null);
  useEffect(()=>{setMenuOpen(false)},[pathname,focus]);
@@ -59,7 +59,7 @@ export default function MDPWorkspaceNavigation(){
   {menuOpen&&<button type="button" className="mdp-mobile-menu-backdrop" aria-label="Close navigation menu" onClick={()=>setMenuOpen(false)}/>}
   <div ref={drawerRef} id="mdp-navigation-items" className={`mdp-navigation-items${menuOpen?" is-open":""}`}>
    <div className="mdp-mobile-menu-heading"><strong>MDP Resident Voters</strong><button type="button" aria-label="Close menu" onClick={()=>setMenuOpen(false)}>✕</button></div>
-  {visible(primary).map(item=><Link key={item.href} href={item.href} aria-current={isActive(pathname,focus,item.href)?'page':undefined} className={`mdp-nav-link${isActive(pathname,focus,item.href)?' is-active':''}`}><NavIcon name={item.icon}/><span>{item.label}</span></Link>)}
+  {visible(primary).map(item=><Link key={item.href} href={item.href} aria-current={isActive(pathname,focus,item.href,currentTarget)?'page':undefined} className={`mdp-nav-link${isActive(pathname,focus,item.href,currentTarget)?' is-active':''}`}><NavIcon name={item.icon}/><span>{item.label}</span></Link>)}
   <div className="mdp-nav-countdown"><MDPElectionCountdown/></div>
   <div className="mdp-nav-account"><AuthControl/></div>
   </div>
