@@ -15,11 +15,13 @@ let residentPageEpoch=0;
 const mdpRosterCache=new Map<string,{expires:number;data:ResidentPage}>();
 const mdpRosterRequests=new Map<string,Promise<ResidentPage>>();
 let mdpRosterEpoch=0;
+const mdpCallOverviewCache=new Map<string,{expires:number;rows:Resident[]}>();
+const mdpCallOverviewRequests=new Map<string,Promise<Resident[]>>();
 let mdpHousesCache:{expires:number;data:HouseOption[]}|null=null;
 let mdpHousesRequest:Promise<HouseOption[]>|null=null;
 let optionCache:{houses:HouseOption[];parties:PartyOption[];boxes:string[];timestamp:number}|null=null;
 let optionRequest:Promise<{houses:HouseOption[];parties:PartyOption[];boxes:string[]}>|null=null;
-export function invalidateResidentCache(){directoryEpoch++;residentPageEpoch++;mdpRosterEpoch++;mdpRosterCache.clear();mdpRosterRequests.clear();mdpHousesCache=null;mdpHousesRequest=null;directoryPages.clear();directoryRequests.clear();residentPageCache.clear();residentPageRequests.clear();directoryOptions=null;residentCache=null;residentRequest=null;optionCache=null;optionRequest=null}
+export function invalidateResidentCache(){directoryEpoch++;residentPageEpoch++;mdpRosterEpoch++;mdpRosterCache.clear();mdpRosterRequests.clear();mdpCallOverviewCache.clear();mdpCallOverviewRequests.clear();mdpHousesCache=null;mdpHousesRequest=null;directoryPages.clear();directoryRequests.clear();residentPageCache.clear();residentPageRequests.clear();directoryOptions=null;residentCache=null;residentRequest=null;optionCache=null;optionRequest=null}
 supabase.auth.onAuthStateChange(event=>{if(event==='SIGNED_IN'||event==='SIGNED_OUT'||event==='USER_UPDATED')invalidateResidentCache()});
 export interface ResidentPage{rows:Resident[];count:number}
 export interface HouseOption{name:string;count:number}
@@ -88,6 +90,48 @@ export async function getCallCenterQueue({page=1,pageSize=30,search='',party='al
  const masters=(data||[]).map(normalizeResident),calls=await loadCallMap(masters.map(r=>r.id));
  return {rows:masters.map(r=>mergeCall(r,calls.get(String(r.id)))),count:count||0}
 }
+// MDP task views always derive from the linked 540-person PDF roster.
+// A missing call_center row is a pending call, never a missing resident.
+async function loadMdpCallOverview(search:string):Promise<Resident[]>{
+ const term=search.trim(),cacheKey=term.toLowerCase(),cached=mdpCallOverviewCache.get(cacheKey);
+ if(cached&&cached.expires>Date.now())return cached.rows;
+ const inFlight=mdpCallOverviewRequests.get(cacheKey);
+ if(inFlight)return inFlight;
+ const request=(async()=>{
+  const filters={search:term,party:'MDP',house:'all',gender:'all',age:'all',box:'all'};
+  const first=await getMdpRosterPage(filters,1,500);
+  const pages=[...first.rows];
+  for(let page=2;pages.length<first.count;page++){
+   const next=await getMdpRosterPage(filters,page,500);
+   if(!next.rows.length)break;
+   pages.push(...next.rows);
+  }
+  const calls=await loadCallMap(pages.map(row=>row.id));
+  const merged=pages.map(row=>mergeCall(row,calls.get(String(row.id))));
+  mdpCallOverviewCache.set(cacheKey,{expires:Date.now()+12000,rows:merged});
+  return merged;
+ })();
+ mdpCallOverviewRequests.set(cacheKey,request);
+ try{return await request}finally{if(mdpCallOverviewRequests.get(cacheKey)===request)mdpCallOverviewRequests.delete(cacheKey)}
+}
+
+export async function getMdpCallCenterQueue({page=1,pageSize=30,search='',phoneStatus='all',outcome='all',reachStatus='all'}:CallCenterQueueOptions={}):Promise<ResidentPage>{
+ const source=await loadMdpCallOverview(search);
+ const selected=source.filter(row=>
+  (phoneStatus==='all'||row.phone_status===phoneStatus)&&
+  (outcome==='all'||(outcome==='pending'?(!row.call_outcome||row.call_outcome==='pending'):row.call_outcome===outcome))&&
+  (reachStatus==='all'||row.reach_status===reachStatus));
+ const size=Math.max(1,Math.min(100,pageSize));
+ return {count:selected.length,rows:selected.slice((Math.max(1,page)-1)*size,Math.max(1,page)*size)};
+}
+
+export async function getMdpCallKpiCounts(search=''):Promise<{total:number;pending:number;called:number;noAnswer:number}>{
+ const rows=await loadMdpCallOverview(search);
+ return {total:rows.length,pending:rows.filter(row=>row.phone_status!=='called').length,
+  called:rows.filter(row=>row.phone_status==='called').length,
+  noAnswer:rows.filter(row=>row.call_outcome==='not-answer').length};
+}
+
 export async function saveCallCenterResult(residentId:Resident['id'],input:SaveCallCenterInput):Promise<void>{const pending=input.outcome==='pending',connected=input.outcome==='connected';const current=await supabase.from('call_center').select('call_attempts').eq('resident_id',residentId).maybeSingle();if(current.error)throw new Error(`Call history lookup failed: ${current.error.message}`);const now=new Date().toISOString();const payload:any={resident_id:residentId,phone_status:pending?'need-call':'called',reach_status:connected?'reached':'not-reached',call_outcome:input.outcome,call_attempts:(current.data?.call_attempts||0)+(pending?0:1),call_notes:input.notes?.trim()||null,call_duration_seconds:pending?null:(input.duration_seconds??null),callback_scheduled_at:input.callback_at||null,last_call_at:pending?null:now,next_action:input.next_action?.trim()||null,recorded_by:input.recorded_by?.trim()||null,updated_at:now};if(input.includePoliticalFields!==false){payload.vote_status=connected?(input.vote_status||'not-decided'):'not-decided';payload.support_level=connected?(input.support_level||'not-guaranteed'):'not-guaranteed'}const {error}=await supabase.from('call_center').upsert(payload,{onConflict:'resident_id'});if(error)throw new Error(`Call Center save failed: ${error.message}`);invalidateResidentCache()}
 export async function saveDoorToDoorResult(residentId:Resident['id'],visitStatus:'not-visited'|'visited'|'not-home'|'access-issue'|'address-not-found'|'visit-postponed',notes:string):Promise<void>{const current=await supabase.from('door_to_door').select('vote_status,support_level').eq('resident_id',residentId).maybeSingle();if(current.error)throw new Error(`Visit record lookup failed: ${current.error.message}`);const session=await supabase.auth.getSession();if(session.error)throw new Error(`Staff session lookup failed: ${session.error.message}`);const now=new Date().toISOString(),recorder=session.data.session?.user.email||null;const {error}=await supabase.from('door_to_door').upsert({resident_id:residentId,visit_status:visitStatus,vote_status:current.data?.vote_status||'not-decided',support_level:current.data?.support_level||'not-guaranteed',visit_notes:notes.trim()||null,last_visit_at:visitStatus==='not-visited'?null:now,recorded_by:recorder,updated_at:now},{onConflict:'resident_id'});if(error)throw new Error(`Door-to-door save failed: ${error.message}`);const visitLog=visitStatus==='not-visited'?`Door-to-door status set to pending.${notes.trim()?` Note: ${notes.trim()}`:''}`:`Visit result: ${visitStatus.replaceAll('-',' ')}.${notes.trim()?` Note: ${notes.trim()}`:''}`;const {error:historyError}=await supabase.from('remarks').insert({id:Date.now(),resident_id:Number(residentId),section:'door-to-door',remark:visitLog,recorded_by:recorder,recorded_at:now});if(historyError)throw new Error(`Visit status saved, but its history could not be added: ${historyError.message}`);invalidateResidentCache()}
 export async function submitResidentContactChange(resident:Resident,{phone,lives_in,remarks}:{phone?:string|null;lives_in?:string|null;remarks?:string|null}){const payload={resident_id:resident.id,existing_phone:resident.phone??null,requested_phone:phone?.trim()||null,existing_lives_in:resident.lives_in??null,requested_lives_in:lives_in?.trim()||null,request_note:remarks?.trim()||null,status:'pending',submitted_at:new Date().toISOString()};if(payload.requested_phone===payload.existing_phone&&payload.requested_lives_in===payload.existing_lives_in)throw new Error('Enter a different mobile number or living place.');const {error}=await supabase.from('contact_verification').insert(payload);if(error)throw new Error(`Verification request failed: ${error.message}`)}
