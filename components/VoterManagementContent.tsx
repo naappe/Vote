@@ -66,15 +66,9 @@ export default function VoterManagementContent({profilePath='/resident-profile/'
  }
  useEffect(()=>{const timer=window.setTimeout(()=>setDebouncedQuery(query),250);return()=>window.clearTimeout(timer)},[query]);
  useEffect(()=>{const timer=window.setTimeout(()=>setSerialFilter(serialInput),160);return()=>window.clearTimeout(timer)},[serialInput]);
- useEffect(()=>{
-  const next=new URLSearchParams();if(debouncedQuery)next.set('q',debouncedQuery);if(!partyControls&&serialFilter)next.set('serial',serialFilter);
-  for(const [key,value] of Object.entries({house,party:partyControls?party:'all',gender,age,box:partyControls?box:'all'}))if(value!=='all')next.set(key,value);
-  if(focus!==incomingFocus)return;
-  if(focus!=='all')next.set('focus',focus);if(!partyControls&&targetRoute)next.set('target','1');if(page>1)next.set('page',String(page));if(view==='gallery'&&partyControls)next.set('view','gallery');
-  const base=pathname.startsWith('/Vote')?pathname:`/Vote${pathname}`;
-  const desired=`${base}${next.size?'?'+next.toString():''}`;
-  if(window.location.pathname+window.location.search!==desired)window.history.replaceState(null,'',desired);
- },[debouncedQuery,serialFilter,house,party,partyControls,gender,age,box,focus,incomingFocus,page,view,pathname,targetRoute]);
+ // Navigation links own the URL. Do not rewrite it from stale local filter state:
+ // Next.js can preserve this component across task navigation, causing a race
+ // that previously sent Vote Target back to Residents.
  useEffect(()=>{let active=true;setLoading(true);setError('');setWorkflowError('');if(!partyControls)setWorkflow({});
   void(async()=>{try{const result=!partyControls&&serialFilter?await (async()=>{
    const serial=Number(serialFilter);
