@@ -10,7 +10,7 @@ type NavItem={label:string;href:string;icon:string;roles?:string[]};
 const primary:NavItem[]=[
  {label:'Residents',href:'/mdp/residents/',icon:'users'},
  {label:'Door-to-door',href:'/mdp/residents/?focus=visit-pending',icon:'home'},
- {label:'Vote Target',href:'/mdp/residents/?focus=vote-pending',icon:'vote'},
+ {label:'Vote Target',href:'/mdp/residents/?focus=all&target=1',icon:'vote'},
  {label:'Calls',href:'/mdp/calls/?status=need-call',icon:'phone'},
  {label:'Remarks',href:'/mdp/residents/?focus=remarks',icon:'note'},
  {label:'Transport',href:'/mdp/transportation/?status=pending',icon:'truck'},
