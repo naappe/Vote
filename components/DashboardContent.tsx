@@ -58,7 +58,7 @@ export default function DashboardContent(){
  if(loading)return <div className="panel"><div className="h-72 animate-pulse rounded-card bg-primary-light"/></div>;
  if(error)return <div className="error-banner">{error}</div>;
  return <div className="space-y-5">
-  <section className="dashboard-banner"><div><p className="eyebrow">Campaign overview</p><h1 className="mt-1">Operations Dashboard</h1><p className="mt-1 text-sm text-body">Monitor campaign workload, team progress, and urgent action areas.</p></div><div className="status-chip bg-emerald-50 text-emerald-700">{stats.total.toLocaleString()} residents loaded</div></section>
+  <section className="dashboard-banner"><div><p className="eyebrow">Campaign overview</p><h1 className="mt-1">Operations Dashboard</h1></div><div className="status-chip bg-emerald-50 text-emerald-700">{stats.total.toLocaleString()} residents loaded</div></section>
   <section className="dashboard-kpi-grid">{kpis.map(item=><article key={item.label} className="dashboard-kpi"><p className="text-sm font-semibold text-navy">{item.label}</p><strong className={`mt-2 block text-3xl ${item.tone}`}>{typeof item.value==='number'?item.value.toLocaleString():item.value}</strong><p className="mt-1 text-xs text-body">{item.detail}</p><div className="mt-4 h-1.5 overflow-hidden rounded-full bg-slate-100"><div className={`h-full rounded-full ${item.bar}`} style={{width:`${Math.max(3,Math.min(100,item.progress))}%`}}/></div></article>)}</section>
   <section className="grid gap-4 xl:grid-cols-2">
    <ProgressPanel title="Call Center Progress" action="Open Call Center" href="/call-center/" rows={[
