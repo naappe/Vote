@@ -13,6 +13,7 @@ import {residentTaskCards} from '../lib/resident-task-presentation';
 import {ResidentTaskIcon} from './ResidentTaskIcon';
 import {useStaffAccess} from './AuthGate';
 import KpiSummary from './KpiSummary';
+import OperationalPageLayout,{operationalFilterClass} from './OperationalPageLayout';
 
 type ViewMode='list'|'gallery';
 type Props={profilePath?:string;partyControls?:boolean};
@@ -28,6 +29,9 @@ export default function VoterManagementContent({profilePath='/resident-profile/'
  const [rosterTotals,setRosterTotals]=useState<{total:number;linked:number;pending:number}|null>(null);
  const [targetCounts,setTargetCounts]=useState<Record<string,number>|null>(null);
  const targetRoute=pathname.startsWith('/mdp/vote-target');
+ const residentsRoute=pathname.startsWith('/mdp/residents');
+ const [residentKpis,setResidentKpis]=useState<Record<string,number>|null>(null);
+ useEffect(()=>{if(partyControls||!residentsRoute)return;let active=true;const base={search:'',house:'all',gender:'all',age:'all',box:'all',party:'all'};void Promise.all((['all','called','need-call','visited','not-visited'] as const).map(async key=>[key,(await getMdpRosterPage(base,1,1,true,key)).count] as const)).then(data=>{if(active)setResidentKpis(Object.fromEntries(data))}).catch(()=>{if(active)setResidentKpis(null)});return()=>{active=false}},[partyControls,residentsRoute]);
  useEffect(()=>{if(partyControls||!targetRoute)return;let active=true;const empty={search:'',house:'all',gender:'all',age:'all',box:'all',party:'all'};void Promise.all((['will-vote','not-vote','vote-unsure','vote-pending'] as const).map(async status=>[status,(await getMdpRosterPage(empty,1,1,true,status)).count] as const)).then(entries=>{if(active)setTargetCounts(Object.fromEntries(entries))}).catch(()=>{if(active)setTargetCounts(null)});return()=>{active=false}},[partyControls,targetRoute]);
 
  useEffect(()=>{if(partyControls)return;let mounted=true;void supabase.rpc('mdp_2026_roster_counts').then(({data,error})=>{if(mounted&&!error&&data)setRosterTotals({total:Number(data.total)||0,linked:Number(data.linked)||0,pending:Number(data.pending)||0})});return()=>{mounted=false}},[partyControls]);
@@ -168,22 +172,19 @@ export default function VoterManagementContent({profilePath='/resident-profile/'
  const taskFilterOptions=isVoteTarget?([['all','All'],['will-vote','Will vote'],['not-vote','Will not vote'],['vote-unsure','Not sure'],['vote-pending','Not asked']] as const):isDoorTask?([['all','All'],['visit-pending','Pending'],['visited','Visited'],['not-visited','Not visited']] as const):isRemarksTask?([['all','All'],['remarks','Recorded'],['remarks-pending','No remarks']] as const):null;
  const workspaceTitle=partyControls?'Resident directory':isVoteTarget?'Vote Target':focus==='visit-pending'||focus==='visited'||focus==='not-visited'?'Door-to-door':focus==='remarks'||focus==='remarks-pending'?'Remarks':'Residents';
  return <div className={partyControls?"space-y-4":"mdp-residents-page"}>
-  <section className={partyControls?"flex flex-col items-stretch justify-between gap-3 sm:flex-row sm:items-center":"mdp-reference-header"}>
-    <div className="mdp-reference-title">{!partyControls&&<div className="mb-2 flex flex-wrap items-center gap-2">{hasFilters&&<button type="button" onClick={clearFilters} className="rounded-lg border border-blue-200 bg-blue-50 px-3 py-2 text-sm font-semibold text-blue-800 hover:bg-blue-100">All residents</button>}</div>}<h1 className={partyControls?"text-2xl":"text-2xl font-extrabold tracking-tight text-[#0b214b]"}>{workspaceTitle}</h1></div>
-    {!partyControls&&isVoteTarget&&<div className="w-full xl:flex-1 xl:min-w-[560px]">
-      <KpiSummary title="Vote Target status summary" activeId={focus}
-        onSelect={id=>selectSummaryFocus(id)}
-        items={[
-          {id:'all',label:'Matched',value:rosterTotals?.linked??null,tone:'blue',description:'PDF roster matches'},
-          {id:'will-vote',label:'Will vote',value:targetCounts?.['will-vote']??null,tone:'green'},
-          {id:'vote-pending',label:'Not recorded',value:targetCounts?.['vote-pending']??null,tone:'gray'},
-          {id:'vote-unsure',label:'Not sure',value:targetCounts?.['vote-unsure']??null,tone:'yellow'},
-          {id:'not-vote',label:'Will not vote',value:targetCounts?.['not-vote']??null,tone:'red'}
-        ]}
-      />
-    </div>}
-    <button className="btn-primary mdp-reference-export" onClick={exportResults} disabled={exporting||loading||focus!=='all'||Boolean(serialFilter)} title={focus==='all'&&!serialFilter?'Download all matching residents across every page':'Clear the task status filter to export the full directory'}>{exporting?`Exporting ${exportProgress}`:partyControls?'Export CSV':'↓ Export Excel'}</button>
-  </section>
+  <OperationalPageLayout title={workspaceTitle} kpis={(!partyControls&&isVoteTarget?<KpiSummary title="Vote Target status summary" activeId={focus} onSelect={selectSummaryFocus} items={[
+ {id:'all',label:'Matched',value:rosterTotals?.linked??null,tone:'blue'},
+ {id:'will-vote',label:'Will vote',value:targetCounts?.['will-vote']??null,tone:'green'},
+ {id:'vote-pending',label:'Not recorded',value:targetCounts?.['vote-pending']??null,tone:'gray'},
+ {id:'vote-unsure',label:'Not sure',value:targetCounts?.['vote-unsure']??null,tone:'yellow'},
+ {id:'not-vote',label:'Will not vote',value:targetCounts?.['not-vote']??null,tone:'red'}
+ ]}/> :!partyControls&&residentsRoute?<KpiSummary title="Residents KPI summary" activeId={focus} onSelect={selectSummaryFocus} items={[
+ {id:'all',label:'Matched',value:residentKpis?.all??null,tone:'blue'},
+ {id:'called',label:'Called',value:residentKpis?.called??null,tone:'green'},
+ {id:'need-call',label:'Need call',value:residentKpis?.['need-call']??null,tone:'yellow'},
+ {id:'visited',label:'Visited',value:residentKpis?.visited??null,tone:'green'},
+ {id:'not-visited',label:'Not visited',value:residentKpis?.['not-visited']??null,tone:'gray'}
+ ]}/>:undefined)} actions={<button className="btn-primary mdp-reference-export" onClick={exportResults} disabled={exporting||loading||focus!=='all'||Boolean(serialFilter)} title={focus==='all'&&!serialFilter?'Download all matching residents across every page':'Clear the task status filter to export the full directory'}>{exporting?`Exporting ${exportProgress}`:partyControls?'Export CSV':'↓ Export Excel'}</button>}>
 
 <style>{`@media(max-width:640px){
 .mdp-reference-filters{padding:10px 12px!important;margin:0 0 6px!important}
@@ -203,7 +204,7 @@ export default function VoterManagementContent({profilePath='/resident-profile/'
 .mdp-directory-paging select{min-height:36px!important}
 .mdp-directory-paging p{font-size:12px!important}
 }`}</style>
-  <section className={partyControls?"panel space-y-3 !p-4":"mdp-reference-filters"}>
+  <section className={`${operationalFilterClass} ${partyControls?"space-y-3":"mdp-reference-filters"}`}>
     <div className={partyControls?"grid gap-3":"mdp-reference-filter-main mdp-polished-filter-grid"}>
       <label className="mdp-reference-search">
         <span className="sr-only">Search residents</span>
@@ -228,6 +229,7 @@ export default function VoterManagementContent({profilePath='/resident-profile/'
   </section>
   {error&&<div className="error-banner" role="alert">{error}</div>}{workflowError&&<div className="error-banner" role="status">{workflowError}</div>}{message&&<div className="info-banner" role="status">{message}</div>}
   <section ref={resultsRef} className={partyControls?"panel scroll-mt-24 overflow-hidden p-0":"mdp-directory-results scroll-mt-24"} aria-busy={loading}><div className={partyControls?"flex flex-col gap-3 border-b border-border px-3 py-3 sm:flex-row sm:items-center sm:justify-between sm:px-4":"mdp-directory-paging flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between"}><p className="text-sm text-body" role="status">{loading?'Loading…':`Showing ${range} of ${count.toLocaleString()} matched residents`}</p><div className="flex w-full flex-wrap items-center justify-between gap-2 sm:w-auto sm:justify-end"><label className="flex shrink-0 items-center gap-1.5 whitespace-nowrap text-xs text-body">Rows<select aria-label="Rows per page" className="min-h-10 rounded-lg border border-border px-2" value={pageSize} onChange={e=>{setPageSize(Number(e.target.value));setPage(1)}}>{[24,50,100].map(n=><option key={n} value={n}>{n}</option>)}</select></label><button className="btn-secondary min-h-10 whitespace-nowrap px-3 text-xs sm:text-sm" disabled={loading||page===1} onClick={()=>changePage(page-1)}>‹ Prev</button><span className="min-w-10 whitespace-nowrap text-center text-xs text-body" aria-label={`Page ${page} of ${pages}`}>{page} / {pages}</span><button className="btn-secondary min-h-10 whitespace-nowrap px-3 text-xs sm:text-sm" disabled={loading||page>=pages} onClick={()=>changePage(page+1)}>Next ›</button></div></div>{(!partyControls&&mdpView==='compact')?<List showRemarks={focus==='remarks'} rows={rows} loading={loading} profilePath={profilePath} partyControls={partyControls} workflow={workflow} workflowError={workflowError} pdfSerials={pdfSerials} onWorkflowUpdate={updateVisibleWorkflow}/>:(!partyControls||view==='gallery')?<Gallery layoutMode={!partyControls&&mdpView==='house'?'house':'grid'} showRemarks={focus==='remarks'} rows={rows} loading={loading} profilePath={profilePath} partyControls={partyControls} workflow={workflow} workflowError={workflowError} pdfSerials={pdfSerials} onWorkflowUpdate={updateVisibleWorkflow}/>:<List showRemarks={focus==='remarks'} rows={rows} loading={loading} profilePath={profilePath} partyControls={partyControls} workflow={workflow} workflowError={workflowError} pdfSerials={pdfSerials} onWorkflowUpdate={updateVisibleWorkflow}/>}<div className="flex flex-col gap-3 border-t border-border px-3 py-3 sm:flex-row sm:items-center sm:justify-between sm:px-4"><span className="text-sm text-body">{count.toLocaleString()} residents</span><div className="grid grid-cols-2 gap-2 sm:flex"><button className="btn-secondary min-h-10 whitespace-nowrap px-3 text-xs sm:text-sm" disabled={loading||page===1} onClick={()=>changePage(page-1)}>‹ Previous</button><button className="btn-primary min-h-10 whitespace-nowrap px-3 text-xs sm:text-sm" disabled={loading||page>=pages} onClick={()=>changePage(page+1)}>Next ›</button></div></div></section>
+  </OperationalPageLayout>
  </div>
 }
 function Gallery({rows,loading,profilePath,partyControls,workflow,workflowError,pdfSerials,showRemarks,onWorkflowUpdate,layoutMode='grid'}:{rows:Resident[];loading:boolean;profilePath:string;partyControls:boolean;workflow:Record<string,WorkflowSummary>;workflowError:string;pdfSerials:Record<string,number>;showRemarks:boolean;onWorkflowUpdate:(id:string|number,summary:WorkflowSummary)=>void;layoutMode?:'grid'|'house'}){
