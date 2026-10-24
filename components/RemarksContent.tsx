@@ -5,7 +5,7 @@ import {appendGeneralRemark,latestGeneralRemarks} from '../lib/resident-remarks'
 import type {Resident} from '../lib/types';
 import {PartyFilter,ResidentIdentity,matchesParty} from '../shared/ResidentIdentity';
 import TaskState from '../shared/TaskState';
-import MDPTaskKpiSummary from './MDPTaskKpiSummary';
+import KpiSummary from './KpiSummary';
 
 type Remark={id:number|string;resident_id:number|string;section:string;remark:string;recorded_by?:string|null;recorded_at?:string|null};
 const sources=['general','call-center','door-to-door','candidate-meeting','election-day','transportation'];
@@ -55,27 +55,49 @@ export default function RemarksContent({partyControls=true}:{partyControls?:bool
   setSavingEdit(true);setError('');setMessage('');
   try{
    const own=Boolean(currentEmail&&item.recorded_by?.trim().toLowerCase()===currentEmail.trim().toLowerCase());
-   if(!own&&!isAdmin)throw new Error('You cannot revise this note.');
-   const saved=await appendGeneralRemark(item.resident_id,editingRemark);
-   setItems(current=>[saved,...current]);
-   cancelEdit();
-   setMessage('Latest remark revised; previous version preserved.');
-  }catch(e){setError(e instanceof Error?e.message:'Could not revise remark')}finally{setSavingEdit(false)}
+   if(!canManage||(!own&&!isAdmin))throw new Error('You do not have permission to edit this remark.');
+   const {data,error}=await supabase.from('remarks')
+    .update({remark:editingRemark.trim()})
+    .eq('id',item.id).eq('resident_id',item.resident_id).eq('section','general')
+    .select('id,remark').maybeSingle();
+   if(error)throw error;
+   if(!data)throw new Error('No remark was updated. Check your permissions.');
+   setItems(current=>current.map(row=>String(row.id)===String(item.id)?{...row,remark:data.remark}:row));
+   cancelEdit();setMessage('Remark updated successfully.');
+  }catch(e){setError(e instanceof Error?e.message:'Could not edit remark')}
+  finally{setSavingEdit(false)}
+ }
+ async function deleteRemark(item:Remark){
+  const own=Boolean(currentEmail&&item.recorded_by?.trim().toLowerCase()===currentEmail.trim().toLowerCase());
+  if(!canManage||(!own&&!isAdmin)){setError('You do not have permission to delete this remark.');return}
+  if(!window.confirm('Permanently delete this individual written remark? Other task histories will remain unchanged.'))return;
+  setError('');setMessage('');
+  try{
+   const {data,error}=await supabase.from('remarks').delete()
+    .eq('id',item.id).eq('resident_id',item.resident_id).eq('section','general')
+    .select('id').maybeSingle();
+   if(error)throw error;
+   if(!data)throw new Error('Remark was not deleted. Check your permissions.');
+   setItems(current=>current.filter(row=>String(row.id)!==String(item.id)));
+   if(editingId===String(item.id))cancelEdit();
+   setMessage('Selected remark deleted. Other records were not changed.');
+  }catch(e){setError(e instanceof Error?e.message:'Could not delete remark')}
  }
 
  return <div className="space-y-4">
   <section className="page-hero"><p className="eyebrow">Resident task</p><h1 className="mt-2">Remarks</h1>{partyControls&&<div className="mt-4"><PartyFilter value={party} onChange={value=>{setParty(value);setSelected('')}}/></div>}</section>
-  {!partyControls&&<MDPTaskKpiSummary title="Remarks KPI summary" items={(()=>{
+  {!partyControls&&<KpiSummary title="Remarks KPI summary" activeId={noteDateFilter}
+   onSelect={id=>setNoteDateFilter(id as 'all'|'today'|'earlier')}
+   items={(()=>{
     const scoped=latestItems.filter(item=>{const person=map.get(String(item.resident_id));return person&&matchesParty(person,'MDP')});
-    const choose=(value:'all'|'today'|'earlier')=>setNoteDateFilter(value);
     return [
-     {key:'all',label:'Latest notes',value:scoped.length,detail:'Loaded recent records',active:noteDateFilter==='all',onSelect:()=>choose('all')},
-     {key:'today',label:'Updated today',value:scoped.filter(isToday).length,detail:'Latest note per resident',active:noteDateFilter==='today',onSelect:()=>choose('today')},
-     {key:'earlier',label:'Updated earlier',value:scoped.filter(item=>!isToday(item)).length,detail:'Latest note per resident',active:noteDateFilter==='earlier',onSelect:()=>choose('earlier')}
+     {id:'all',label:'Latest notes',value:scoped.length,tone:'blue' as const,description:'Loaded notes'},
+     {id:'today',label:'Updated today',value:scoped.filter(isToday).length,tone:'green' as const},
+     {id:'earlier',label:'Updated earlier',value:scoped.filter(item=>!isToday(item)).length,tone:'gray' as const}
     ];
    })()}/>}
   <section className="panel"><div className="grid gap-3"><label className="relative block"><span className="field-label">Find resident</span><input className="field w-full min-w-0" aria-label="Search resident or remark" value={query} onChange={e=>{setQuery(e.target.value);setSelected('')}} placeholder="Name, ID, house or phone"/>{query&&!selected&&<div className="absolute z-20 mt-1 max-h-72 w-full overflow-y-auto rounded-xl border border-border bg-card shadow-card">{searching?<div className="p-3 text-sm text-body">Searching residents…</div>:matches.map(r=><button type="button" key={String(r.id)} className="block w-full border-b border-border p-3 text-left hover:bg-primary-light" onClick={()=>{setSelected(String(r.id));setQuery(r.name||String(r.id));setResidents(current=>current.some(x=>String(x.id)===String(r.id))?current:[r,...current])}}><ResidentIdentity resident={r} compact showParty={partyControls}/></button>)}</div>}</label><label className="block"><span className="field-label">Remark</span><textarea aria-label="Remark" className="field mt-1 min-h-28 py-3" value={remark} onChange={e=>setRemark(e.target.value)} placeholder="Write a short, factual note"/></label></div><div className="mt-3 flex justify-end"><button className="btn-primary w-full sm:w-auto" disabled={saving} onClick={()=>void save()}>{saving?'Saving…':'Save remark'}</button></div>{message&&<p className="mt-3 text-sm font-semibold text-primary" role="status">{message}</p>}{error&&<div className="error-banner mt-3" role="alert">{error}</div>}</section>
   <section className="panel"><p className="eyebrow">Resident notes</p><h2 className="mt-1">Written remarks</h2></section>
-  <section className="panel overflow-hidden p-0"><div className="divide-y divide-border">{visibleItems.map(item=>{const resident=map.get(String(item.resident_id)),editing=editingId===String(item.id);return <article key={String(item.id)} className="p-4"><div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between"><div>{resident?<ResidentIdentity resident={resident} showParty={partyControls}/>:<b>Resident {item.resident_id}</b>}</div>{canManage&&!editing&&(isAdmin||item.recorded_by?.trim().toLowerCase()===currentEmail.trim().toLowerCase())&&<div className="flex flex-wrap gap-2"><button className="btn-secondary" onClick={()=>beginEdit(item)}>Edit</button></div>}</div>{editing?<div className="mt-4 rounded-xl border border-primary/30 bg-primary-soft p-4"><textarea aria-label="Edit remark" className="field mt-3 min-h-28 py-3" value={editingRemark} onChange={e=>setEditingRemark(e.target.value)} autoFocus/><div className="mt-3 flex flex-wrap justify-end gap-2"><button className="btn-secondary" onClick={cancelEdit}>Cancel</button><button className="btn-primary" disabled={savingEdit} onClick={()=>updateRemark(item)}>{savingEdit?'Saving…':'Save changes'}</button></div></div>:<><div className="mt-3 max-w-sm"><TaskState label="Remark" status={`Saved · ${sourceLabel(item.section)}`} icon="remark" complete/></div><p className="mt-3 whitespace-pre-wrap text-sm text-body">{item.remark}</p><p className="mt-2 text-xs text-body">Recorded by {item.recorded_by||'Unknown recorder'} · {item.recorded_at?new Date(item.recorded_at).toLocaleString():'—'}</p></>}</article>})}{!visibleItems.length&&<div className="empty-state m-4">No remarks found for this source or filter.</div>}</div></section>
+  <section className="panel overflow-hidden p-0"><div className="divide-y divide-border">{visibleItems.map(item=>{const resident=map.get(String(item.resident_id)),editing=editingId===String(item.id);return <article key={String(item.id)} className="p-4"><div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between"><div>{resident?<ResidentIdentity resident={resident} showParty={partyControls}/>:<b>Resident {item.resident_id}</b>}</div>{canManage&&!editing&&(isAdmin||item.recorded_by?.trim().toLowerCase()===currentEmail.trim().toLowerCase())&&<div className="flex flex-wrap gap-2"><button type="button" className="btn-secondary" onClick={()=>beginEdit(item)}>Edit</button><button type="button" className="btn-secondary border-rose-200 text-rose-700 hover:bg-rose-50" onClick={()=>deleteRemark(item)}>Delete</button></div>}</div>{editing?<div className="mt-4 rounded-xl border border-primary/30 bg-primary-soft p-4"><textarea aria-label="Edit remark" className="field mt-3 min-h-28 py-3" value={editingRemark} onChange={e=>setEditingRemark(e.target.value)} autoFocus/><div className="mt-3 flex flex-wrap justify-end gap-2"><button className="btn-secondary" onClick={cancelEdit}>Cancel</button><button className="btn-primary" disabled={savingEdit} onClick={()=>updateRemark(item)}>{savingEdit?'Saving…':'Save changes'}</button></div></div>:<><div className="mt-3 max-w-sm"><TaskState label="Remark" status={`Saved · ${sourceLabel(item.section)}`} icon="remark" complete/></div><p className="mt-3 whitespace-pre-wrap text-sm text-body">{item.remark}</p><p className="mt-2 text-xs text-body">Recorded by {item.recorded_by||'Unknown recorder'} · {item.recorded_at?new Date(item.recorded_at).toLocaleString():'—'}</p></>}</article>})}{!visibleItems.length&&<div className="empty-state m-4">No remarks found for this source or filter.</div>}</div></section>
  </div>
 }
