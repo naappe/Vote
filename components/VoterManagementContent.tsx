@@ -158,6 +158,9 @@ export default function VoterManagementContent({profilePath='/resident-profile/'
   }catch(e){setError(e instanceof Error?e.message:'Export failed')}finally{setExporting(false);setExportProgress('')}
  }
  const isVoteTarget=targetRoute;
+ const isDoorTask=!partyControls&&!isVoteTarget&&['visit-pending','visited','not-visited'].includes(focus);
+ const isRemarksTask=!partyControls&&!isVoteTarget&&['remarks','remarks-pending'].includes(focus);
+ const taskFilterOptions=isVoteTarget?([['all','All'],['will-vote','Will vote'],['not-vote','Will not vote'],['vote-unsure','Not sure'],['vote-pending','Not asked']] as const):isDoorTask?([['all','All'],['visit-pending','Pending'],['visited','Visited'],['not-visited','Not visited']] as const):isRemarksTask?([['all','All'],['remarks','Recorded'],['remarks-pending','No remarks']] as const):null;
  const workspaceTitle=partyControls?'Resident directory':isVoteTarget?'Vote Target':focus==='visit-pending'||focus==='visited'||focus==='not-visited'?'Door-to-door':focus==='remarks'||focus==='remarks-pending'?'Remarks':'Residents';
  return <div className={partyControls?"space-y-4":"mdp-residents-page"}>
   <section className={partyControls?"flex flex-col items-stretch justify-between gap-3 sm:flex-row sm:items-center":"mdp-reference-header"}>
@@ -205,9 +208,9 @@ export default function VoterManagementContent({profilePath='/resident-profile/'
       {partyControls&&<Select label="Party" value={party} onChange={v=>changeFilter(setParty,v)} options={[["all","All parties"],...parties.map(p=>[p.name,`${p.name==='Unspecified'?'No party':p.name} (${p.count})`])]}/>}
       <button className="btn-secondary mdp-reference-clear" onClick={clearFilters} disabled={!hasFilters}>Clear</button>
     </div>
-    {!partyControls&&isVoteTarget&&<div className="flex flex-wrap items-center gap-2 py-1" aria-label="Vote target filters">
-      <span className="text-xs font-semibold text-slate-600">Recorded target:</span>
-      {([['all','All'],['will-vote','Will vote'],['not-vote','Will not vote'],['vote-unsure','Not sure'],['vote-pending','Not asked']] as const).map(([value,label])=><button key={value} type="button" aria-pressed={focus===value} onClick={()=>selectSummaryFocus(value)} className={`rounded-lg border px-3 py-2 text-xs font-semibold ${focus===value?'border-blue-600 bg-blue-600 text-white':'border-slate-200 bg-white text-slate-700'}`}>{label}</button>)}
+    {!partyControls&&taskFilterOptions&&<div className="flex flex-wrap items-center gap-2 py-1" aria-label={isVoteTarget?'Vote target filters':isDoorTask?'Door-to-door filters':'Remarks filters'}>
+      <span className="text-xs font-semibold text-slate-600">{isVoteTarget?'Recorded target:':isDoorTask?'Visit status:':'Remarks status:'}</span>
+      {taskFilterOptions.map(([value,label])=><button key={value} type="button" aria-pressed={focus===value} onClick={()=>selectSummaryFocus(value)} className={`rounded-lg border px-3 py-2 text-xs font-semibold ${focus===value?'border-blue-600 bg-blue-600 text-white':'border-slate-200 bg-white text-slate-700'}`}>{label}</button>)}
     </div>}
     <div className="mdp-reference-secondary mdp-polished-secondary">
       <details className="group" onToggle={event=>{if(event.currentTarget.open)loadFilters()}}><summary className="cursor-pointer text-xs font-semibold text-primary">More filters{gender!=='all'||age!=='all'||(partyControls&&box!=='all')||house!=='all'?' (active)':''}</summary><div className="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">{partyControls&&<HousePicker houses={houses} value={house} onChange={v=>changeFilter(setHouse,v)}/>}<Select label="Gender" value={gender} onChange={v=>changeFilter(setGender,v)} options={[["all","All"],["M","Male"],["F","Female"]]}/><Select label="Age" value={age} onChange={v=>changeFilter(setAge,v)} options={[["all","All ages"],["18-25","18–25"],["26-35","26–35"],["36-45","36–45"],["46-60","46–60"],["61+","61+"]]}/>{partyControls&&<Select label="Election box" value={box} onChange={v=>changeFilter(setBox,v)} options={[["all","All election boxes"],...boxes.map(b=>[b,b])]}/>}{filtersLoading&&<p className="text-xs text-body" role="status">Loading filter options…</p>}</div></details>
