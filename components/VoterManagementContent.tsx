@@ -25,7 +25,8 @@ export default function VoterManagementContent({profilePath='/resident-profile/'
  const [pdfSerials,setPdfSerials]=useState<Record<string,number>>({});
  const [rosterTotals,setRosterTotals]=useState<{total:number;linked:number;pending:number}|null>(null);
  const [targetCounts,setTargetCounts]=useState<Record<string,number>|null>(null);
- useEffect(()=>{if(partyControls||params.get('target')!=='1')return;let active=true;const empty={search:'',house:'all',gender:'all',age:'all',box:'all',party:'all'};void Promise.all((['will-vote','not-vote','vote-unsure','vote-pending'] as const).map(async status=>[status,(await getMdpRosterPage(empty,1,1,true,status)).count] as const)).then(entries=>{if(active)setTargetCounts(Object.fromEntries(entries))}).catch(()=>{if(active)setTargetCounts(null)});return()=>{active=false}},[partyControls,params]);
+ const targetRoute=params.get('target')==='1';
+ useEffect(()=>{if(partyControls||!targetRoute)return;let active=true;const empty={search:'',house:'all',gender:'all',age:'all',box:'all',party:'all'};void Promise.all((['will-vote','not-vote','vote-unsure','vote-pending'] as const).map(async status=>[status,(await getMdpRosterPage(empty,1,1,true,status)).count] as const)).then(entries=>{if(active)setTargetCounts(Object.fromEntries(entries))}).catch(()=>{if(active)setTargetCounts(null)});return()=>{active=false}},[partyControls,targetRoute]);
 
  useEffect(()=>{if(partyControls)return;let mounted=true;void supabase.rpc('mdp_2026_roster_counts').then(({data,error})=>{if(mounted&&!error&&data)setRosterTotals({total:Number(data.total)||0,linked:Number(data.linked)||0,pending:Number(data.pending)||0})});return()=>{mounted=false}},[partyControls]);
  const [serialInput,setSerialInput]=useState(()=>params.get('serial')||'');
@@ -69,10 +70,11 @@ export default function VoterManagementContent({profilePath='/resident-profile/'
   const next=new URLSearchParams();if(debouncedQuery)next.set('q',debouncedQuery);if(!partyControls&&serialFilter)next.set('serial',serialFilter);
   for(const [key,value] of Object.entries({house,party:partyControls?party:'all',gender,age,box:partyControls?box:'all'}))if(value!=='all')next.set(key,value);
   if(focus!==incomingFocus)return;
-  if(focus!=='all')next.set('focus',focus);if(!partyControls&&params.get('target')==='1')next.set('target','1');if(page>1)next.set('page',String(page));if(view==='gallery'&&partyControls)next.set('view','gallery');
+  if(focus!=='all')next.set('focus',focus);if(!partyControls&&targetRoute)next.set('target','1');if(page>1)next.set('page',String(page));if(view==='gallery'&&partyControls)next.set('view','gallery');
   const base=pathname.startsWith('/Vote')?pathname:`/Vote${pathname}`;
-  window.history.replaceState(null,'',`${base}${next.size?'?'+next.toString():''}`);
- },[debouncedQuery,serialFilter,house,party,partyControls,gender,age,box,focus,incomingFocus,page,view,pathname]);
+  const desired=`${base}${next.size?'?'+next.toString():''}`;
+  if(window.location.pathname+window.location.search!==desired)window.history.replaceState(null,'',desired);
+ },[debouncedQuery,serialFilter,house,party,partyControls,gender,age,box,focus,incomingFocus,page,view,pathname,targetRoute]);
  useEffect(()=>{let active=true;setLoading(true);setError('');setWorkflowError('');if(!partyControls)setWorkflow({});
   void(async()=>{try{const result=!partyControls&&serialFilter?await (async()=>{
    const serial=Number(serialFilter);
@@ -155,7 +157,7 @@ export default function VoterManagementContent({profilePath='/resident-profile/'
    setMessage(`Exported ${all.length.toLocaleString()} residents matching your filters${partyControls?' as CSV':' with saved task records in Excel'}.`);
   }catch(e){setError(e instanceof Error?e.message:'Export failed')}finally{setExporting(false);setExportProgress('')}
  }
- const isVoteTarget=params.get('target')==='1';
+ const isVoteTarget=targetRoute;
  const workspaceTitle=partyControls?'Resident directory':isVoteTarget?'Vote Target':focus==='visit-pending'||focus==='visited'||focus==='not-visited'?'Door-to-door':focus==='remarks'||focus==='remarks-pending'?'Remarks':'Residents';
  return <div className={partyControls?"space-y-4":"mdp-residents-page"}>
   <section className={partyControls?"flex flex-col items-stretch justify-between gap-3 sm:flex-row sm:items-center":"mdp-reference-header"}>
