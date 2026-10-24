@@ -24,6 +24,9 @@ export default function VoterManagementContent({profilePath='/resident-profile/'
  const initial=(key:string)=>params.get(key)||'all';
  const [pdfSerials,setPdfSerials]=useState<Record<string,number>>({});
  const [rosterTotals,setRosterTotals]=useState<{total:number;linked:number;pending:number}|null>(null);
+ const [targetCounts,setTargetCounts]=useState<Record<string,number>|null>(null);
+ useEffect(()=>{if(partyControls||params.get('target')!=='1')return;let active=true;const empty={search:'',house:'all',gender:'all',age:'all',box:'all',party:'all'};void Promise.all((['will-vote','not-vote','vote-unsure','vote-pending'] as const).map(async status=>[status,(await getMdpRosterPage(empty,1,1,true,status)).count] as const)).then(entries=>{if(active)setTargetCounts(Object.fromEntries(entries))}).catch(()=>{if(active)setTargetCounts(null)});return()=>{active=false}},[partyControls,params]);
+
  useEffect(()=>{if(partyControls)return;let mounted=true;void supabase.rpc('mdp_2026_roster_counts').then(({data,error})=>{if(mounted&&!error&&data)setRosterTotals({total:Number(data.total)||0,linked:Number(data.linked)||0,pending:Number(data.pending)||0})});return()=>{mounted=false}},[partyControls]);
  const [serialInput,setSerialInput]=useState(()=>params.get('serial')||'');
  const [serialFilter,setSerialFilter]=useState(()=>params.get('serial')||'');
@@ -66,7 +69,7 @@ export default function VoterManagementContent({profilePath='/resident-profile/'
   const next=new URLSearchParams();if(debouncedQuery)next.set('q',debouncedQuery);if(!partyControls&&serialFilter)next.set('serial',serialFilter);
   for(const [key,value] of Object.entries({house,party:partyControls?party:'all',gender,age,box:partyControls?box:'all'}))if(value!=='all')next.set(key,value);
   if(focus!==incomingFocus)return;
-  if(focus!=='all')next.set('focus',focus);if(page>1)next.set('page',String(page));if(view==='gallery'&&partyControls)next.set('view','gallery');
+  if(focus!=='all')next.set('focus',focus);if(!partyControls&&params.get('target')==='1')next.set('target','1');if(page>1)next.set('page',String(page));if(view==='gallery'&&partyControls)next.set('view','gallery');
   const base=pathname.startsWith('/Vote')?pathname:`/Vote${pathname}`;
   window.history.replaceState(null,'',`${base}${next.size?'?'+next.toString():''}`);
  },[debouncedQuery,serialFilter,house,party,partyControls,gender,age,box,focus,incomingFocus,page,view,pathname]);
@@ -159,12 +162,12 @@ export default function VoterManagementContent({profilePath='/resident-profile/'
     <div className="mdp-reference-title">{!partyControls&&<div className="mb-2 flex flex-wrap items-center gap-2">{hasFilters&&<button type="button" onClick={clearFilters} className="rounded-lg border border-blue-200 bg-blue-50 px-3 py-2 text-sm font-semibold text-blue-800 hover:bg-blue-100">All residents</button>}</div>}<h1 className={partyControls?"text-2xl":"text-2xl font-extrabold tracking-tight text-[#0b214b]"}>{workspaceTitle}</h1><p className="mt-1 text-xs text-body">{loading?'Loading results…':partyControls?`${count.toLocaleString()} residents`:rosterTotals?`${rosterTotals.total.toLocaleString()} PDF entries · ${rosterTotals.linked.toLocaleString()} matched · ${rosterTotals.pending} awaiting verification`:`${count.toLocaleString()} matched residents`}</p></div>
     {!partyControls&&isVoteTarget&&<div aria-label="Vote Target status summary" className="mdp-reference-stats">
       {([
-        {label:'Matched',value:loading?'…':String(count),tone:'blue',hint:'Matched residents in current search; the PDF has 540 entries'},
-        {label:'Will vote',value:String(rows.filter(r=>workflow[String(r.id)]?.voteStatus==='will-vote').length),tone:'green',hint:'Visible page'},
-        {label:'Not recorded',value:String(rows.filter(r=>workflow[String(r.id)]&&!workflow[String(r.id)]?.hasVoteIntention).length),tone:'slate',hint:'Visible page'},
-        {label:'Not sure',value:String(rows.filter(r=>workflow[String(r.id)]?.voteStatus==='not-decided'&&workflow[String(r.id)]?.hasVoteIntention).length),tone:'amber',hint:'Visible page'},
-        {label:'Will not vote',value:String(rows.filter(r=>workflow[String(r.id)]?.voteStatus==='not-vote').length),tone:'red',hint:'Visible page'}
-      ] as const).map((stat,index)=><div key={stat.label} className={`mdp-reference-stat mdp-kpi-${stat.tone}`} title={stat.hint}><strong>{loading||(index>0&&!!workflowError)?'—':stat.value}</strong><span>{stat.label}</span></div>)}
+        {label:'Matched',value:rosterTotals?.linked??540,tone:'blue'},
+        {label:'Will vote',value:targetCounts?.['will-vote'],tone:'green'},
+        {label:'Not recorded',value:targetCounts?.['vote-pending'],tone:'slate'},
+        {label:'Not sure',value:targetCounts?.['vote-unsure'],tone:'amber'},
+        {label:'Will not vote',value:targetCounts?.['not-vote'],tone:'red'}
+      ] as const).map(stat=><div key={stat.label} className={`mdp-reference-stat mdp-kpi-${stat.tone}`}><strong>{stat.value===undefined?'…':stat.value}</strong><span>{stat.label}</span></div>)}
     </div>}
     <button className="btn-primary mdp-reference-export" onClick={exportResults} disabled={exporting||loading||focus!=='all'||Boolean(serialFilter)} title={focus==='all'&&!serialFilter?'Download all matching residents across every page':'Clear the task status filter to export the full directory'}>{exporting?`Exporting ${exportProgress}`:partyControls?'Export CSV':'↓ Export Excel'}</button>
   </section>
