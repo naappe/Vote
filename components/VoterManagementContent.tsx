@@ -50,7 +50,7 @@ export default function VoterManagementContent({profilePath='/resident-profile/'
  const incomingFocus=params.get('focus')||'all';
  // Forward legacy task URLs to their canonical pages, preserving task filters.
  useEffect(()=>{
-  if(partyControls||!pathname.replace(/\\/$/,'').endsWith('/mdp/residents'))return;
+  if(partyControls||!pathname.replace(/\/$/,'').endsWith('/mdp/residents'))return;
   const legacyTarget=params.get('target')==='1'||['will-vote','not-vote','vote-unsure','vote-pending'].includes(incomingFocus);
   const legacyDoor=['visit-pending','visited','not-visited'].includes(incomingFocus);
   const legacyRemarks=['remarks','remarks-pending'].includes(incomingFocus);
