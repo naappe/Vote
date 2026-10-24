@@ -1,7 +1,7 @@
 'use client';
 import Link from 'next/link';
 import {usePathname,useRouter,useSearchParams} from 'next/navigation';
-import {useEffect,useMemo,useRef,useState} from 'react';
+import {useEffect,useMemo,useRef,useState,startTransition} from 'react';
 import {getDirectoryFilterOptions,getDirectoryPage,getMdpHouseOptions,getMdpRosterPage,getResidents,saveCallCenterResult,saveDoorToDoorResult,supabase} from '../lib/supabase';
 import {readOperationalRows,saveTransportation} from '../lib/operations';
 import {appendGeneralRemark} from '../lib/resident-remarks';
@@ -110,7 +110,7 @@ export default function VoterManagementContent({profilePath='/resident-profile/'
  const hasFilters=Boolean((!partyControls&&serialInput)||focus!=='all'||query||house!=='all'||(partyControls&&party!=='all')||gender!=='all'||age!=='all'||(partyControls&&box!=='all'));
  function changeFilter(setter:(value:string)=>void,value:string){setter(value);setPage(1)}
  function clearFilters(){router.push(pathname);setSerialInput('');setSerialFilter('');setFocus('all');setQuery('');setDebouncedQuery('');setHouse('all');setParty('all');setGender('all');setAge('all');setBox('all');setPage(1)}
- function selectSummaryFocus(value:string){const next=new URLSearchParams(window.location.search);if(value==='all')next.delete('focus');else next.set('focus',value);next.delete('page');setFocus(value);setPage(1);router.push(pathname+(next.size?'?'+next.toString():''))}
+ function selectSummaryFocus(value:string){if(value===focus)return;const next=new URLSearchParams(window.location.search);if(value==='all')next.delete('focus');else next.set('focus',value);next.delete('page');startTransition(()=>{setFocus(value);setPage(1)});router.push(pathname+(next.size?'?'+next.toString():''))}
  function changePage(next:number){setPage(Math.min(pages,Math.max(1,next)));resultsRef.current?.scrollIntoView({behavior:'smooth',block:'start'})}
  async function exportResults(){
   setExporting(true);setError('');setMessage('');setExportProgress('Checking export permission…');
