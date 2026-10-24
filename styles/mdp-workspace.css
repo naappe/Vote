@@ -594,3 +594,47 @@
  .mdp-workspace .mdp-directory-paging>div>span{min-width:52px;text-align:center;white-space:nowrap}
  .mdp-workspace .mdp-directory-paging>p{margin:0}
 }
+
+
+/* Unified operational pages: heading → KPI summary → search/filters → results. */
+.mdp-workspace .page-hero{
+ padding:0!important;margin:0!important;background:transparent!important;
+ border:0!important;box-shadow:none!important;border-radius:0!important;
+ display:flex;flex-direction:column;align-items:flex-start;gap:0;
+}
+.mdp-workspace .page-hero>.eyebrow{display:none}
+.mdp-workspace .page-hero>h1{
+ margin:0!important;font-size:clamp(1.5rem,2.5vw,1.875rem)!important;
+ line-height:1.2;font-weight:800;letter-spacing:-.025em;color:#0b214b;
+}
+.mdp-workspace .page-hero+section[aria-label$="KPI summary"],
+.mdp-workspace .page-hero+section[aria-label$="KPI Summary"],
+.mdp-workspace .page-hero+section[aria-label$="status summary"]{
+ margin-top:16px;margin-bottom:16px;
+}
+.mdp-workspace .page-hero+section[aria-label$="KPI summary"]+section.panel,
+.mdp-workspace .page-hero+section[aria-label$="KPI Summary"]+section.panel,
+.mdp-workspace .page-hero+section[aria-label$="status summary"]+section.panel{
+ padding:20px!important;border:1px solid #e2e8f0!important;
+ border-radius:16px!important;background:#fff!important;
+ box-shadow:0 2px 8px rgba(15,23,42,.035)!important;
+}
+.mdp-workspace .mdp-reference-header{
+ display:flex!important;flex-direction:column!important;align-items:stretch!important;
+ gap:16px!important;padding:0!important;margin-bottom:16px!important;
+ background:transparent!important;border:0!important;box-shadow:none!important;
+}
+.mdp-workspace .mdp-reference-title{width:100%;margin:0}
+.mdp-workspace .mdp-reference-title h1{font-size:clamp(1.5rem,2.5vw,1.875rem)!important;line-height:1.2}
+.mdp-workspace .mdp-reference-header [aria-label="Vote Target status summary"]{width:100%}
+.mdp-workspace .mdp-reference-export{align-self:flex-end}
+.mdp-workspace .mdp-reference-filters{
+ padding:20px!important;border:1px solid #e2e8f0!important;
+ border-radius:16px!important;background:#fff!important;
+ box-shadow:0 2px 8px rgba(15,23,42,.035)!important;
+ margin-bottom:16px!important;
+}
+@media(max-width:640px){
+ .mdp-workspace .mdp-reference-filters{padding:14px!important}
+ .mdp-workspace .page-hero+section[aria-label$="KPI summary"]+section.panel{padding:14px!important}
+}
