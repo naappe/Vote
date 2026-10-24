@@ -1,5 +1,5 @@
 'use client';
-import {useEffect,useRef,useState} from 'react';
+import {useDeferredValue,useEffect,useMemo,useRef,useState,startTransition} from 'react';
 import {getCallCenterQueue,saveCallCenterResult,supabase} from '../lib/supabase';
 import type {CallOutcome,Resident} from '../lib/types';
 import {PartyFilter,ResidentIdentity} from '../shared/ResidentIdentity';
@@ -17,19 +17,21 @@ export default function CallCenterContent({partyControls=true}:{partyControls?:b
  const [searchInput,setSearchInput]=useState(''),[partyInput,setPartyInput]=useState('all'),[statusInput,setStatusInput]=useState('all'),[outcomeInput,setOutcomeInput]=useState('all'),[reachInput,setReachInput]=useState('all');
  const [search,setSearch]=useState(''),[party,setParty]=useState('all'),[status,setStatus]=useState('all'),[outcome,setOutcome]=useState('all'),[reach,setReach]=useState('all'),[selected,setSelected]=useState<Resident|null>(null),[queryReady,setQueryReady]=useState(false);
  useEffect(()=>{const params=new URLSearchParams(window.location.search),requestedStatus=params.get('status'),requestedOutcome=params.get('outcome'),requestedReach=params.get('reach');if(['need-call','called'].includes(requestedStatus||'')){setStatus(requestedStatus!);setStatusInput(requestedStatus!)}if(outcomes.includes(requestedOutcome as CallOutcome)){setOutcome(requestedOutcome!);setOutcomeInput(requestedOutcome!)}if(['reached','not-reached'].includes(requestedReach||'')){setReach(requestedReach!);setReachInput(requestedReach!)}setQueryReady(true)},[]);
+ const deferredSearch=useDeferredValue(search);
  const callQueryId=useRef(0);
  useEffect(()=>{
   if(!queryReady)return;
   const requestId=++callQueryId.current;
   setLoading(true);setError('');
-  void getCallCenterQueue({page,pageSize:30,search,party:partyControls?party:'MDP',phoneStatus:status,outcome,reachStatus:reach})
+  void getCallCenterQueue({page,pageSize:30,search:deferredSearch,party:partyControls?party:'MDP',phoneStatus:status,outcome,reachStatus:reach})
    .then(result=>{if(requestId!==callQueryId.current)return;setRows(result.rows);setCount(result.count)})
    .catch(e=>{if(requestId===callQueryId.current)setError(e instanceof Error?e.message:'Unable to load calls')})
    .finally(()=>{if(requestId===callQueryId.current)setLoading(false)});
   return()=>{callQueryId.current++};
- },[search,party,partyControls,status,outcome,reach,page,queryReady]);
- function applySearch(){setPage(1);setSearch(searchInput.trim());setParty(partyInput);setStatus(statusInput);setOutcome(outcomeInput);setReach(reachInput)}
+ },[deferredSearch,party,partyControls,status,outcome,reach,page,queryReady]);
+ function applySearch(){startTransition(()=>{setPage(1);setSearch(searchInput.trim());setParty(partyInput);setStatus(statusInput);setOutcome(outcomeInput);setReach(reachInput)})}
  function reset(){setSearchInput('');setPartyInput('all');setStatusInput('all');setOutcomeInput('all');setReachInput('all');setSearch('');setParty('all');setStatus('all');setOutcome('all');setReach('all');setPage(1)}
+ const pageCallCounts=useMemo(()=>({need:rows.filter(r=>r.phone_status!=='called').length,called:rows.filter(r=>r.phone_status==='called').length,noAnswer:rows.filter(r=>r.call_outcome==='not-answer').length}),[rows]);
  return <div className="space-y-4">
   <section className="page-hero"><p className="eyebrow">Resident calls</p><h1 className="mt-2">Calls</h1></section>
   {!partyControls&&<MDPTaskKpiSummary title="Call task KPI summary" items={[
