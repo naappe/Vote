@@ -200,8 +200,8 @@ export default function VoterManagementContent({profilePath='/resident-profile/'
       {partyControls&&<Select label="Party" value={party} onChange={v=>changeFilter(setParty,v)} options={[["all","All parties"],...parties.map(p=>[p.name,`${p.name==='Unspecified'?'No party':p.name} (${p.count})`])]}/>}
       <button className="btn-secondary mdp-reference-clear" onClick={clearFilters} disabled={!hasFilters}>Clear</button>
     </div>
-    {!partyControls&&<div className="flex flex-wrap items-center gap-2 py-1" aria-label="Vote target filters">
-      <span className="text-xs font-semibold text-slate-600">Vote target:</span>
+    {!partyControls&&isVoteTarget&&<div className="flex flex-wrap items-center gap-2 py-1" aria-label="Vote target filters">
+      <span className="text-xs font-semibold text-slate-600">Recorded target:</span>
       {([['all','All'],['will-vote','Will vote'],['not-vote','Will not vote'],['vote-unsure','Not sure'],['vote-pending','Not asked']] as const).map(([value,label])=><button key={value} type="button" aria-pressed={focus===value} onClick={()=>selectSummaryFocus(value)} className={`rounded-lg border px-3 py-2 text-xs font-semibold ${focus===value?'border-blue-600 bg-blue-600 text-white':'border-slate-200 bg-white text-slate-700'}`}>{label}</button>)}
     </div>}
     <div className="mdp-reference-secondary mdp-polished-secondary">
