@@ -157,7 +157,7 @@ export default function VoterManagementContent({profilePath='/resident-profile/'
  return <div className={partyControls?"space-y-4":"mdp-residents-page"}>
   <section className={partyControls?"flex flex-col items-stretch justify-between gap-3 sm:flex-row sm:items-center":"mdp-reference-header"}>
     <div className="mdp-reference-title">{!partyControls&&<div className="mb-2 flex flex-wrap items-center gap-2">{hasFilters&&<button type="button" onClick={clearFilters} className="rounded-lg border border-blue-200 bg-blue-50 px-3 py-2 text-sm font-semibold text-blue-800 hover:bg-blue-100">All residents</button>}</div>}<h1 className={partyControls?"text-2xl":"text-2xl font-extrabold tracking-tight text-[#0b214b]"}>{workspaceTitle}</h1><p className="mt-1 text-xs text-body">{loading?'Loading results…':partyControls?`${count.toLocaleString()} residents`:rosterTotals?`${rosterTotals.total.toLocaleString()} PDF entries · ${rosterTotals.linked.toLocaleString()} matched · ${rosterTotals.pending} awaiting verification`:`${count.toLocaleString()} matched residents`}</p></div>
-    {!partyControls&&<div aria-label="Resident status summary" className="mdp-reference-stats">
+    {!partyControls&&isVoteTarget&&<div aria-label="Vote Target status summary" className="mdp-reference-stats">
       {([
         {label:'Matched',value:loading?'…':String(count),tone:'blue',hint:'Matched residents in current search; the PDF has 540 entries'},
         {label:'Will vote',value:String(rows.filter(r=>workflow[String(r.id)]?.voteStatus==='will-vote').length),tone:'green',hint:'Visible page'},
