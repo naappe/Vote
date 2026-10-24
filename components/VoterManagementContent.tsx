@@ -25,7 +25,7 @@ export default function VoterManagementContent({profilePath='/resident-profile/'
  const [pdfSerials,setPdfSerials]=useState<Record<string,number>>({});
  const [rosterTotals,setRosterTotals]=useState<{total:number;linked:number;pending:number}|null>(null);
  const [targetCounts,setTargetCounts]=useState<Record<string,number>|null>(null);
- const targetRoute=pathname.startsWith('/mdp/vote-target')||params.get('target')==='1';
+ const targetRoute=pathname.startsWith('/mdp/vote-target');
  useEffect(()=>{if(partyControls||!targetRoute)return;let active=true;const empty={search:'',house:'all',gender:'all',age:'all',box:'all',party:'all'};void Promise.all((['will-vote','not-vote','vote-unsure','vote-pending'] as const).map(async status=>[status,(await getMdpRosterPage(empty,1,1,true,status)).count] as const)).then(entries=>{if(active)setTargetCounts(Object.fromEntries(entries))}).catch(()=>{if(active)setTargetCounts(null)});return()=>{active=false}},[partyControls,targetRoute]);
 
  useEffect(()=>{if(partyControls)return;let mounted=true;void supabase.rpc('mdp_2026_roster_counts').then(({data,error})=>{if(mounted&&!error&&data)setRosterTotals({total:Number(data.total)||0,linked:Number(data.linked)||0,pending:Number(data.pending)||0})});return()=>{mounted=false}},[partyControls]);
@@ -48,6 +48,15 @@ export default function VoterManagementContent({profilePath='/resident-profile/'
  // Next.js preserves the component when navigating between query-only task links.
  // Synchronize the selected task before updating the URL again.
  const incomingFocus=params.get('focus')||'all';
+ // Forward legacy task URLs to their canonical pages, preserving task filters.
+ useEffect(()=>{
+  if(partyControls||!pathname.replace(/\\/$/,'').endsWith('/mdp/residents'))return;
+  const legacyTarget=params.get('target')==='1'||['will-vote','not-vote','vote-unsure','vote-pending'].includes(incomingFocus);
+  const legacyDoor=['visit-pending','visited','not-visited'].includes(incomingFocus);
+  const legacyRemarks=['remarks','remarks-pending'].includes(incomingFocus);
+  const destination=legacyTarget?'/mdp/vote-target/':legacyDoor?'/mdp/door-to-door/':legacyRemarks?'/mdp/remarks/':null;
+  if(destination){const next=new URLSearchParams(params.toString());next.delete('target');router.replace(destination+(next.size?'?'+next.toString():''));}
+ },[partyControls,pathname,incomingFocus,params,router]);
  useEffect(()=>{setFocus(current=>current===incomingFocus?current:incomingFocus);setPage(1)},[incomingFocus]);
  const [mdpView,setMdpView]=useState<'grid'|'house'|'compact'>('grid');
  const [query,setQuery]=useState(()=>params.get('q')||''),[debouncedQuery,setDebouncedQuery]=useState(()=>params.get('q')||''),[house,setHouse]=useState(()=>initial('house')),[party,setParty]=useState(()=>partyControls?initial('party'):'all'),[gender,setGender]=useState(()=>initial('gender')),[age,setAge]=useState(()=>initial('age')),[box,setBox]=useState(()=>initial('box')),[page,setPage]=useState(()=>Math.max(1,Number(params.get('page'))||1)),[count,setCount]=useState(0),[view,setView]=useState<ViewMode>(()=>!partyControls||params.get('view')==='gallery'?'gallery':'list'),[pageSize,setPageSize]=useState(50),[exporting,setExporting]=useState(false),[exportProgress,setExportProgress]=useState('');
