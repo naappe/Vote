@@ -1,20 +1,34 @@
 'use client';
 import Link from 'next/link';
-import {useSearchParams} from 'next/navigation';
+import {useSearchParams,useRouter} from 'next/navigation';
 import {useEffect,useMemo,useState} from 'react';
-import {getDirectoryPage,getResidents,saveDoorToDoorResult,supabase} from '../lib/supabase';
+import {getDirectoryPage,getMdpRosterPage,getResidents,saveDoorToDoorResult,supabase} from '../lib/supabase';
 import {readOperationalRows} from '../lib/operations';
 import type {D2DStatus,Resident} from '../lib/types';
 import {PartyFilter,ResidentIdentity,matchesParty} from '../shared/ResidentIdentity';
 import TaskState from '../shared/TaskState';
+import MDPTaskKpiSummary from './MDPTaskKpiSummary';
 
 type Mode='calls'|'visits'|'election'|'reports'|'notifications'|'settings';
 const PAGE_SIZE=12;
 export default function OperationsListContent({mode,partyControls=true}:{mode:Mode;partyControls?:boolean}){
- const params=useSearchParams(),visitFilter=mode==='visits'?params.get('visit'):null;
+ const params=useSearchParams(),router=useRouter(),visitFilter=mode==='visits'?params.get('visit'):null;
  const [rows,setRows]=useState<Resident[]>([]),[count,setCount]=useState(0),[loading,setLoading]=useState(true),[error,setError]=useState(''),[party,setParty]=useState('all'),[search,setSearch]=useState('');
- const [page,setPage]=useState(1),[visitTarget,setVisitTarget]=useState<Resident|null>(null);
+ const [page,setPage]=useState(1),[visitTarget,setVisitTarget]=useState<Resident|null>(null),[refreshToken,setRefreshToken]=useState(0);
+ const [visitTotals,setVisitTotals]=useState<{all:number;visited:number;pending:number}|null>(null);
  useEffect(()=>{let active=true;if(mode!=='visits')return()=>{active=false};setLoading(true);setError('');
+  if(!partyControls){void(async()=>{try{
+   const filters={search,party:'MDP',house:'all',gender:'all',age:'all',box:'all'};
+   const taskFocus=visitFilter==='visited'?'visited':visitFilter==='not-visited'?'not-visited':'all';
+   const result=await getMdpRosterPage(filters,page,PAGE_SIZE,false,taskFocus);
+   if(!active)return;
+   const ids=result.rows.map(row=>row.id);
+   const response=ids.length?await supabase.from('door_to_door').select('resident_id,visit_status,visit_notes,last_visit_at').in('resident_id',ids):{data:[],error:null};
+   if(response.error)throw response.error;
+   const visitMap=new Map((response.data||[]).map(row=>[String(row.resident_id),row]));
+   const mapped=result.rows.map(row=>{const visit=visitMap.get(String(row.id));return {...row,d2d_status:visit?.visit_status||'not-visited',visit_notes:visit?.visit_notes||null,last_visit_at:visit?.last_visit_at||null} as Resident});
+   setRows(mapped);setCount(result.count);
+  }catch(e){if(active)setError(e instanceof Error?e.message:'Unable to load MDP visits')}finally{if(active)setLoading(false)}})();return()=>{active=false}}
   if(visitFilter==='visited'||visitFilter==='not-visited'){void(async()=>{try{const [residents,visitRows]=await Promise.all([getResidents(),readOperationalRows('door_to_door','resident_id,visit_status,visit_notes,last_visit_at')]);if(!active)return;const visitMap=new Map(visitRows.map(row=>[String(row.resident_id),row]));const filtered=residents.filter(resident=>{const visit=visitMap.get(String(resident.id)),visited=visit?.visit_status==='visited';return matchesParty(resident,partyControls?party:'MDP')&&(visitFilter==='visited'?visited:!visited)}).map(resident=>{const visit=visitMap.get(String(resident.id));return {...resident,d2d_status:visit?.visit_status||'not-visited',visit_notes:visit?.visit_notes||null,last_visit_at:visit?.last_visit_at||null} as Resident});setRows(filtered);setCount(filtered.length)}catch(e){if(active)setError(e instanceof Error?e.message:'Unable to load visit results')}finally{if(active)setLoading(false)}})();return()=>{active=false}}
   void (async()=>{try{
    const result=await getDirectoryPage({search,party:partyControls?party:'MDP'},page,PAGE_SIZE);
@@ -25,7 +39,7 @@ export default function OperationsListContent({mode,partyControls=true}:{mode:Mo
    const mapped=result.rows.map(r=>{const visit=visitMap.get(String(r.id));return {...r,d2d_status:visit?.visit_status||'not-visited',visit_notes:visit?.visit_notes||null,last_visit_at:visit?.last_visit_at||null} as Resident});
    setRows(mapped);setCount(result.count);
   }catch(e){if(active)setError(e instanceof Error?e.message:'Unable to load residents')}finally{if(active)setLoading(false)}})();return()=>{active=false}
- },[mode,search,party,partyControls,page,visitFilter]);
+ },[mode,search,party,partyControls,page,visitFilter,refreshToken]);
  useEffect(()=>{let active=true;if(mode==='visits')return()=>{active=false};setLoading(true);setError('');
   const residentRows=getResidents();
   const needsAllWorkflow=mode==='reports'||mode==='election';
@@ -45,11 +59,22 @@ export default function OperationsListContent({mode,partyControls=true}:{mode:Mo
  useEffect(()=>{setPage(1)},[party,mode,search]);
  const config={calls:{title:'Call Center',description:'Phone contact results and requested follow-up tasks.',filter:(r:Resident)=>!r.phone_status||r.phone_status==='need-call'},visits:{title:'Door-to-Door',description:'Search the resident list and record household visit outcomes separately from call-center work.',filter:(_:Resident)=>true},election:{title:'Election Day',description:'Turnout and readiness.',filter:(_:Resident)=>true},reports:{title:'Reports',description:'Cross-section totals.',filter:(_:Resident)=>true},notifications:{title:'Notifications',description:'Items needing attention.',filter:(r:Resident)=>r.vote_status==='not-decided'||r.phone_status==='need-call'},settings:{title:'Settings',description:'System configuration.',filter:(_:Resident)=>true}}[mode];
  const visible=useMemo(()=>rows.filter(r=>{const text=[r.id,r.name,r.national_id,r.house,r.lives_in,r.phone].join(' ').toLowerCase();return matchesParty(r,partyControls?party:'MDP')&&config.filter(r)&&(mode!=='visits'||text.includes(search.trim().toLowerCase()))}),[rows,party,partyControls,config,mode,search]);
- const pageRows=mode==='visits'?(visitFilter?visible.slice((page-1)*PAGE_SIZE,page*PAGE_SIZE):visible):visible.slice((page-1)*PAGE_SIZE,page*PAGE_SIZE);
- const pageCount=Math.max(1,Math.ceil((mode==='visits'?(visitFilter?visible.length:count):visible.length)/PAGE_SIZE));
+ const pageRows=mode==='visits'&&!partyControls?visible:mode==='visits'?(visitFilter?visible.slice((page-1)*PAGE_SIZE,page*PAGE_SIZE):visible):visible.slice((page-1)*PAGE_SIZE,page*PAGE_SIZE);
+ const pageCount=Math.max(1,Math.ceil((mode==='visits'?(partyControls&&visitFilter?visible.length:count):visible.length)/PAGE_SIZE));
+ useEffect(()=>{if(mode!=='visits'||partyControls)return;let active=true;const filters={search,party:'MDP',house:'all',gender:'all',age:'all',box:'all'};void Promise.all([
+  getMdpRosterPage(filters,1,1,false,'all'),
+  getMdpRosterPage(filters,1,1,false,'visited'),
+  getMdpRosterPage(filters,1,1,false,'not-visited')
+ ]).then(([all,visited,pending])=>{if(active)setVisitTotals({all:all.count,visited:visited.count,pending:pending.count})}).catch(()=>{if(active)setVisitTotals(null)});
+ return()=>{active=false}},[mode,search,partyControls,refreshToken]);
  if(mode==='settings')return <div className="panel"><h1>Settings</h1><p className="mt-2 text-sm text-body">Connected to public.Resident · {rows.length.toLocaleString()} residents.</p></div>;
  if(mode==='reports')return <ReportsView rows={visible} party={party} setParty={setParty} partyControls={partyControls} loading={loading} error={error}/>;
- return <div className="space-y-4"><section className="page-hero"><p className="eyebrow">Resident tasks</p><h1 className="mt-2">{config.title}{visitFilter==='visited'?' · Visited':visitFilter==='not-visited'?' · Not visited':''}</h1><p className="mt-2 text-sm text-body">{config.description}</p>{partyControls&&<div className="mt-4"><PartyFilter value={party} onChange={setParty}/></div>}</section>{error&&<div className="error-banner">{error}</div>}{mode==='visits'&&<section className="panel"><label className="block"><span className="field-label">Find a resident or house</span><input className="field" type="search" value={search} onChange={event=>setSearch(event.target.value)} placeholder="Name, national ID, record ID, house, or phone"/><span className="mt-2 block text-xs text-body">Searches every matching resident, including later pages.</span></label>{visitFilter&&<Link prefetch={false} href={partyControls?'/door-to-door/':'/mdp/door-to-door/'} className="btn-secondary mt-3 inline-flex">Show all residents</Link>}</section>}<section className="panel overflow-hidden p-0"><div className="border-b border-border px-5 py-4"><b className="text-navy">{(mode==='visits'?(visitFilter?visible.length:count):visible.length).toLocaleString()} matching residents</b></div><div className="grid min-h-[320px] gap-3 p-4 md:grid-cols-2 xl:grid-cols-3">{loading?Array.from({length:PAGE_SIZE}).map((_,i)=><div key={i} aria-hidden="true" className="soft-card min-h-[292px] animate-pulse self-start bg-slate-100"/>):pageRows.map(r=><WorkCard key={String(r.id)} resident={r} mode={mode} partyControls={partyControls} onLogVisit={mode==='visits'?()=>setVisitTarget(r):undefined}/>)}</div><div className="flex items-center justify-between border-t border-border p-4"><button className="btn-secondary" disabled={loading||page<=1} onClick={()=>setPage(p=>p-1)}>Previous</button><span>Page {page} of {pageCount}</span><button className="btn-secondary" disabled={loading||page>=pageCount} onClick={()=>setPage(p=>p+1)}>Next</button></div></section>{visitTarget&&<DoorVisitForm resident={visitTarget} close={()=>setVisitTarget(null)} saved={(status,note)=>{setRows(current=>{const next=current.map(row=>row.id===visitTarget.id?{...row,d2d_status:status,visit_notes:note,last_visit_at:status==='not-visited'?null:new Date().toISOString()}:row);return visitFilter&&((visitFilter==='visited')!==(status==='visited'))?next.filter(row=>row.id!==visitTarget.id):next});setVisitTarget(null)}}/>}</div>
+ return <div className="space-y-4"><section className="page-hero"><p className="eyebrow">Resident tasks</p><h1 className="mt-2">{config.title}{visitFilter==='visited'?' · Visited':visitFilter==='not-visited'?' · Not visited':''}</h1><p className="mt-2 text-sm text-body">{config.description}</p>{partyControls&&<div className="mt-4"><PartyFilter value={party} onChange={setParty}/></div>}</section>{mode==='visits'&&!partyControls&&<MDPTaskKpiSummary title="Door-to-door KPI summary" items={[
+  {key:'all',label:'All visits',value:visitTotals?.all??null,active:!visitFilter,onSelect:()=>{setPage(1);router.push('/mdp/door-to-door/')}},
+  {key:'pending',label:'Pending',value:visitTotals?.pending??null,active:visitFilter==='not-visited',onSelect:()=>{setPage(1);router.push('/mdp/door-to-door/?visit=not-visited')}},
+  {key:'visited',label:'Visited',value:visitTotals?.visited??null,active:visitFilter==='visited',onSelect:()=>{setPage(1);router.push('/mdp/door-to-door/?visit=visited')}}
+ ]}/>}
+ {error&&<div className="error-banner">{error}</div>}{mode==='visits'&&<section className="panel"><label className="block"><span className="field-label">Find a resident or house</span><input className="field" type="search" value={search} onChange={event=>setSearch(event.target.value)} placeholder="Name, national ID, record ID, house, or phone"/><span className="mt-2 block text-xs text-body">Searches every matching resident, including later pages.</span></label>{visitFilter&&<Link prefetch={false} href={partyControls?'/door-to-door/':'/mdp/door-to-door/'} className="btn-secondary mt-3 inline-flex">Show all residents</Link>}</section>}<section className="panel overflow-hidden p-0"><div className="border-b border-border px-5 py-4"><b className="text-navy">{(mode==='visits'?(visitFilter?visible.length:count):visible.length).toLocaleString()} matching residents</b></div><div className="grid min-h-[320px] gap-3 p-4 md:grid-cols-2 xl:grid-cols-3">{loading?Array.from({length:PAGE_SIZE}).map((_,i)=><div key={i} aria-hidden="true" className="soft-card min-h-[292px] animate-pulse self-start bg-slate-100"/>):pageRows.map(r=><WorkCard key={String(r.id)} resident={r} mode={mode} partyControls={partyControls} onLogVisit={mode==='visits'?()=>setVisitTarget(r):undefined}/>)}</div><div className="flex items-center justify-between border-t border-border p-4"><button className="btn-secondary" disabled={loading||page<=1} onClick={()=>setPage(p=>p-1)}>Previous</button><span>Page {page} of {pageCount}</span><button className="btn-secondary" disabled={loading||page>=pageCount} onClick={()=>setPage(p=>p+1)}>Next</button></div></section>{visitTarget&&<DoorVisitForm resident={visitTarget} close={()=>setVisitTarget(null)} saved={(status,note)=>{setRows(current=>{const next=current.map(row=>row.id===visitTarget.id?{...row,d2d_status:status,visit_notes:note,last_visit_at:status==='not-visited'?null:new Date().toISOString()}:row);return visitFilter&&((visitFilter==='visited')!==(status==='visited'))?next.filter(row=>row.id!==visitTarget.id):next});setVisitTarget(null);setRefreshToken(value=>value+1)}}/>}</div>
 }
 
 function ReportsView({rows,party,setParty,partyControls,loading,error}:{rows:Resident[];party:string;setParty:(value:string)=>void;partyControls:boolean;loading:boolean;error:string}){
