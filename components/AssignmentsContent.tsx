@@ -2,6 +2,7 @@
 import {useEffect,useMemo,useState} from 'react';
 import {createWorkflowShare} from '../lib/operations';
 import {useStaffAccess} from './AuthGate';
+import MDPTaskKpiSummary from './MDPTaskKpiSummary';
 import {getResidents,supabase} from '../lib/supabase';
 import type {Resident} from '../lib/types';
 import {PartyFilter,ResidentIdentity,matchesParty} from '../shared/ResidentIdentity';
@@ -12,6 +13,7 @@ type ShareLink={id:number|string;token:string;title?:string|null;status_filter?:
 export default function AssignmentsContent({partyControls=true}:{partyControls?:boolean}){
  const access=useStaffAccess(),isAdmin=access?.role==='admin';
  const [showUnassignedOnly,setShowUnassignedOnly]=useState(false);
+ const [assignmentKpi,setAssignmentKpi]=useState<'all'|'unassigned'|'assigned'|'complete'|'progress'>('all');
  useEffect(()=>{setShowUnassignedOnly(new URLSearchParams(window.location.search).get('status')==='pending')},[]);
  const [staffAccounts,setStaffAccounts]=useState<{id:string;name:string;email:string;role:string;active:boolean}[]>([]);
  const [residents,setResidents]=useState<Resident[]>([]),[items,setItems]=useState<Assignment[]>([]),[links,setLinks]=useState<ShareLink[]>([]),[query,setQuery]=useState(''),[party,setParty]=useState('all'),[house,setHouse]=useState('all'),[box,setBox]=useState('all'),[linkAssignee,setLinkAssignee]=useState(''),[historyAssignee,setHistoryAssignee]=useState(''),[historySearch,setHistorySearch]=useState(''),[editingId,setEditingId]=useState<string|null>(null),[editingName,setEditingName]=useState(''),[editingLinkId,setEditingLinkId]=useState<string|null>(null),[editingLinkName,setEditingLinkName]=useState(''),[error,setError]=useState(''),[message,setMessage]=useState(''),[creating,setCreating]=useState(false),[residentPage,setResidentPage]=useState(1);
@@ -41,7 +43,7 @@ export default function AssignmentsContent({partyControls=true}:{partyControls?:
  const houses=useMemo(()=>[...new Set(residents.map(r=>(r.house||'').trim()).filter(Boolean))].sort((a,b)=>a.localeCompare(b)),[residents]);
  const boxes=useMemo(()=>[...new Set(residents.map(r=>(r.election_box||'').trim()).filter(Boolean))].sort((a,b)=>a.localeCompare(b,undefined,{numeric:true})),[residents]);
  const activeAssignmentIds=useMemo(()=>new Set(items.filter(item=>item.status!=='inactive'&&item.status!=='cancelled').map(item=>String(item.resident_id))),[items]);
- const filteredResidents=useMemo(()=>residents.filter(r=>{const text=[r.id,r.name,r.national_id,r.phone,r.house,r.lives_in,r.election_box].join(' ').toLowerCase();return (!showUnassignedOnly||!activeAssignmentIds.has(String(r.id)))&&matchesParty(r,partyControls?party:'MDP')&&(house==='all'||r.house===house)&&(box==='all'||r.election_box===box)&&text.includes(query.trim().toLowerCase())}),[residents,items,showUnassignedOnly,activeAssignmentIds,party,partyControls,house,box,query]);
+ const filteredResidents=useMemo(()=>residents.filter(r=>{const text=[r.id,r.name,r.national_id,r.phone,r.house,r.lives_in,r.election_box].join(' ').toLowerCase();const residentAssignments=items.filter(item=>String(item.resident_id)===String(r.id)&&!['inactive','cancelled'].includes(item.status));const assigned=residentAssignments.length>0;const complete=residentAssignments.some(item=>['completed','complete','done'].includes(item.status.toLowerCase().trim()));const progress=residentAssignments.some(item=>['in-progress','in_progress','in progress','active'].includes(item.status.toLowerCase().trim()));return (!showUnassignedOnly||!assigned)&&(assignmentKpi==='all'||(assignmentKpi==='unassigned'&&!assigned)||(assignmentKpi==='assigned'&&assigned)||(assignmentKpi==='complete'&&complete)||(assignmentKpi==='progress'&&progress))&&matchesParty(r,partyControls?party:'MDP')&&(house==='all'||r.house===house)&&(box==='all'||r.election_box===box)&&text.includes(query.trim().toLowerCase())}),[residents,items,showUnassignedOnly,assignmentKpi,activeAssignmentIds,party,partyControls,house,box,query]);
  const pageSize=20,totalPages=Math.max(1,Math.ceil(filteredResidents.length/pageSize));
  const visibleResidents=filteredResidents.slice((residentPage-1)*pageSize,residentPage*pageSize);
  const residentMap=useMemo(()=>new Map(residents.map(r=>[String(r.id),r])),[residents]);
@@ -68,17 +70,21 @@ export default function AssignmentsContent({partyControls=true}:{partyControls?:
  return <div className="space-y-4">
   <section className="page-hero"><p className="eyebrow">Staff tasks</p><h1 className="mt-2">Assignments</h1><p className="mt-2 text-sm text-body">Choose residents, assign work to staff, and review saved assignments.</p>{partyControls&&<div className="mt-4"><PartyFilter value={party} onChange={setParty}/></div>}</section>
 
-  {!partyControls&&<section aria-label="Assignment summary" className="mdp-operation-summary mdp-operation-summary-four">
-   {(()=>{
+  {!partyControls&&<MDPTaskKpiSummary title="Assignment KPI summary" items={(()=>{
     const mdpIds=new Set(residents.filter(r=>matchesParty(r,'MDP')).map(r=>String(r.id)));
-    const scope=items.filter(item=>mdpIds.has(String(item.resident_id)));
-    const finished=scope.filter(item=>['completed','complete','done'].includes(item.status?.toLowerCase().trim())).length;
-    const ongoing=scope.filter(item=>['in-progress','in_progress','in progress','active'].includes(item.status?.toLowerCase().trim())).length;
-    const assignedIds=new Set(scope.map(item=>String(item.resident_id)));
-    const unassigned=[...mdpIds].filter(id=>!assignedIds.has(id)).length;
-    return [{label:'Assigned records',value:scope.length,sub:'Loaded assignments'},{label:'Completed',value:finished,sub:'Loaded assignments'},{label:'In progress',value:ongoing,sub:'Loaded assignments'},{label:'No assignment',value:unassigned,sub:'Loaded MDP residents'}].map(item=><div className="mdp-operation-stat" key={item.label}><span>{item.label}</span><strong>{item.value.toLocaleString()}</strong><small>{item.sub}</small></div>);
-   })()}
-  </section>}
+    const scope=items.filter(item=>mdpIds.has(String(item.resident_id))&&!['inactive','cancelled'].includes(item.status));
+    const complete=new Set(scope.filter(item=>['completed','complete','done'].includes(item.status.toLowerCase().trim())).map(item=>String(item.resident_id)));
+    const progress=new Set(scope.filter(item=>['in-progress','in_progress','in progress','active'].includes(item.status.toLowerCase().trim())).map(item=>String(item.resident_id)));
+    const assigned=new Set(scope.map(item=>String(item.resident_id)));
+    const choose=(value:'all'|'unassigned'|'assigned'|'complete'|'progress')=>{setAssignmentKpi(value);setShowUnassignedOnly(false);setResidentPage(1)};
+    return [
+     {key:'all',label:'All residents',value:mdpIds.size,active:assignmentKpi==='all',onSelect:()=>choose('all')},
+     {key:'assigned',label:'Assigned',value:assigned.size,active:assignmentKpi==='assigned',onSelect:()=>choose('assigned')},
+     {key:'complete',label:'Completed',value:complete.size,active:assignmentKpi==='complete',onSelect:()=>choose('complete')},
+     {key:'progress',label:'In progress',value:progress.size,active:assignmentKpi==='progress',onSelect:()=>choose('progress')},
+     {key:'unassigned',label:'Unassigned',value:mdpIds.size-assigned.size,active:assignmentKpi==='unassigned',onSelect:()=>choose('unassigned')}
+    ];
+   })()}/>}
   <section className="panel">
    {!partyControls&&<div className="mb-4 flex flex-wrap gap-2" role="group" aria-label="Assignment status">
     <button type="button" aria-pressed={showUnassignedOnly} onClick={()=>{setShowUnassignedOnly(true);setResidentPage(1)}} className={showUnassignedOnly?'btn-primary':'btn-secondary'}>Pending · No assignment</button>
