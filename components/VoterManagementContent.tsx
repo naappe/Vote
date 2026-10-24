@@ -12,6 +12,7 @@ import type {CallOutcome,Resident,VoteStatus} from '../lib/types';
 import {residentTaskCards} from '../lib/resident-task-presentation';
 import {ResidentTaskIcon} from './ResidentTaskIcon';
 import {useStaffAccess} from './AuthGate';
+import KpiSummary from './KpiSummary';
 
 type ViewMode='list'|'gallery';
 type Props={profilePath?:string;partyControls?:boolean};
@@ -169,14 +170,17 @@ export default function VoterManagementContent({profilePath='/resident-profile/'
  return <div className={partyControls?"space-y-4":"mdp-residents-page"}>
   <section className={partyControls?"flex flex-col items-stretch justify-between gap-3 sm:flex-row sm:items-center":"mdp-reference-header"}>
     <div className="mdp-reference-title">{!partyControls&&<div className="mb-2 flex flex-wrap items-center gap-2">{hasFilters&&<button type="button" onClick={clearFilters} className="rounded-lg border border-blue-200 bg-blue-50 px-3 py-2 text-sm font-semibold text-blue-800 hover:bg-blue-100">All residents</button>}</div>}<h1 className={partyControls?"text-2xl":"text-2xl font-extrabold tracking-tight text-[#0b214b]"}>{workspaceTitle}</h1><p className="mt-1 text-xs text-body">{loading?'Loading results…':partyControls?`${count.toLocaleString()} residents`:rosterTotals?`${rosterTotals.total.toLocaleString()} PDF entries · ${rosterTotals.linked.toLocaleString()} matched · ${rosterTotals.pending} awaiting verification`:`${count.toLocaleString()} matched residents`}</p></div>
-    {!partyControls&&isVoteTarget&&<div aria-label="Vote Target status summary" className="mdp-reference-stats">
-      {([
-        {label:'Matched',value:rosterTotals?.linked??540,tone:'blue'},
-        {label:'Will vote',value:targetCounts?.['will-vote'],tone:'green'},
-        {label:'Not recorded',value:targetCounts?.['vote-pending'],tone:'slate'},
-        {label:'Not sure',value:targetCounts?.['vote-unsure'],tone:'amber'},
-        {label:'Will not vote',value:targetCounts?.['not-vote'],tone:'red'}
-      ] as const).map(stat=><div key={stat.label} className={`mdp-reference-stat mdp-kpi-${stat.tone}`}><strong>{stat.value===undefined?'…':stat.value}</strong><span>{stat.label}</span></div>)}
+    {!partyControls&&isVoteTarget&&<div className="w-full xl:flex-1 xl:min-w-[560px]">
+      <KpiSummary title="Vote Target status summary" activeId={focus}
+        onSelect={id=>selectSummaryFocus(id)}
+        items={[
+          {id:'all',label:'Matched',value:rosterTotals?.linked??null,tone:'blue',description:'PDF roster matches'},
+          {id:'will-vote',label:'Will vote',value:targetCounts?.['will-vote']??null,tone:'green'},
+          {id:'vote-pending',label:'Not recorded',value:targetCounts?.['vote-pending']??null,tone:'gray'},
+          {id:'vote-unsure',label:'Not sure',value:targetCounts?.['vote-unsure']??null,tone:'yellow'},
+          {id:'not-vote',label:'Will not vote',value:targetCounts?.['not-vote']??null,tone:'red'}
+        ]}
+      />
     </div>}
     <button className="btn-primary mdp-reference-export" onClick={exportResults} disabled={exporting||loading||focus!=='all'||Boolean(serialFilter)} title={focus==='all'&&!serialFilter?'Download all matching residents across every page':'Clear the task status filter to export the full directory'}>{exporting?`Exporting ${exportProgress}`:partyControls?'Export CSV':'↓ Export Excel'}</button>
   </section>
