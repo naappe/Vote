@@ -33,8 +33,8 @@ export default function RemarksContent({partyControls=true}:{partyControls?:bool
   const partyMatch=resident?matchesParty(resident,partyControls?party:'MDP'):partyControls&&party==='all';
   const sourceMatch=sourceFilter==='all'||(item.section||'general')===sourceFilter;
   const dateMatch=noteDateFilter==='all'||(noteDateFilter==='today'?isToday(item):!isToday(item));
-  const residentMatch=selected?String(item.resident_id)===selected:!query.trim()||text.includes(query.trim().toLowerCase());
   const text=[resident?.id,resident?.name,resident?.national_id,resident?.phone,resident?.house,item.remark,item.recorded_by,sourceLabel(item.section)].join(' ').toLowerCase();
+  const residentMatch=selected?String(item.resident_id)===selected:!query.trim()||text.includes(query.trim().toLowerCase());
   return partyMatch&&sourceMatch&&dateMatch&&residentMatch;
  }),[latestItems,map,party,partyControls,sourceFilter,query,selected,noteDateFilter,todayKey]);
 
