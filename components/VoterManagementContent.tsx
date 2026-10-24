@@ -25,7 +25,7 @@ export default function VoterManagementContent({profilePath='/resident-profile/'
  const [pdfSerials,setPdfSerials]=useState<Record<string,number>>({});
  const [rosterTotals,setRosterTotals]=useState<{total:number;linked:number;pending:number}|null>(null);
  const [targetCounts,setTargetCounts]=useState<Record<string,number>|null>(null);
- const targetRoute=params.get('target')==='1';
+ const targetRoute=pathname.startsWith('/mdp/vote-target')||params.get('target')==='1';
  useEffect(()=>{if(partyControls||!targetRoute)return;let active=true;const empty={search:'',house:'all',gender:'all',age:'all',box:'all',party:'all'};void Promise.all((['will-vote','not-vote','vote-unsure','vote-pending'] as const).map(async status=>[status,(await getMdpRosterPage(empty,1,1,true,status)).count] as const)).then(entries=>{if(active)setTargetCounts(Object.fromEntries(entries))}).catch(()=>{if(active)setTargetCounts(null)});return()=>{active=false}},[partyControls,targetRoute]);
 
  useEffect(()=>{if(partyControls)return;let mounted=true;void supabase.rpc('mdp_2026_roster_counts').then(({data,error})=>{if(mounted&&!error&&data)setRosterTotals({total:Number(data.total)||0,linked:Number(data.linked)||0,pending:Number(data.pending)||0})});return()=>{mounted=false}},[partyControls]);
