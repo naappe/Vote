@@ -1,4 +1,5 @@
 'use client';
+import {memo} from 'react';
 
 export type KpiTone='blue'|'green'|'red'|'yellow'|'gray';
 export interface KpiItem{
@@ -15,7 +16,7 @@ const colors:Record<KpiTone,string>={
  yellow:'border-amber-200 bg-amber-50 text-amber-700',
  gray:'border-slate-200 bg-slate-50 text-slate-700',
 };
-export default function KpiSummary({title='Status summary',items,activeId,onSelect,loading=false}:Props){
+function KpiSummary({title='Status summary',items,activeId,onSelect,loading=false}:Props){
  return <section aria-label={title} className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-3 2xl:grid-cols-5">
   {items.map(item=><button key={item.id} type="button" disabled={loading}
    aria-pressed={activeId===item.id} aria-label={`Filter by ${item.label}`}
@@ -26,3 +27,5 @@ export default function KpiSummary({title='Status summary',items,activeId,onSele
    </button>)}
  </section>;
 }
+
+export default memo(KpiSummary);
