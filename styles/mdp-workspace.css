@@ -744,3 +744,11 @@
  .mdp-workspace section[aria-label$="KPI summary"]>button{min-height:76px!important;padding:11px!important}
  .mdp-workspace section[aria-label$="KPI summary"]>button strong{font-size:25px!important}
 }
+
+/* Vote Target: compact three-across KPI grid on phones. */
+@media(max-width:640px){
+ .mdp-workspace section[aria-label="Vote Target status summary"]{display:grid!important;grid-template-columns:repeat(3,minmax(0,1fr))!important;gap:6px!important}
+ .mdp-workspace section[aria-label="Vote Target status summary"]>button{min-width:0!important;min-height:67px!important;padding:9px 10px!important;border-radius:10px!important;gap:4px!important}
+ .mdp-workspace section[aria-label="Vote Target status summary"]>button strong{font-size:22px!important;line-height:1.1!important}
+ .mdp-workspace section[aria-label="Vote Target status summary"]>button span{font-size:10px!important;line-height:1.2!important;margin-top:3px!important;overflow-wrap:break-word}
+}
