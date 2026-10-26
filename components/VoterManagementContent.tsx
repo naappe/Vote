@@ -90,7 +90,7 @@ export default function VoterManagementContent({profilePath='/resident-profile/'
   if(destination){const next=new URLSearchParams(params.toString());next.delete('target');router.replace(destination+(next.size?'?'+next.toString():''));}
  },[partyControls,pathname,incomingFocus,params,router]);
  useEffect(()=>{setFocus(current=>current===incomingFocus?current:incomingFocus);setPage(1)},[incomingFocus]);
- const [mdpView,setMdpView]=useState<'grid'|'house'|'compact'>('grid');
+ const [mdpView,setMdpView]=useState<'grid'|'house'|'compact'>('compact');
  const [query,setQuery]=useState(()=>params.get('q')||''),[debouncedQuery,setDebouncedQuery]=useState(()=>params.get('q')||''),[house,setHouse]=useState(()=>initial('house')),[party,setParty]=useState(()=>partyControls?initial('party'):'all'),[gender,setGender]=useState(()=>initial('gender')),[age,setAge]=useState(()=>initial('age')),[box,setBox]=useState(()=>initial('box')),[page,setPage]=useState(()=>Math.max(1,Number(params.get('page'))||1)),[count,setCount]=useState(0),[view,setView]=useState<ViewMode>(()=>!partyControls||params.get('view')==='gallery'?'gallery':'list'),[pageSize,setPageSize]=useState(50),[exporting,setExporting]=useState(false),[exportProgress,setExportProgress]=useState('');
  const filters=useMemo(()=>({search:debouncedQuery,house,party:partyControls?party:'MDP',gender,age,box:partyControls?box:'all'}),[debouncedQuery,house,party,partyControls,gender,age,box]);
  function loadFilters(){
@@ -249,7 +249,7 @@ export default function VoterManagementContent({profilePath='/resident-profile/'
     </div>}
     <div className="mdp-reference-secondary mdp-polished-secondary">
       <details className="group" onToggle={event=>{if(event.currentTarget.open)loadFilters()}}><summary className="cursor-pointer text-xs font-semibold text-primary">More filters{gender!=='all'||age!=='all'||(partyControls&&box!=='all')||house!=='all'?' (active)':''}</summary><div className="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">{partyControls&&<HousePicker houses={houses} value={house} onChange={v=>changeFilter(setHouse,v)}/>}<Select label="Gender" value={gender} onChange={v=>changeFilter(setGender,v)} options={[["all","All"],["M","Male"],["F","Female"]]}/><Select label="Age" value={age} onChange={v=>changeFilter(setAge,v)} options={[["all","All ages"],["18-25","18–25"],["26-35","26–35"],["36-45","36–45"],["46-60","46–60"],["61+","61+"]]}/>{partyControls&&<Select label="Election box" value={box} onChange={v=>changeFilter(setBox,v)} options={[["all","All election boxes"],...boxes.map(b=>[b,b])]}/>}{filtersLoading&&<p className="text-xs text-body" role="status">Loading filter options…</p>}</div></details>
-      {!partyControls&&<button type="button" className="btn-secondary" aria-pressed={mdpView==='house'} onClick={()=>setMdpView(value=>value==='house'?'grid':'house')}>{mdpView==='house'?'Show all cards':'Group by house'}</button>}
+      {!partyControls&&<button type="button" className="btn-secondary" aria-pressed={mdpView==='house'} onClick={()=>setMdpView(value=>value==='house'?'compact':'house')}>{mdpView==='house'?'Show compact list':'Group by house'}</button>}
       {partyControls&&<div className="inline-flex rounded-lg border border-border bg-white p-1">{(['list','gallery'] as const).map(mode=><button key={mode} type="button" aria-pressed={view===mode} onClick={()=>setView(mode)} className={`rounded-md px-3 py-1.5 text-xs font-bold ${view===mode?'bg-primary text-white':'text-body'}`}>{mode==='list'?'List':'Photos'}</button>)}</div>}
     </div>
   </section>
