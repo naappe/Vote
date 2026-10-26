@@ -803,3 +803,29 @@
  .mdp-workspace .mdp-mobile-bottom-tabs{padding-bottom:calc(7px + env(safe-area-inset-bottom,0px))}
  .mdp-workspace .mdp-operational-heading h1{font-size:20px!important}
 }
+
+/* Vote Target mobile filter and paging alignment. */
+@media(max-width:650px){
+ .mdp-workspace .mdp-target-filter-row{
+  display:grid!important;grid-template-columns:repeat(5,minmax(0,1fr))!important;
+  width:100%!important;min-width:0!important;gap:4px!important;
+  overflow:visible!important;padding:5px 0!important;
+ }
+ .mdp-workspace .mdp-target-filter-row>span{display:none!important}
+ .mdp-workspace .mdp-target-filter-row .mdp-target-filter-pill{
+  min-width:0!important;width:100%!important;min-height:37px!important;
+  padding:6px 2px!important;white-space:normal!important;
+  overflow-wrap:normal!important;word-break:normal!important;
+  font-size:9px!important;line-height:1.14!important;
+  border-radius:8px!important;text-align:center!important;
+ }
+ .mdp-workspace .mdp-reference-secondary{display:flex!important;align-items:center!important;justify-content:space-between!important;gap:8px!important;min-width:0}
+ .mdp-workspace .mdp-reference-secondary>.group{flex:1;min-width:0}
+ .mdp-workspace .mdp-reference-secondary>.btn-secondary{flex:none;min-height:35px!important;padding:7px 10px!important;white-space:nowrap}
+ .mdp-workspace .mdp-directory-paging{display:flex!important;flex-direction:column!important;align-items:stretch!important;gap:9px!important;padding:10px 0!important}
+ .mdp-workspace .mdp-directory-paging>p{margin:0!important}
+ .mdp-workspace .mdp-directory-paging>div{display:grid!important;grid-template-columns:auto minmax(0,1fr) auto minmax(0,1fr)!important;align-items:center!important;gap:6px!important;width:100%!important}
+ .mdp-workspace .mdp-directory-paging>div>label{grid-column:auto!important;white-space:nowrap!important}
+ .mdp-workspace .mdp-directory-paging>div>button{width:100%!important;min-width:0!important;min-height:36px!important;padding:5px 6px!important}
+ .mdp-workspace .mdp-directory-paging>div>span{min-width:42px!important;white-space:nowrap!important;text-align:center!important}
+}
