@@ -60,5 +60,8 @@ export default function MDPWorkspaceNavigation(){
   <div className="mdp-nav-countdown"><MDPElectionCountdown/></div>
   <div className="mdp-nav-account"><AuthControl/></div>
   </div>
+  <div className="mdp-mobile-bottom-tabs" role="navigation" aria-label="MDP mobile sections">
+   {visible(primary).map(item=><Link key={'mobile-'+item.href} href={item.href} aria-label={item.label} aria-current={isActive(pathname,focus,item.href,currentTarget)?'page':undefined} className={`mdp-mobile-tab${isActive(pathname,focus,item.href,currentTarget)?' is-active':''}`}><NavIcon name={item.icon}/><span>{item.label}</span></Link>)}
+  </div>
  </nav>;
 }
