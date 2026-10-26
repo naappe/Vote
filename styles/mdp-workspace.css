@@ -960,3 +960,32 @@
 .mdp-workspace .mdp-master-card img{border-radius:50%!important}
 .mdp-workspace .mdp-target-filter-pill.is-selected{background:#fff0bf!important}
 @media(max-width:850px){.mdp-workspace .mdp-mobile-bottom-tabs{display:flex!important;align-items:center!important;justify-content:space-around!important;gap:3px!important}}
+
+/* Consistent operational header geometry: no empty hero spacer on Calls, Remarks or Transport. */
+.mdp-workspace .page-hero{
+ min-height:0!important;
+ height:auto!important;
+ padding:0!important;
+ margin:0 0 12px!important;
+ background:transparent!important;
+ border:0!important;
+ border-radius:0!important;
+ box-shadow:none!important;
+ contain:none!important;
+ display:flex!important;
+ flex-direction:column!important;
+ justify-content:flex-start!important;
+ gap:0!important;
+}
+.mdp-workspace .page-hero .eyebrow{display:none!important}
+.mdp-workspace .page-hero h1{
+ margin:0!important;
+ padding:0!important;
+ line-height:1.35!important;
+ font-size:20px!important;
+ font-weight:600!important;
+}
+.mdp-workspace .page-hero:has(+ section[aria-label$="KPI summary"]),
+.mdp-workspace .page-hero:has(+ section[aria-label$="KPI Summary"]){
+ margin-bottom:12px!important;
+}
