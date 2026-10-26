@@ -1,7 +1,7 @@
 'use client';
 import Link from 'next/link';
 import {useEffect,useMemo,useState} from 'react';
-import {supabase} from '../lib/supabase';
+import {getResidentDataRevision,supabase} from '../lib/supabase';
 import type {DashboardStats} from '../lib/types';
 import VoteStatusChart from './VoteStatusChart';
 import PhoneStatusChart from './PhoneStatusChart';
@@ -14,7 +14,7 @@ type DashboardSnapshot={stats:DashboardStats;assigned:number;transport:number;vo
 
 function progressTone(progress:number){if(progress>=71)return{bar:'bg-emerald-500',text:'text-emerald-700',surface:'bg-emerald-50'};if(progress>=31)return{bar:'bg-amber-500',text:'text-amber-700',surface:'bg-amber-50'};return{bar:'bg-rose-500',text:'text-rose-700',surface:'bg-rose-50'}}
 
-async function loadDashboardSnapshot():Promise<DashboardSnapshot>{
+async function fetchDashboardSnapshot():Promise<DashboardSnapshot>{
  const [residentCount,phones,willVoteCount,notVoteCount,calledCount,reachedCount,visitedCount,assignedCount,transportCount,votedCount,remarksCount]=await Promise.all([
   supabase.from('Resident').select('id',{count:'exact',head:true}),
   supabase.from('Resident').select('id',{count:'exact',head:true}).is('phone',null),
@@ -36,6 +36,22 @@ async function loadDashboardSnapshot():Promise<DashboardSnapshot>{
  const missingPhone=phones.count||0;
  const stats:DashboardStats={total,willVote,notVote,undecided:Math.max(0,total-willVote-notVote),called,needCall:Math.max(0,total-called),reached,notReached:Math.max(0,total-reached),visited,unvisited:Math.max(0,total-visited)};
  return{stats,assigned:assignedCount.count||0,transport:transportCount.count||0,voted:votedCount.count||0,withRemarks:remarksCount.count||0,missingPhone};
+}
+
+// Reuse a recent administrator snapshot during rapid navigation, without keeping
+// old counts after a local resident/task mutation or an authentication change.
+let dashboardCache:{revision:number;expires:number;data:DashboardSnapshot}|null=null;
+let dashboardRequest:{revision:number;request:Promise<DashboardSnapshot>}|null=null;
+async function loadDashboardSnapshot():Promise<DashboardSnapshot>{
+ const revision=getResidentDataRevision();
+ if(dashboardCache&&dashboardCache.revision===revision&&dashboardCache.expires>Date.now())return dashboardCache.data;
+ if(dashboardRequest?.revision===revision)return dashboardRequest.request;
+ const request=fetchDashboardSnapshot().then(data=>{
+  if(getResidentDataRevision()===revision)dashboardCache={revision,expires:Date.now()+12000,data};
+  return data;
+ });
+ dashboardRequest={revision,request};
+ try{return await request}finally{if(dashboardRequest?.request===request)dashboardRequest=null}
 }
 
 export default function DashboardContent(){

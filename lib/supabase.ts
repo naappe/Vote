@@ -17,12 +17,16 @@ const mdpRosterRequests=new Map<string,Promise<ResidentPage>>();
 let mdpRosterEpoch=0;
 const mdpCallOverviewCache=new Map<string,{expires:number;rows:Resident[]}>();
 const mdpCallOverviewRequests=new Map<string,Promise<Resident[]>>();
+const filteredCallQueueCache=new Map<string,{expires:number;data:ResidentPage}>();
+const filteredCallQueueRequests=new Map<string,Promise<ResidentPage>>();
+let filteredCallQueueEpoch=0;
 let mdpHousesCache:{expires:number;data:HouseOption[]}|null=null;
 let mdpHousesRequest:Promise<HouseOption[]>|null=null;
 let optionCache:{houses:HouseOption[];parties:PartyOption[];boxes:string[];timestamp:number}|null=null;
 let optionRequest:Promise<{houses:HouseOption[];parties:PartyOption[];boxes:string[]}>|null=null;
-export function invalidateResidentCache(){directoryEpoch++;residentPageEpoch++;mdpRosterEpoch++;mdpRosterCache.clear();mdpRosterRequests.clear();mdpCallOverviewCache.clear();mdpCallOverviewRequests.clear();mdpHousesCache=null;mdpHousesRequest=null;directoryPages.clear();directoryRequests.clear();residentPageCache.clear();residentPageRequests.clear();directoryOptions=null;residentCache=null;residentRequest=null;optionCache=null;optionRequest=null}
+export function invalidateResidentCache(){filteredCallQueueEpoch++;filteredCallQueueCache.clear();filteredCallQueueRequests.clear();directoryEpoch++;residentPageEpoch++;mdpRosterEpoch++;mdpRosterCache.clear();mdpRosterRequests.clear();mdpCallOverviewCache.clear();mdpCallOverviewRequests.clear();mdpHousesCache=null;mdpHousesRequest=null;directoryPages.clear();directoryRequests.clear();residentPageCache.clear();residentPageRequests.clear();directoryOptions=null;residentCache=null;residentRequest=null;optionCache=null;optionRequest=null}
 supabase.auth.onAuthStateChange(event=>{if(event==='SIGNED_IN'||event==='SIGNED_OUT'||event==='USER_UPDATED')invalidateResidentCache()});
+export function getResidentDataRevision(){return residentPageEpoch}
 export interface ResidentPage{rows:Resident[];count:number}
 export interface HouseOption{name:string;count:number}
 export interface PartyOption{name:string;count:number}
@@ -69,7 +73,7 @@ export async function getResidentsPage(options:ResidentPageOptions={}):Promise<R
 export async function getResidentById(id:Resident['id']):Promise<Resident>{if(residentCache&&Date.now()-residentCache.timestamp<RESIDENT_CACHE_TTL){const cached=residentCache.data.find(r=>String(r.id)===String(id));if(cached)return cached}const {data,error}=await supabase.from(RESIDENT_TABLE).select('*').eq('id',id).maybeSingle();if(error)throw new Error(`Resident load failed: ${error.message}`);if(!data)throw new Error('Resident record not found.');const calls=await loadCallMap([id]);return mergeCall(normalizeResident(data),calls.get(String(id)))}
 export async function getNextResidentId(id:Resident['id']):Promise<Resident['id']>{const cached=residentCache?.data;if(cached?.length){const index=cached.findIndex(r=>String(r.id)===String(id));return cached[(index+1+cached.length)%cached.length].id}const next=await supabase.from(RESIDENT_TABLE).select('id').gt('id',id).order('id',{ascending:true}).limit(1).maybeSingle();if(next.error)throw new Error(`Next resident lookup failed: ${next.error.message}`);if(next.data?.id!==undefined)return next.data.id;const first=await supabase.from(RESIDENT_TABLE).select('id').order('id',{ascending:true}).limit(1).maybeSingle();if(first.error)throw new Error(`Resident lookup failed: ${first.error.message}`);if(first.data?.id===undefined)throw new Error('No resident records are available.');return first.data.id}
 export async function updateResident(_id:Resident['id'],_changes:Partial<Resident>):Promise<Resident>{throw new Error('Resident is read-only. Save results in the matching workflow section.')}
-export async function getCallCenterQueue({page=1,pageSize=30,search='',party='all',phoneStatus='all',outcome='all',reachStatus='all'}:CallCenterQueueOptions={}):Promise<ResidentPage>{
+async function fetchFilteredCallCenterQueue({page=1,pageSize=30,search='',party='all',phoneStatus='all',outcome='all',reachStatus='all'}:CallCenterQueueOptions={}):Promise<ResidentPage>{
  if(phoneStatus==='all'&&outcome==='all'&&reachStatus==='all')return getResidentsPage({page,pageSize,search,party});
  let callQuery=supabase.from('call_center').select('resident_id').order('resident_id',{ascending:true});
  if(phoneStatus!=='all')callQuery=callQuery.eq('phone_status',phoneStatus);
@@ -90,6 +94,27 @@ export async function getCallCenterQueue({page=1,pageSize=30,search='',party='al
  const masters=(data||[]).map(normalizeResident),calls=await loadCallMap(masters.map(r=>r.id));
  return {rows:masters.map(r=>mergeCall(r,calls.get(String(r.id)))),count:count||0}
 }
+// Reopening a Call Center filter should not re-scan every matching resident ID.
+// Cache authorization-scoped results briefly and invalidate after task mutations or auth changes.
+export async function getCallCenterQueue(options:CallCenterQueueOptions={}):Promise<ResidentPage>{
+ const {page=1,pageSize=30,search='',party='all',phoneStatus='all',outcome='all',reachStatus='all'}=options;
+ if(phoneStatus==='all'&&outcome==='all'&&reachStatus==='all')return getResidentsPage({page,pageSize,search,party});
+ const normalized={page:Math.max(1,page),pageSize:Math.max(1,pageSize),search:search.trim(),party,phoneStatus,outcome,reachStatus};
+ const cacheKey=JSON.stringify(normalized),cached=filteredCallQueueCache.get(cacheKey);
+ if(cached&&cached.expires>Date.now())return cached.data;
+ const inFlight=filteredCallQueueRequests.get(cacheKey);
+ if(inFlight)return inFlight;
+ const epoch=filteredCallQueueEpoch;
+ const request=fetchFilteredCallCenterQueue(normalized).then(data=>{
+  if(epoch===filteredCallQueueEpoch){
+   if(filteredCallQueueCache.size>=30)filteredCallQueueCache.clear();
+   filteredCallQueueCache.set(cacheKey,{expires:Date.now()+12000,data});
+  }
+  return data;
+ });
+ filteredCallQueueRequests.set(cacheKey,request);
+ try{return await request}finally{if(filteredCallQueueRequests.get(cacheKey)===request)filteredCallQueueRequests.delete(cacheKey)}
+}
 // MDP task views always derive from the linked 540-person PDF roster.
 // A missing call_center row is a pending call, never a missing resident.
 async function loadMdpCallOverview(search:string):Promise<Resident[]>{
@@ -101,10 +126,14 @@ async function loadMdpCallOverview(search:string):Promise<Resident[]>{
   const filters={search:term,party:'MDP',house:'all',gender:'all',age:'all',box:'all'};
   const first=await getMdpRosterPage(filters,1,500);
   const pages=[...first.rows];
-  for(let page=2;pages.length<first.count;page++){
-   const next=await getMdpRosterPage(filters,page,500);
-   if(!next.rows.length)break;
-   pages.push(...next.rows);
+  const pageCount=Math.ceil(first.count/500);
+  for(let batchStart=2;batchStart<=pageCount;batchStart+=4){
+   const batch=Array.from({length:Math.min(4,pageCount-batchStart+1)},(_,offset)=>batchStart+offset);
+   const nextPages=await Promise.all(batch.map(nextPage=>getMdpRosterPage(filters,nextPage,500)));
+   for(const next of nextPages){
+    if(!next.rows.length)throw new Error('MDP roster did not return all expected residents.');
+    pages.push(...next.rows);
+   }
   }
   const calls=await loadCallMap(pages.map(row=>row.id));
   const merged=pages.map(row=>mergeCall(row,calls.get(String(row.id))));
