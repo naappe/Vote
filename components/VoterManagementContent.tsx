@@ -329,10 +329,10 @@ function ResidentFlipCard({resident:r,profilePath,partyControls,workflow,workflo
  </article></div>
 }
 function List({rows,loading,profilePath,partyControls,workflow,workflowError,pdfSerials,showRemarks,onWorkflowUpdate}:{rows:Resident[];loading:boolean;profilePath:string;partyControls:boolean;workflow:Record<string,WorkflowSummary>;workflowError:string;pdfSerials:Record<string,number>;showRemarks:boolean;onWorkflowUpdate:(id:string|number,summary:WorkflowSummary)=>void}){
- const [selected,setSelected]=useState<Resident|null>(null);
+ const [selected,setSelected]=useState<{resident:Resident;task:QuickTask}|null>(null);
  if(loading)return <div className="p-5"><div className="h-64 animate-pulse rounded-xl bg-primary-light"/></div>;
  if(!rows.length)return <div className="empty-state m-5">No residents found.</div>;
- if(!partyControls)return <><div className="divide-y divide-border">{rows.map(r=><ResidentListCard key={String(r.id)} resident={r} pdfSerial={pdfSerials[String(r.id)]} profilePath={profilePath} workflow={workflow[String(r.id)]} workflowError={workflowError} showRemark={showRemarks} onViewTasks={()=>setSelected(r)}/>)}</div>{selected&&<ResidentTaskDialog resident={selected} profilePath={profilePath} workflow={workflow[String(selected.id)]} workflowError={workflowError} onWorkflowUpdate={onWorkflowUpdate} onClose={()=>setSelected(null)}/>}</>;
+ if(!partyControls)return <><div className="divide-y divide-border">{rows.map(r=><ResidentListCard key={String(r.id)} resident={r} pdfSerial={pdfSerials[String(r.id)]} profilePath={profilePath} workflow={workflow[String(r.id)]} workflowError={workflowError} showRemark={showRemarks} onViewTasks={task=>setSelected({resident:r,task})}/>)}</div>{selected&&<ResidentTaskDialog key={String(selected.resident.id)} resident={selected.resident} initialTask={selected.task} profilePath={profilePath} workflow={workflow[String(selected.resident.id)]} workflowError={workflowError} onWorkflowUpdate={onWorkflowUpdate} onClose={()=>setSelected(null)}/>}</>;
  return <>
   <div className="divide-y divide-border lg:hidden">{rows.map(r=><article key={String(r.id)} className="p-4 sm:p-5">
    <div className="flex min-w-0 flex-wrap items-center gap-3"><div className="flex min-w-0 flex-1 items-center gap-3"><Photo r={r} small/><div className="min-w-0 flex-1"><Link prefetch={false} href={profilePath+'?id='+r.id} className="block truncate font-bold text-navy hover:text-primary">{r.name||'Unnamed resident'}</Link><p className="mt-1 truncate text-xs text-body">{r.national_id||'No national ID'}</p></div>{partyControls&&<Party party={r.party}/>}</div>{!partyControls&&<Link prefetch={false} href={profilePath+'?id='+r.id} className="btn-primary min-h-11 w-full justify-center sm:min-h-10 sm:w-auto sm:px-5">Open profile</Link>}</div>
@@ -341,14 +341,33 @@ function List({rows,loading,profilePath,partyControls,workflow,workflowError,pdf
   <div className="hidden overflow-x-auto lg:block"><table className="w-full min-w-[1080px] text-left text-sm"><thead className="bg-slate-50 text-xs uppercase tracking-wide text-body"><tr><th className="p-4">Resident</th><th className="p-4">National ID</th><th className="p-4">House</th><th className="p-4">Living now</th><th className="p-4">Phone</th><th className="p-4">Age</th><th className="p-4">Gender</th><th className="p-4">Box</th><th className="p-4">Party</th></tr></thead><tbody>{rows.map(r=><tr key={String(r.id)} className="border-t border-border hover:bg-slate-50"><td className="p-4"><Link prefetch={false} href={profilePath+'?id='+r.id} className="flex items-center gap-3 font-bold text-navy hover:text-primary"><Photo r={r} small/>{r.name||'Unnamed resident'}</Link></td><td className="p-4">{r.national_id||'—'}</td><td className="p-4">{r.house||'—'}</td><td className="p-4">{r.lives_in||'—'}</td><td className="whitespace-nowrap p-4">{r.phone?<a href={'tel:'+r.phone} className="font-semibold text-primary">{r.phone}</a>:'—'}</td><td className="p-4">{r.age??'—'}</td><td className="p-4">{r.sex||'—'}</td><td className="p-4">{r.election_box||'—'}</td><td className="p-4"><Party party={r.party}/></td></tr>)}</tbody></table></div>
  </>
 }
-function ResidentListCard({resident:r,profilePath,workflow,workflowError,pdfSerial,showRemark=false,onViewTasks}:{resident:Resident;profilePath:string;workflow?:WorkflowSummary;workflowError:string;pdfSerial?:number;showRemark?:boolean;onViewTasks:()=>void}){
+function ResidentListCard({resident:r,profilePath,workflow,workflowError,pdfSerial,showRemark=false,onViewTasks}:{resident:Resident;profilePath:string;workflow?:WorkflowSummary;workflowError:string;pdfSerial?:number;showRemark?:boolean;onViewTasks:(task:QuickTask)=>void}){
  const profileHref=profilePath+'?id='+r.id;
- return <article role="button" tabIndex={0} aria-label={'Open tasks for '+(r.name||'resident')} onClick={event=>{if(!(event.target as HTMLElement).closest('a,button,input,select,textarea'))onViewTasks()}} onKeyDown={event=>{if((event.key==='Enter'||event.key===' ')&&event.target===event.currentTarget){event.preventDefault();onViewTasks()}}} className="cursor-pointer p-4 transition-colors hover:bg-slate-50/70 focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary sm:p-5">
-  {showRemark&&<div className="mb-2 flex flex-wrap items-start gap-1.5" aria-label="Written resident remarks">{workflow?.writtenRemarks?.length?workflow.writtenRemarks.map((remark,index)=><span key={index} className="max-w-full break-words rounded-md border border-blue-100 bg-blue-50 px-2 py-1 text-xs font-medium leading-snug text-blue-900" title={remark}>{remark}</span>):<span className="text-xs text-body">Loading written remarks…</span>}</div>}
-  <div className="flex min-w-0 items-center gap-3"><Link prefetch={false} href={profileHref} aria-label={'Open '+(r.name||'resident')+' profile'}><Photo r={r} small/></Link><div className="min-w-0 flex-1"><Link prefetch={false} href={profileHref} className="block whitespace-normal break-words font-bold leading-snug text-navy hover:text-primary">{r.name||'Unnamed resident'}</Link><p className="mt-1 break-words text-xs leading-snug text-body">{r.national_id||'No national ID'}{pdfSerial!==undefined&&<> · <span className="font-semibold text-blue-700">MDP #{pdfSerial}</span></>}</p><TaskProgress summary={workflow} unavailable={Boolean(workflowError)}/></div></div>
-  <dl className="mt-4 grid grid-cols-3 gap-x-3 gap-y-3 text-sm"><div className="col-span-3"><Info label="House" value={r.house}/></div><Info label="Mobile" value={r.phone} href={r.phone?`tel:${r.phone}`:undefined}/><Info label="Age" value={String(r.age??'—')}/><Info label="Sex" value={r.sex}/></dl>
-  <div className="mt-4 grid grid-cols-2 gap-2 border-t border-border pt-3"><button type="button" onClick={onViewTasks} className="btn-primary min-h-11 whitespace-nowrap justify-center px-3">View tasks</button><Link prefetch={false} href={profileHref} className="btn-secondary min-h-11 whitespace-nowrap justify-center px-3">Profile</Link></div>
- </article>
+ const tasks=workflow?residentTaskCards(workflow):[];
+ const taskStatus=(task:QuickTask)=>tasks.find(item=>item.id===task);
+ const action=(task:QuickTask,label:string,icon:'phone'|'vote'|'remark')=><button type="button" key={task} title={label+' · '+(taskStatus(task)?.status||'Pending')} aria-label={label+' for '+(r.name||'resident')} onClick={()=>onViewTasks(task)} className={'mdp-slim-action'+(taskStatus(task)?.done?' is-complete':'')}><ResidentTaskIcon name={icon}/></button>;
+ return <article className="mdp-slim-resident" aria-label={'Resident '+(r.name||'Unnamed resident')}>
+  <div className="mdp-slim-identity">
+   <Link prefetch={false} href={profileHref} aria-label={'Open '+(r.name||'resident')+' profile'} className="mdp-slim-avatar"><Photo r={r} small/></Link>
+   <div className="mdp-slim-nameblock">
+    <Link prefetch={false} href={profileHref} className="mdp-slim-name">{r.name||'Unnamed resident'}</Link>
+    <div className="mdp-slim-id">{r.national_id||'ID unavailable'}{pdfSerial!==undefined&&<> · <span>MDP #{pdfSerial}</span></>}</div>
+    <div className="mdp-slim-house" title={r.house||'House not recorded'}>{r.house||'House not recorded'}</div>
+   </div>
+  </div>
+  <div className="mdp-slim-details">
+   <div className="mdp-slim-mobile">{r.phone?<a href={'tel:'+r.phone} aria-label={'Call '+r.phone}>{r.phone}</a>:<span>Phone —</span>}</div>
+   <div className="mdp-slim-meta">{r.age??'—'} · {r.sex||'—'}</div>
+   {workflowError?<span className="mdp-slim-status">Status unavailable</span>:<VotingIntentionHighlight summary={workflow}/>}
+  </div>
+  <div className="mdp-slim-actions" aria-label="Resident quick actions">
+   {action('call','Record call','phone')}
+   {action('voting-intention','Vote plan','vote')}
+   {action('remarks','Remarks','remark')}
+  </div>
+  <Link prefetch={false} href={profileHref} className="mdp-slim-open" aria-label={'Open profile of '+(r.name||'resident')}>›</Link>
+  {showRemark&&<div className="mdp-slim-remarks" aria-label="Written resident remarks">{workflow?.writtenRemarks?.length?workflow.writtenRemarks.map((remark,index)=><p key={index}>{remark}</p>):<span>No written remarks</span>}</div>}
+ </article>;
 }
 function TaskProgress({summary,unavailable}:{summary?:WorkflowSummary;unavailable:boolean}){
  if(unavailable)return <span className="mt-1.5 inline-flex rounded-full bg-amber-50 px-2.5 py-1 text-[11px] font-semibold text-amber-800">Status unavailable</span>;
