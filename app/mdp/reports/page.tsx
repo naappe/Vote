@@ -1,3 +1,3 @@
-import OperationsListContent from '../../../components/OperationsListContent';
+import MDPNavigationReports from '../../../components/MDPNavigationReports';
 
-export default function Page(){return <OperationsListContent mode="reports" partyControls={false}/>}
+export default function Page(){return <MDPNavigationReports/>}
