@@ -1,4 +1,5 @@
 import {supabase} from './supabase';
+import {notifyMdpReportChanged} from './mdp-report-events';
 
 export type GeneralRemark = {
  id:number|string; resident_id:number|string; section:string; remark:string;
@@ -20,6 +21,7 @@ export async function appendGeneralRemark(residentId:number|string, remark:strin
  }).select('id,resident_id,section,remark,recorded_by,recorded_at').single();
  if(error)throw error;
  if(!data)throw new Error('Remark was not confirmed as saved.');
+ notifyMdpReportChanged();
  return data as GeneralRemark;
 }
 

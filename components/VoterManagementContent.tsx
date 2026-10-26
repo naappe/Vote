@@ -5,6 +5,7 @@ import {useEffect,useMemo,useRef,useState,startTransition} from 'react';
 import {getDirectoryFilterOptions,getDirectoryPage,getMdpHouseOptions,getMdpRosterPage,getResidents,saveCallCenterResult,saveDoorToDoorResult,supabase} from '../lib/supabase';
 import {readOperationalRows,saveTransportation} from '../lib/operations';
 import {appendGeneralRemark} from '../lib/resident-remarks';
+import {notifyMdpReportChanged,subscribeMdpReportChanges} from '../lib/mdp-report-events';
 import {collectDirectoryPages,residentsCsv} from '../lib/directory-utils';
 import {buildExcelWorkbook,type ExcelSheet} from '../lib/excel-export';
 import type {HouseOption,PartyOption} from '../lib/supabase';
@@ -22,13 +23,15 @@ const focusOptions=[['all','All residents'],['missing-phone','Missing phone'],['
 // Share short-lived Vote Target KPI requests across remounts and navigation.
 let voteTargetCountCache:{expires:number;data:Record<string,number>}|null=null;
 let voteTargetCountRequest:Promise<Record<string,number>>|null=null;
+let voteTargetCountEpoch=0;
 function getVoteTargetCounts(){
  if(voteTargetCountCache&&voteTargetCountCache.expires>Date.now())return Promise.resolve(voteTargetCountCache.data);
  if(voteTargetCountRequest)return voteTargetCountRequest;
  const empty={search:'',house:'all',gender:'all',age:'all',box:'all',party:'all'};
+ const epoch=voteTargetCountEpoch;
  const request=Promise.all((['will-vote','not-vote','vote-unsure','vote-pending'] as const).map(async status=>[status,(await getMdpRosterPage(empty,1,1,true,status)).count] as const)).then(entries=>{
   const data=Object.fromEntries(entries) as Record<string,number>;
-  voteTargetCountCache={data,expires:Date.now()+30000};
+  if(epoch===voteTargetCountEpoch)voteTargetCountCache={data,expires:Date.now()+30000};
   return data;
  });
  voteTargetCountRequest=request;
@@ -44,11 +47,18 @@ export default function VoterManagementContent({profilePath='/resident-profile/'
  const [pdfSerials,setPdfSerials]=useState<Record<string,number>>({});
  const [rosterTotals,setRosterTotals]=useState<{total:number;linked:number;pending:number}|null>(null);
  const [targetCounts,setTargetCounts]=useState<Record<string,number>|null>(null);
+ const [targetCountRevision,setTargetCountRevision]=useState(0);
  const targetRoute=pathname.startsWith('/mdp/vote-target');
  const residentsRoute=pathname.startsWith('/mdp/residents');
  const [residentKpis,setResidentKpis]=useState<Record<string,number>|null>(null);
+ useEffect(()=>subscribeMdpReportChanges(()=>{
+  voteTargetCountEpoch++;
+  voteTargetCountCache=null;
+  voteTargetCountRequest=null;
+  if(!partyControls&&targetRoute)setTargetCountRevision(value=>value+1);
+ }),[partyControls,targetRoute]);
  useEffect(()=>{if(partyControls||!residentsRoute)return;let active=true;const base={search:'',house:'all',gender:'all',age:'all',box:'all',party:'all'};void Promise.all((['all','called','need-call','visited','not-visited'] as const).map(async key=>[key,(await getMdpRosterPage(base,1,1,true,key)).count] as const)).then(data=>{if(active)setResidentKpis(Object.fromEntries(data))}).catch(()=>{if(active)setResidentKpis(null)});return()=>{active=false}},[partyControls,residentsRoute]);
- useEffect(()=>{if(partyControls||!targetRoute)return;let active=true;void getVoteTargetCounts().then(data=>{if(active)setTargetCounts(data)}).catch(()=>{if(active)setTargetCounts(null)});return()=>{active=false}},[partyControls,targetRoute]);
+ useEffect(()=>{if(partyControls||!targetRoute)return;let active=true;void getVoteTargetCounts().then(data=>{if(active)setTargetCounts(data)}).catch(()=>{if(active)setTargetCounts(null)});return()=>{active=false}},[partyControls,targetRoute,targetCountRevision]);
 
  useEffect(()=>{if(partyControls)return;let mounted=true;void supabase.rpc('mdp_2026_roster_counts').then(({data,error})=>{if(mounted&&!error&&data)setRosterTotals({total:Number(data.total)||0,linked:Number(data.linked)||0,pending:Number(data.pending)||0})});return()=>{mounted=false}},[partyControls]);
  const [serialInput,setSerialInput]=useState(()=>params.get('serial')||'');
@@ -409,6 +419,7 @@ function QuickTaskEditor({resident,task,summary,onBack,onClose,onSaved}:{residen
    if(!data?.length)throw new Error('The note was not deleted. Verify your authorization or refresh the record.');
    const remaining=remarkHistory.filter(row=>String(row.id)!==String(item.id));
    setRemarkHistory(remaining);
+   notifyMdpReportChanged();
    onSaved({...base,hasRemarks:remaining.length>0,latestRemark:remaining[0]?.remark||null,writtenRemarks:remaining.map(row=>row.remark)});
   }catch(e){setRemarkHistoryError(e instanceof Error?e.message:'Could not delete remark')}
   finally{setDeletingRemark(null)}
@@ -418,7 +429,7 @@ function QuickTaskEditor({resident,task,summary,onBack,onClose,onSaved}:{residen
   if(task==='call'){await saveCallCenterResult(resident.id,{outcome:callResult,includePoliticalFields:false,notes:note.trim()||undefined});const session=await supabase.auth.getSession();if(session.error)throw session.error;const pending=callResult==='pending';const {error:historyError}=await supabase.from('remarks').insert({id:Date.now(),resident_id:Number(resident.id),section:'call-center',remark:`${pending?'Call task left pending':'Call result: '+friendly(callResult)}.${note.trim()?` Note: ${note.trim()}`:''}`,recorded_by:session.data.session?.user.email||null,recorded_at:now});if(historyError)throw new Error(`Call saved, but history could not be added: ${historyError.message}`);next.hasCallRecord=true;next.callOutcome=callResult;next.callAttempts=base.callAttempts+(pending?0:1);next.lastCallAt=pending?base.lastCallAt:now;}
   if(task==='door-to-door'){await saveDoorToDoorResult(resident.id,visitResult,note);next.visitStatus=visitResult;next.lastVisitAt=visitResult==='not-visited'?base.lastVisitAt:now;}
   if(task==='in-person-meeting'){if(!meetingResult)throw new Error('Choose what happened at the meeting.');const session=await supabase.auth.getSession();if(session.error)throw session.error;const resultLabel=meetingResult==='met'?'Met resident in person':meetingResult==='postponed'?'Meeting postponed':meetingResult==='unavailable'?'Resident unavailable':'Not met yet';const {error:saveError}=await supabase.from('remarks').insert({id:Date.now(),resident_id:Number(resident.id),section:'in-person-meeting',remark:`Meeting result: ${resultLabel}.${note.trim()?` Note: ${note.trim()}`:''}`,recorded_by:session.data.session?.user.email||null,recorded_at:now});if(saveError)throw saveError;next.hasInPersonMeeting=meetingResult==='met';}
-  if(task==='voting-intention'){const session=await supabase.auth.getSession();if(session.error)throw session.error;const recordedBy=session.data.session?.user.email||null,pending=intention==='pending',storedStatus:VoteStatus=pending?'not-decided':intention;const current=await supabase.from('call_center').select('resident_id').eq('resident_id',resident.id).maybeSingle();if(current.error)throw current.error;const changes={vote_status:storedStatus,recorded_by:recordedBy,updated_at:now};const response=current.data?await supabase.from('call_center').update(changes).eq('resident_id',resident.id).select('resident_id').maybeSingle():await supabase.from('call_center').insert({resident_id:resident.id,phone_status:'need-call',reach_status:'not-reached',call_outcome:'pending',call_attempts:0,support_level:'not-guaranteed',...changes}).select('resident_id').single();if(response.error)throw response.error;if(!response.data)throw new Error('Voting intention was not saved.');const remark=pending?'Intention pending: No response recorded yet.':`Resident stated: ${intention==='will-vote'?'Plans to vote':intention==='not-vote'?'Does not plan to vote':'Not sure yet'}${note.trim()?`\nPerson or candidate named by resident: ${note.trim()}`:''}`;const {error:historyError}=await supabase.from('remarks').insert({id:Date.now(),resident_id:Number(resident.id),section:'voting-intention',remark,recorded_by:recordedBy,recorded_at:now});if(historyError)throw new Error(`Intention saved, but its history could not be added: ${historyError.message}`);next.voteStatus=storedStatus;next.hasVoteIntention=!pending;}
+  if(task==='voting-intention'){const session=await supabase.auth.getSession();if(session.error)throw session.error;const recordedBy=session.data.session?.user.email||null,pending=intention==='pending',storedStatus:VoteStatus=pending?'not-decided':intention;const current=await supabase.from('call_center').select('resident_id').eq('resident_id',resident.id).maybeSingle();if(current.error)throw current.error;const changes={vote_status:storedStatus,recorded_by:recordedBy,updated_at:now};const response=current.data?await supabase.from('call_center').update(changes).eq('resident_id',resident.id).select('resident_id').maybeSingle():await supabase.from('call_center').insert({resident_id:resident.id,phone_status:'need-call',reach_status:'not-reached',call_outcome:'pending',call_attempts:0,support_level:'not-guaranteed',...changes}).select('resident_id').single();if(response.error)throw response.error;if(!response.data)throw new Error('Voting intention was not saved.');const remark=pending?'Intention pending: No response recorded yet.':`Resident stated: ${intention==='will-vote'?'Plans to vote':intention==='not-vote'?'Does not plan to vote':'Not sure yet'}${note.trim()?`\nPerson or candidate named by resident: ${note.trim()}`:''}`;const {error:historyError}=await supabase.from('remarks').insert({id:Date.now(),resident_id:Number(resident.id),section:'voting-intention',remark,recorded_by:recordedBy,recorded_at:now});if(historyError){notifyMdpReportChanged();throw new Error(`Intention saved, but its history could not be added: ${historyError.message}`)}notifyMdpReportChanged();next.voteStatus=storedStatus;next.hasVoteIntention=!pending;}
   if(task==='remarks'){
    const saved=await appendGeneralRemark(resident.id,note);
    setRemarkHistory([saved as ResidentRemark]);

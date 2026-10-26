@@ -1,4 +1,5 @@
 import {supabase} from './supabase';
+import {notifyMdpReportChanged} from './mdp-report-events';
 import type {Resident} from './types';
 
 export type ElectionReach='reached'|'not-reached';
@@ -42,7 +43,7 @@ export async function getElectionBoard(){
 
 export async function saveElectionStatus(residentId:number|string,changes:Partial<ElectionRecord>){const now=new Date().toISOString();const payload:any={resident_id:residentId,...changes,updated_at:now};if(changes.reach_status==='reached')payload.reached_at=now;if(changes.has_voted===true)payload.voted_at=now;if(changes.has_voted===false)payload.voted_at=null;const {error}=await supabase.from('election_day').upsert(payload,{onConflict:'resident_id'});if(error)throw new Error(`Election Day save failed: ${error.message}`)}
 export async function getTransportationBoard(){const {data,error}=await supabase.from('transportation').select('*').order('updated_at',{ascending:false});if(error)throw new Error(`Transportation load failed: ${error.message}`);const records=(data||[]) as TransportRecord[];const residents=await residentMap(records.map(r=>r.resident_id));return records.map(record=>({record,resident:residents.get(String(record.resident_id))||null}))}
-export async function saveTransportation(residentId:number|string,changes:Partial<TransportRecord>){const payload={resident_id:residentId,...changes,updated_at:new Date().toISOString()};const {error}=await supabase.from('transportation').upsert(payload,{onConflict:'resident_id'});if(error)throw new Error(`Transportation save failed: ${error.message}`)}
+export async function saveTransportation(residentId:number|string,changes:Partial<TransportRecord>){const payload={resident_id:residentId,...changes,updated_at:new Date().toISOString()};const {error}=await supabase.from('transportation').upsert(payload,{onConflict:'resident_id'});if(error)throw new Error(`Transportation save failed: ${error.message}`);notifyMdpReportChanged()}
 export async function createWorkflowShare(input:{workflow:string;title:string;status_filter?:string;resident_ids?:number[];can_update?:boolean;expires_at?:string|null}){const {data,error}=await supabase.from('workflow_shares').insert({...input,can_update:Boolean(input.can_update),active:true}).select('*').single();if(error)throw new Error(`Share link creation failed: ${error.message}`);return data as WorkflowShare}
 export async function getSharedWorkflow(token:string):Promise<{share:WorkflowShare;residents:Resident[];progress:SharedAssignmentRecord[]}>{
  const {data,error}=await supabase.rpc('get_vote_shared_workflow',{p_token:token});

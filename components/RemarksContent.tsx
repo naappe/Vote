@@ -2,6 +2,7 @@
 import {useEffect,useMemo,useState} from 'react';
 import {getResidentsPage,getMdpRosterPage,supabase} from '../lib/supabase';
 import {appendGeneralRemark,latestGeneralRemarks} from '../lib/resident-remarks';
+import {notifyMdpReportChanged} from '../lib/mdp-report-events';
 import type {Resident} from '../lib/types';
 import {PartyFilter,ResidentIdentity,matchesParty} from '../shared/ResidentIdentity';
 import TaskState from '../shared/TaskState';
@@ -62,6 +63,7 @@ export default function RemarksContent({partyControls=true}:{partyControls?:bool
     .select('id,remark').maybeSingle();
    if(error)throw error;
    if(!data)throw new Error('No remark was updated. Check your permissions.');
+   notifyMdpReportChanged();
    setItems(current=>current.map(row=>String(row.id)===String(item.id)?{...row,remark:data.remark}:row));
    cancelEdit();setMessage('Remark updated successfully.');
   }catch(e){setError(e instanceof Error?e.message:'Could not edit remark')}
@@ -78,6 +80,7 @@ export default function RemarksContent({partyControls=true}:{partyControls?:bool
     .select('id').maybeSingle();
    if(error)throw error;
    if(!data)throw new Error('Remark was not deleted. Check your permissions.');
+   notifyMdpReportChanged();
    setItems(current=>current.filter(row=>String(row.id)!==String(item.id)));
    if(editingId===String(item.id))cancelEdit();
    setMessage('Selected remark deleted. Other records were not changed.');
