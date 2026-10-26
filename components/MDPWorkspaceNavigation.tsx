@@ -8,10 +8,10 @@ import MDPElectionCountdown from './MDPElectionCountdown';
 
 type NavItem={label:string;href:string;icon:string;roles?:string[]};
 const primary:NavItem[]=[
- {label:'Vote Target',href:'/mdp/vote-target/',icon:'vote'},
+ {label:'Home',href:'/mdp/vote-target/',icon:'home'},
  {label:'Calls',href:'/mdp/calls/?status=need-call',icon:'phone'},
  {label:'Remarks',href:'/mdp/remarks/',icon:'note'},
- {label:'Transport',href:'/mdp/transportation/?status=pending',icon:'truck'},
+ {label:'More',href:'/mdp/transportation/?status=pending',icon:'truck'},
 ];
 const iconPaths:Record<string,string>={
  users:'M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2 M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8 M22 21v-2a4 4 0 0 0-3-3.87 M16 3.13a4 4 0 0 1 0 7.75',
@@ -53,6 +53,7 @@ export default function MDPWorkspaceNavigation(){
   return()=>{window.removeEventListener('keydown',handleKey);document.body.style.overflow=previousOverflow;if(previousFocus?.isConnected)previousFocus.focus()};
  },[menuOpen]);
  const visible=(items:NavItem[])=>items.filter(item=>!item.roles||item.roles.includes(role));
+ const mobilePrimary=visible(primary).slice(0,3);
  return <nav aria-label="Main navigation" className="mdp-nav">
   <button className="mdp-mobile-menu-toggle" ref={menuTriggerRef} type="button" aria-expanded={menuOpen} aria-controls="mdp-navigation-items" onClick={()=>setMenuOpen(value=>!value)}><span aria-hidden="true">☰</span> Menu</button>
   {menuOpen&&<button type="button" className="mdp-mobile-menu-backdrop" aria-label="Close navigation menu" onClick={()=>setMenuOpen(false)}/>}
@@ -68,7 +69,8 @@ export default function MDPWorkspaceNavigation(){
   <div className="mdp-nav-account"><AuthControl/></div>
   </div>
   <div className="mdp-mobile-bottom-tabs" role="navigation" aria-label="MDP mobile sections">
-   {visible(primary).map(item=><Link key={'mobile-'+item.href} href={item.href} aria-label={item.label} aria-current={isActive(pathname,focus,item.href,currentTarget)?'page':undefined} className={`mdp-mobile-tab${isActive(pathname,focus,item.href,currentTarget)?' is-active':''}`}><NavIcon name={item.icon}/><span>{item.label}</span></Link>)}
+   {mobilePrimary.map(item=><Link key={'mobile-'+item.href} href={item.href} aria-label={item.label} aria-current={isActive(pathname,focus,item.href,currentTarget)?'page':undefined} className={`mdp-mobile-tab${isActive(pathname,focus,item.href,currentTarget)?' is-active':''}`}><NavIcon name={item.icon}/><span>{item.label}</span></Link>)}
+   <button type="button" className={`mdp-mobile-tab mdp-mobile-more${menuOpen?' is-active':''}`} aria-label="More navigation options" aria-expanded={menuOpen} onClick={()=>setMenuOpen(true)}><span className="mdp-more-dots" aria-hidden="true">···</span><span>More</span></button>
   </div>
  </nav>;
 }
