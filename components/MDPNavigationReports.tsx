@@ -1,72 +1,16 @@
 'use client';
 import Link from 'next/link';
 import {useEffect,useState} from 'react';
-import {getMdpRosterPage,supabase} from '../lib/supabase';
-import {readOperationalRows} from '../lib/operations';
-import {collectDirectoryPages} from '../lib/directory-utils';
+import {getMdpReportsSnapshot,subscribeMdpReportChanges,type MdpReportSnapshot} from '../lib/mdp-report-updates';
 import {useStaffAccess} from './AuthGate';
 import OperationalPageLayout from './OperationalPageLayout';
 
-type Snapshot={
- total:number;
- ids:string[];
- willVote:number;
- willNotVote:number;
- called:number;
- reached:number;
- noteCount:number;
- residentsWithRemarks:number;
- transportNeeded:number;
- transportInProgress:number;
- transportCompleted:number;
-};
+type Snapshot=MdpReportSnapshot;
 type BarRow={label:string;value:number;tone:string};
 type GraphProps={title:string;detail:string;href:string;total:number;rows:BarRow[]};
 type VotingDayReport={name:string;voted:number}|null;
 
-const rosterFilters={search:'',party:'MDP',house:'all',gender:'all',age:'all',box:'all'};
 const fraction=(value:number,total:number)=>total?Math.min(100,Math.max(0,Math.round(value/total*100))):0;
-
-async function loadNavigationReport():Promise<Snapshot>{
- const residents=await collectDirectoryPages(page=>getMdpRosterPage(rosterFilters,page,500));
- const ids=residents.map(resident=>String(resident.id));
- const allowedIds=new Set(ids);
- // Only load data for workflows that appear in the MDP navigation.
- // Door-to-door, assignments and the old election_day table are intentionally omitted.
- const [callRows,remarkRows,transportRows]=await Promise.all([
-  readOperationalRows('call_center','resident_id,phone_status,reach_status,vote_status'),
-  readOperationalRows('remarks','resident_id,section'),
-  readOperationalRows('transportation','resident_id,transport_status')
- ]);
- const callMap=new Map<string,(typeof callRows)[number]>();
- for(const row of callRows)if(allowedIds.has(String(row.resident_id)))callMap.set(String(row.resident_id),row);
- const transportMap=new Map<string,string>();
- for(const row of transportRows)if(allowedIds.has(String(row.resident_id)))transportMap.set(String(row.resident_id),String(row.transport_status||'not-needed'));
- const notedIds=new Set<string>();
- let noteCount=0;
- for(const note of remarkRows){
-  if(note.section!=='general'||!allowedIds.has(String(note.resident_id)))continue;
-  notedIds.add(String(note.resident_id));
-  noteCount++;
- }
- let willVote=0,willNotVote=0,called=0,reached=0,transportNeeded=0,transportInProgress=0,transportCompleted=0;
- for(const resident of residents){
-  const id=String(resident.id);
-  const call=callMap.get(id);
-  const voteStatus=String(call?.vote_status??resident.vote_status??'not-decided');
-  const phoneStatus=String(call?.phone_status??resident.phone_status??'need-call');
-  const reachStatus=String(call?.reach_status??resident.reach_status??'not-reached');
-  const transportStatus=transportMap.get(id)||'not-needed';
-  if(voteStatus==='will-vote')willVote++;
-  if(voteStatus==='not-vote')willNotVote++;
-  if(phoneStatus==='called')called++;
-  if(reachStatus==='reached')reached++;
-  if(['needed','need-transport','requested'].includes(transportStatus))transportNeeded++;
-  if(['assigned','picked-up'].includes(transportStatus))transportInProgress++;
-  if(transportStatus==='completed')transportCompleted++;
- }
- return {total:residents.length,ids,willVote,willNotVote,called,reached,noteCount,residentsWithRemarks:notedIds.size,transportNeeded,transportInProgress,transportCompleted};
-}
 
 function ReportGraph({title,detail,href,total,rows}:GraphProps){
  return <section className="panel min-w-0" aria-label={title+' progress chart'}>
@@ -90,19 +34,56 @@ function ReportSummary({title,value,detail,href}:{title:string;value:number;deta
  </Link>;
 }
 
+function RestrictedSummary({title}:{title:string}){
+ return <section className="flex min-w-0 flex-col justify-between rounded-xl border border-slate-200 bg-white p-4">
+  <div><p className="text-sm font-semibold text-navy">{title}</p><strong className="mt-3 block text-3xl font-bold text-slate-400">—</strong><p className="mt-1 text-xs text-body">Access not granted</p></div>
+ </section>;
+}
+function RestrictedGraph({title}:{title:string}){
+ return <section className="panel min-w-0"><h2 className="text-base font-bold text-navy">{title}</h2><p className="mt-4 text-sm text-body">This report requires permission for that workflow.</p></section>;
+}
+
 export default function MDPNavigationReports(){
  const staff=useStaffAccess();
  const [data,setData]=useState<Snapshot|null>(null);
  const [loading,setLoading]=useState(true);
  const [error,setError]=useState('');
  const [releaseReached,setReleaseReached]=useState(false);
- const [voteDay,setVoteDay]=useState<VotingDayReport>(null);
- const [votingError,setVotingError]=useState('');
 
  useEffect(()=>{
-  let active=true;
-  void loadNavigationReport().then(report=>{if(active)setData(report)}).catch(err=>{if(active)setError(err instanceof Error?err.message:'Unable to load reports')}).finally(()=>{if(active)setLoading(false)});
-  return()=>{active=false};
+  let active=true,requestId=0,lastRequestAt=0;
+  const refresh=(force=false)=>{
+   if(!active||document.visibilityState==='hidden')return;
+   const now=Date.now();
+   if(!force&&now-lastRequestAt<10000)return;
+   lastRequestAt=now;
+   const current=++requestId;
+   void getMdpReportsSnapshot(force).then(report=>{
+    if(!active||current!==requestId)return;
+    setData(report);
+    setError('');
+   }).catch(err=>{
+    if(active&&current===requestId)setError(err instanceof Error?err.message:'Unable to load reports');
+   }).finally(()=>{
+    if(active&&current===requestId)setLoading(false);
+   });
+  };
+  refresh();
+  const unsubscribe=subscribeMdpReportChanges(()=>refresh(true));
+  const resume=()=>refresh();
+  window.addEventListener('focus',resume);
+  window.addEventListener('pageshow',resume);
+  document.addEventListener('visibilitychange',resume);
+  const poll=window.setInterval(()=>refresh(),30000);
+  return ()=>{
+   active=false;
+   requestId++;
+   unsubscribe();
+   window.removeEventListener('focus',resume);
+   window.removeEventListener('pageshow',resume);
+   document.removeEventListener('visibilitychange',resume);
+   window.clearInterval(poll);
+  };
  },[]);
  useEffect(()=>{
   const check=()=>setReleaseReached(Date.now()>=Date.parse('2026-11-27T23:30:00+05:00'));
@@ -110,29 +91,8 @@ export default function MDPNavigationReports(){
   const interval=window.setInterval(check,60000);
   return()=>window.clearInterval(interval);
  },[]);
- const showVotingDay=staff?.role==='admin'||releaseReached;
- useEffect(()=>{
-  if(!showVotingDay||!data){setVoteDay(null);setVotingError('');return}
-  let active=true;
-  void (async()=>{
-   try{
-    const {data:day,error:dayError}=await supabase.from('voting_days').select('id,name').eq('active',true).order('voting_date',{ascending:true}).limit(1).maybeSingle();
-    if(dayError)throw dayError;
-    if(!day){if(active)setVoteDay(null);return}
-    const votedIds=new Set<string>();
-    for(let start=0;;start+=1000){
-     const {data:records,error:voteError}=await supabase.from('resident_voting_status').select('resident_id').eq('voting_day_id',day.id).order('resident_id').range(start,start+999);
-     if(voteError)throw voteError;
-     const batch=records||[];
-     for(const record of batch)votedIds.add(String(record.resident_id));
-     if(batch.length<1000)break;
-    }
-    const voted=data.ids.filter(id=>votedIds.has(id)).length;
-    if(active)setVoteDay({name:String(day.name||'Active voting day'),voted});
-   }catch(err){if(active)setVotingError(err instanceof Error?err.message:'Voting Day figures unavailable')}
-  })();
-  return()=>{active=false};
- },[showVotingDay,data]);
+ const showVotingDay=Boolean(data?.canViewVotingDay&&(staff?.role==='admin'||releaseReached));
+ const voteDay=data?.votingDay??null;
 
  const target='/mdp/vote-target/';
  const calls='/mdp/calls/?status=need-call';
@@ -148,35 +108,43 @@ export default function MDPNavigationReports(){
   {loading?<div aria-busy="true" className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">{Array.from({length:4}).map((_,index)=><div key={index} className="h-36 animate-pulse rounded-xl bg-slate-100"/>)}</div>:data&&<>
    <p className="text-sm text-body">Operational progress for {total.toLocaleString()} MDP residents. These charts follow the same sections as the navigation.</p>
    <section aria-label="Navigation report summaries" className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-    <ReportSummary title="Target Votes" value={data.willVote} detail={'Will vote · '+fraction(data.willVote,total)+'% of residents'} href={target}/>
-    <ReportSummary title="Calls" value={data.called} detail={'Calls recorded · '+fraction(data.called,total)+'% of residents'} href={calls}/>
-    <ReportSummary title="Remarks" value={data.noteCount} detail={data.residentsWithRemarks.toLocaleString()+' residents with written remarks'} href={remarks}/>
-    <ReportSummary title="Transports" value={data.transportNeeded} detail="Transport arrangements needed" href={transports}/>
+    {data.canViewVoting?<ReportSummary title="Target Votes" value={data.willVote} detail={'Will vote · '+fraction(data.willVote,total)+'% of residents'} href={target}/>:<RestrictedSummary title="Target Votes"/>}
+    {data.canViewCalls?<ReportSummary title="Calls" value={data.called} detail={'Calls recorded · '+fraction(data.called,total)+'% of residents'} href={calls}/>:<RestrictedSummary title="Calls"/>}
+    {data.canViewRemarks?<ReportSummary title="Remarks" value={data.residentsWithRemarks} detail={data.noteCount.toLocaleString()+' non-empty saved remarks'} href={remarks}/>:<RestrictedSummary title="Remarks"/>}
+    {data.canViewTransport?<ReportSummary title="Transports" value={data.transportNeeded} detail="Transport arrangements needed" href={transports}/>:<RestrictedSummary title="Transports"/>}
    </section>
    <section aria-label="Charts aligned with navigation" className="grid gap-4 xl:grid-cols-2">
+    {data.canViewVoting?<>
     <ReportGraph title="Target Votes" href={target} total={total} detail="Recorded voting plans" rows={[
      {label:'Will vote',value:data.willVote,tone:'bg-blue-600'},
      {label:'Will not vote',value:data.willNotVote,tone:'bg-rose-500'},
      {label:'No confirmed plan',value:unconfirmed,tone:'bg-amber-400'}
     ]}/>
+    </>:<RestrictedGraph title="Target Votes"/>}
+    {data.canViewCalls?<>
     <ReportGraph title="Calls" href={calls} total={total} detail="Call and contact coverage" rows={[
      {label:'Called',value:data.called,tone:'bg-blue-600'},
      {label:'Reached',value:data.reached,tone:'bg-emerald-500'},
      {label:'Need call',value:uncalled,tone:'bg-amber-400'}
     ]}/>
+    </>:<RestrictedGraph title="Calls"/>}
+    {data.canViewRemarks?<>
     <ReportGraph title="Remarks" href={remarks} total={total} detail={'General notes saved: '+data.noteCount.toLocaleString()} rows={[
      {label:'Residents with remarks',value:data.residentsWithRemarks,tone:'bg-emerald-500'},
      {label:'No general remark',value:withoutRemarks,tone:'bg-slate-300'}
     ]}/>
+    </>:<RestrictedGraph title="Remarks"/>}
+    {data.canViewTransport?<>
     <ReportGraph title="Transports" href={transports} total={total} detail="Transport requests and arrangements" rows={[
      {label:'Needed or requested',value:data.transportNeeded,tone:'bg-amber-400'},
      {label:'In progress',value:data.transportInProgress,tone:'bg-blue-600'},
      {label:'Completed',value:data.transportCompleted,tone:'bg-emerald-500'}
     ]}/>
+    </>:<RestrictedGraph title="Transports"/>}
     {showVotingDay&&(voteDay?<ReportGraph title="Voting Day" href="/mdp/voting-days/" total={total} detail={voteDay.name} rows={[
      {label:'Voted',value:voteDay.voted,tone:'bg-emerald-500'},
      {label:'Not yet recorded',value:Math.max(0,total-voteDay.voted),tone:'bg-amber-400'}
-    ]}/>:<section className="panel"><h2 className="text-base font-bold text-navy">Voting Day</h2><p className="mt-2 text-sm text-body">{votingError||'No active Voting Day figures are currently available.'}</p><Link prefetch={false} href="/mdp/voting-days/" className="mt-4 inline-block text-sm font-semibold text-blue-700">Open Voting Day →</Link></section>)}
+    ]}/>:<section className="panel"><h2 className="text-base font-bold text-navy">Voting Day</h2><p className="mt-2 text-sm text-body">No active Voting Day figures are currently available.</p><Link prefetch={false} href="/mdp/voting-days/" className="mt-4 inline-block text-sm font-semibold text-blue-700">Open Voting Day →</Link></section>)}
    </section>
   </>}
  </OperationalPageLayout>;
