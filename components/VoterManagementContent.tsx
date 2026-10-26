@@ -291,7 +291,6 @@ function ResidentGalleryCard({resident:r,profilePath,workflow,workflowError,pdfS
     <Link prefetch={false} href={profileHref} className="mdp-master-resident-name">{r.name||'Unnamed resident'}</Link>
     <p className="mdp-master-id">{r.national_id||'ID unavailable'}{pdfSerial!==undefined&&<> · <span className="font-semibold text-blue-700">MDP #{pdfSerial}</span></>}</p>
     {pdfSerial!==undefined&&!r.national_id&&!r.phone&&<span className="mt-1 inline-flex rounded-md border border-amber-300 bg-amber-50 px-2 py-1 text-xs font-bold text-amber-900">NEW · ID / phone pending</span>}
-    <div className="mt-2"><VotingIntentionHighlight summary={workflow}/></div>
    </div>
    <Link prefetch={false} href={profileHref} className="mdp-master-chevron" aria-label={'Open profile of '+(r.name||'resident')} title="Open full resident details">›</Link>
   </div>
