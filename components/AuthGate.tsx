@@ -83,7 +83,7 @@ export default function AuthGate({children}:{children:React.ReactNode}){
   });
   void check();
   return()=>{active=false;generation++;subscription.unsubscribe()};
- },[attempt,isMdpRoute]);
+ },[attempt]);
  useEffect(()=>{
   let active=true;
   if(!isMdpRoute||!access){return()=>{active=false}}
