@@ -678,3 +678,49 @@
  .mdp-workspace .mdp-navigation-items .mdp-scheduled-links{display:grid}
  .mdp-workspace .mdp-mobile-bottom-tabs{z-index:65}
 }
+
+/* Minimal MDP architecture — clean surfaces, reserved yellow highlights. */
+.mdp-workspace{--mdp-blue:#1656b8;--mdp-yellow:#ffe58a;--mdp-ink:#202630;background:#f8fafc;color:#202630}
+.mdp-workspace .mdp-header{background:#fff;border-color:#e7e9ed;box-shadow:none}
+.mdp-workspace .mdp-brand{color:#174a9a!important}
+.mdp-workspace .mdp-brand-name strong{font-weight:800}
+.mdp-workspace .mdp-main{background:transparent}
+.mdp-workspace .panel,.mdp-workspace .mdp-master-card,.mdp-workspace .mdp-home-quick-card{box-shadow:none!important;border-color:#e4e7eb!important}
+.mdp-workspace .mdp-nav-link,.mdp-workspace .mdp-scheduled-link{transition:background .15s ease,border-color .15s ease}
+.mdp-workspace .mdp-nav-link.is-active{background:#eff5ff!important;color:#1557b0!important}
+.mdp-workspace .mdp-nav-countdown{gap:12px;padding:12px 8px}
+.mdp-workspace .mdp-election-countdown{
+ display:flex!important;flex-direction:column;align-items:center;justify-content:center;gap:8px;
+ border:1px solid #e3e5e8!important;border-radius:16px!important;background:#fff!important;
+ padding:18px 12px!important;box-shadow:none!important;color:#202630!important;text-align:center
+}
+.mdp-workspace .mdp-election-countdown-title{font-size:11px!important;letter-spacing:.08em!important;color:#69717d!important;font-weight:700}
+.mdp-workspace .mdp-flip-countdown{justify-content:center;gap:10px}
+.mdp-workspace .mdp-flip-digit{min-width:29px;height:38px;background:#fff;border:1px solid #e2e5e9;border-radius:7px;box-shadow:none;color:#202630;font-size:28px}
+.mdp-workspace .mdp-flip-words{font-size:12px;color:#202630}
+.mdp-workspace .mdp-flip-words b{background:#fff0b9;color:#5d4810;border-radius:4px}
+.mdp-workspace .mdp-election-countdown small{color:#5b6470!important;font-size:11px!important}
+.mdp-workspace .mdp-scheduled-links{gap:8px}
+.mdp-workspace .mdp-scheduled-link{
+ min-height:72px;flex-direction:column;gap:6px;border:1px solid #e0e3e7!important;
+ border-radius:12px;background:#fafafa!important;color:#26364e!important;
+ box-shadow:none;font-size:12px;font-weight:650
+}
+.mdp-workspace .mdp-scheduled-link svg{width:22px;height:22px;color:#1557b0}
+.mdp-workspace .mdp-scheduled-link.is-active{border-color:#a4c4f1!important;background:#edf4ff!important}
+.mdp-workspace .mdp-scheduled-link.is-locked{opacity:1;color:#767c85!important;background:#f6f6f6!important}
+.mdp-workspace .mdp-scheduled-link.is-locked svg{color:#888d95}
+.mdp-workspace .mdp-scheduled-lock{font-size:10px}
+@media(max-width:850px){
+ .mdp-workspace .mdp-header{box-shadow:none}
+ .mdp-workspace .mdp-mobile-menu-toggle{border:1px solid #e3e6ec;background:#fff;color:#1557b0}
+ .mdp-workspace .mdp-mobile-menu-heading{background:#fff5d4;border:1px solid #f5e2a8;color:#16427f}
+ .mdp-workspace .mdp-navigation-items{box-shadow:8px 0 24px rgba(0,0,0,.09)}
+ .mdp-workspace .mdp-mobile-bottom-tabs{
+  border-top:1px solid #e2e5e9!important;background:#fff!important;box-shadow:0 -2px 12px rgba(15,38,72,.055)!important;
+  padding-top:8px
+ }
+ .mdp-workspace .mdp-mobile-tab{color:#547096!important;gap:5px;font-size:11px;font-weight:650}
+ .mdp-workspace .mdp-mobile-tab svg{color:#1557b0}
+ .mdp-workspace .mdp-mobile-tab.is-active{background:#f0f5ff;color:#0d48a0!important}
+}
