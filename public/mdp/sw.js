@@ -1,5 +1,5 @@
 /* MDP static asset cache. Never store HTML, Supabase responses, or resident records. */
-const NAME='mdp-static-v2';
+const NAME='mdp-static-v3';
 self.addEventListener('install',event=>event.waitUntil(self.skipWaiting()));
 self.addEventListener('activate',event=>event.waitUntil((async()=>{for(const name of await caches.keys())if(name.startsWith('mdp-static-')&&name!==NAME)await caches.delete(name);await self.clients.claim()})()));
 self.addEventListener('fetch',event=>{
@@ -11,7 +11,7 @@ self.addEventListener('fetch',event=>{
  if(!staticAsset)return;
  event.respondWith((async()=>{
   const cache=await caches.open(NAME),cached=await cache.match(req);
-  if(cached)return cached;
+  if(cached){void fetch(req).then(res=>{if(res.ok&&res.type!=='opaque')return cache.put(req,res.clone())}).catch(()=>{});return cached;}
   const res=await fetch(req);
   if(res.ok&&res.type!=='opaque')await cache.put(req,res.clone());
   return res;
