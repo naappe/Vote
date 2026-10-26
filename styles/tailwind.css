@@ -116,3 +116,22 @@ img{max-width:100%}
 }
 
 @media(prefers-reduced-motion:reduce){*,*::before,*::after{scroll-behavior:auto!important;animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}}
+
+
+/* Shared resident directory card architecture for the administrator's mobile view.
+   Mirrors the compact MDP information hierarchy without changing admin access or data. */
+.admin-resident-mobile-grid{display:grid;grid-template-columns:1fr;gap:10px;padding:10px;background:#f8fafc}
+.admin-resident-mobile-card{min-width:0;border:1px solid #e2e8f0;border-radius:14px;background:#fff;padding:12px;box-shadow:0 1px 3px rgba(15,23,42,.025)}
+.admin-resident-mobile-identity{display:flex;align-items:center;gap:10px;min-height:48px}
+.admin-resident-mobile-identity img{width:46px;height:46px;object-fit:cover;border-radius:50%}
+.admin-resident-mobile-name{display:block;color:#17335d;font-size:13px;font-weight:600;line-height:1.3;overflow-wrap:anywhere}
+.admin-resident-mobile-id{margin-top:3px;font-size:11px;color:#71819a}
+.admin-resident-mobile-chevron{margin-left:auto;color:#2563eb;font-size:25px;line-height:1;text-decoration:none}
+.admin-resident-mobile-data{display:grid;grid-template-columns:minmax(0,1.5fr) minmax(0,1.2fr) minmax(0,.45fr) minmax(0,.45fr);gap:5px;margin-top:10px;padding-top:8px;border-top:1px solid #e8eef5}
+.admin-resident-mobile-data>div{min-width:0}
+.admin-resident-mobile-data dt,.admin-resident-mobile-data span:first-child{font-size:9px;line-height:1.3;color:#8191aa;text-transform:uppercase;letter-spacing:.04em}
+.admin-resident-mobile-data dd{font-size:11px;line-height:1.4;font-weight:600;color:#1b365e;overflow-wrap:anywhere}
+.admin-resident-mobile-extra{margin-top:7px;border-top:1px solid #f1f5f9;padding-top:6px}
+.admin-resident-mobile-extra summary{cursor:pointer;color:#53749b;font-size:11px;font-weight:500}
+.admin-resident-mobile-extra[open]{padding-bottom:5px}
+@media(min-width:640px) and (max-width:1023px){.admin-resident-mobile-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;padding:12px}}
