@@ -8,10 +8,10 @@ import MDPElectionCountdown from './MDPElectionCountdown';
 
 type NavItem={label:string;href:string;icon:string;roles?:string[]};
 const primary:NavItem[]=[
- {label:'Home',href:'/mdp/vote-target/',icon:'home'},
+ {label:'Target Votes',href:'/mdp/vote-target/',icon:'home'},
  {label:'Calls',href:'/mdp/calls/?status=need-call',icon:'phone'},
  {label:'Remarks',href:'/mdp/remarks/',icon:'note'},
- {label:'More',href:'/mdp/transportation/?status=pending',icon:'truck'},
+ {label:'Transports',href:'/mdp/transportation/?status=pending',icon:'truck'},
 ];
 const iconPaths:Record<string,string>={
  users:'M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2 M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8 M22 21v-2a4 4 0 0 0-3-3.87 M16 3.13a4 4 0 0 1 0 7.75',
