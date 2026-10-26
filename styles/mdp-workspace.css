@@ -775,3 +775,31 @@
 .mdp-workspace .mdp-target-filter-pill{min-height:34px;border-color:#e1e6ee!important;background:#fff!important;color:#48617e!important;box-shadow:none!important}
 .mdp-workspace .mdp-target-filter-pill.is-selected{background:#fff6d9!important;border-color:#e6d082!important;color:#334763!important}
 @media(max-width:640px){.mdp-workspace .mdp-target-filter-row{gap:4px!important}.mdp-workspace .mdp-target-filter-pill{font-size:10px!important;padding:7px 6px!important}}
+
+/* Shared MDP design architecture v2: consistent surfaces and navigation across every operational view. */
+.mdp-workspace{--mdp-surface:#ffffff;--mdp-border:#e3e8ef;--mdp-accent:#315b91;--mdp-soft:#f3df91;--mdp-selected:#fff9e9;font-weight:400}
+.mdp-workspace .mdp-main{max-width:1150px}
+.mdp-workspace .mdp-operational-page{min-width:0}
+.mdp-workspace .mdp-operational-heading{min-height:40px;margin:0}
+.mdp-workspace .mdp-operational-heading h1{color:#29354a!important;font-size:clamp(19px,3vw,24px)!important;font-weight:650!important;letter-spacing:-.025em}
+.mdp-workspace .mdp-unified-filter{background:#fff!important;border:1px solid var(--mdp-border)!important;border-radius:12px!important;box-shadow:none!important}
+.mdp-workspace .mdp-operational-page input,.mdp-workspace .mdp-operational-page select,.mdp-workspace .mdp-operational-page textarea{border-color:#dce4ed!important;box-shadow:none!important;border-radius:9px!important;background:#fff}
+.mdp-workspace .mdp-operational-page input:focus,.mdp-workspace .mdp-operational-page select:focus,.mdp-workspace .mdp-operational-page textarea:focus{outline:2px solid #b5c9de!important;outline-offset:0}
+.mdp-workspace .mdp-operational-page .panel{background:#fff!important;border-color:var(--mdp-border)!important;border-radius:12px!important;box-shadow:none!important}
+.mdp-workspace .mdp-operational-page button{transition:background-color .15s ease,border-color .15s ease!important}
+.mdp-workspace .mdp-operational-page button:hover{transform:none!important}
+.mdp-workspace .mdp-operational-page button[aria-pressed="true"]{box-shadow:none!important}
+.mdp-workspace .mdp-operational-page section[aria-label$="summary"]>button{border-radius:10px!important}
+.mdp-workspace .mdp-operational-page section[aria-label$="summary"]>button strong{font-weight:700!important}
+.mdp-workspace .mdp-mobile-bottom-tabs{background:#fff!important}
+.mdp-workspace .mdp-mobile-tab{border-radius:10px!important}
+.mdp-workspace .mdp-mobile-tab.is-active{background:#f1f5fa!important}
+.mdp-workspace .mdp-nav-link.is-active{border-color:transparent!important;background:#eff3f8!important}
+.mdp-workspace .mdp-nav-countdown{background:transparent}
+.mdp-workspace .mdp-nav-account{border-color:var(--mdp-border)!important}
+@media(max-width:850px){
+ .mdp-workspace .mdp-main{width:calc(100% - 24px)!important;margin:12px auto 24px!important}
+ .mdp-workspace .mdp-operational-page{gap:12px!important}
+ .mdp-workspace .mdp-mobile-bottom-tabs{padding-bottom:calc(7px + env(safe-area-inset-bottom,0px))}
+ .mdp-workspace .mdp-operational-heading h1{font-size:20px!important}
+}
