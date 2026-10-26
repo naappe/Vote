@@ -6,14 +6,14 @@ import {useStaffAccess} from './AuthGate';
 import MDPUserWork from './MDPUserWork';
 
 const dailyTasks=[
- {title:'Find resident',detail:'Search by MDP serial, name or house',href:'/mdp/residents/',mark:'01'},
+ {title:'Find resident',detail:'Search by MDP serial, name or house',href:'/mdp/vote-target/',mark:'01'},
  {title:'Call',detail:'Contact and record the result',href:'/mdp/calls/?status=need-call',mark:'02'},
- {title:'House visit',detail:'Record visit and resident remarks',href:'/mdp/residents/?focus=visit-pending',mark:'03'},
- {title:'Voting plan',detail:'Save intention and follow-up',href:'/mdp/residents/?focus=vote-pending',mark:'04'},
+ {title:'House visit',detail:'Record visit and resident remarks',href:'/mdp/vote-target/?focus=visit-pending',mark:'03'},
+ {title:'Voting plan',detail:'Save intention and follow-up',href:'/mdp/vote-target/?focus=vote-pending',mark:'04'},
 ];
 
 const otherTasks=[
- {title:'Write or read notes',detail:'Check saved notes about residents.',href:'/mdp/residents/?focus=remarks'},
+ {title:'Write or read notes',detail:'Check saved notes about residents.',href:'/mdp/vote-target/?focus=remarks'},
  {title:'Arrange transport',detail:'See residents who have a transport request.',href:'/mdp/transportation/'},
  {title:'View reports',detail:'See progress and saved results.',href:'/mdp/reports/'},
 ];
