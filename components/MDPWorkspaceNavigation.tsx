@@ -8,7 +8,6 @@ import MDPElectionCountdown from './MDPElectionCountdown';
 
 type NavItem={label:string;href:string;icon:string;roles?:string[]};
 const primary:NavItem[]=[
- {label:'Residents',href:'/mdp/residents/',icon:'users'},
  {label:'Vote Target',href:'/mdp/vote-target/',icon:'vote'},
  {label:'Calls',href:'/mdp/calls/?status=need-call',icon:'phone'},
  {label:'Remarks',href:'/mdp/remarks/',icon:'note'},
