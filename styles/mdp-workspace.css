@@ -664,3 +664,17 @@
  .mdp-workspace .mdp-navigation-items .mdp-nav-link{display:none}
 }
 @media(max-width:370px){.mdp-workspace .mdp-mobile-tab{font-size:9px}.mdp-workspace .mdp-mobile-tab svg{width:20px;height:20px}}
+
+/* Reports and Voting day sit directly below the election countdown. */
+.mdp-workspace .mdp-nav-countdown{display:flex;flex-direction:column;gap:9px}
+.mdp-workspace .mdp-scheduled-links{display:grid;grid-template-columns:1fr 1fr;gap:7px;width:100%}
+.mdp-workspace .mdp-scheduled-link{display:flex;min-width:0;min-height:49px;align-items:center;justify-content:center;gap:6px;padding:7px 5px;border:1px solid #dce5f4;border-radius:11px;background:#f6f9ff;text-decoration:none!important;color:#16477f!important;font-size:11px;font-weight:800}
+.mdp-workspace .mdp-scheduled-link svg{width:18px;height:18px;flex:none}
+.mdp-workspace .mdp-scheduled-link.is-active{background:#e7f0ff;border-color:#a7c8fb}
+.mdp-workspace .mdp-scheduled-link.is-locked{opacity:.6;cursor:not-allowed}
+.mdp-workspace .mdp-scheduled-lock{font-size:11px}
+.mdp-workspace .mdp-election-countdown{width:100%}
+@media(max-width:850px){
+ .mdp-workspace .mdp-navigation-items .mdp-scheduled-links{display:grid}
+ .mdp-workspace .mdp-mobile-bottom-tabs{z-index:65}
+}
