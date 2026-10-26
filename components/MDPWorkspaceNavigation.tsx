@@ -62,7 +62,7 @@ export default function MDPWorkspaceNavigation(){
   <div className="mdp-nav-countdown">
    <MDPElectionCountdown/>
    <div className="mdp-scheduled-links" aria-label="Election release sections">
-    {scheduled.map(item=>unlocked?<Link key={item.href} href={item.href} aria-current={isActive(pathname,focus,item.href,currentTarget)?'page':undefined} className={`mdp-scheduled-link${isActive(pathname,focus,item.href,currentTarget)?' is-active':''}`}><NavIcon name={item.icon}/><span>{item.label}</span></Link>:<span key={item.href} className="mdp-scheduled-link is-locked" aria-label={item.label+' locked until 27 November 2026 at 11:30 PM Maldives time'} title="Available 27 Nov 2026, 11:30 PM MVT"><NavIcon name={item.icon}/><span>{item.label}</span><span className="mdp-scheduled-lock" aria-hidden="true">🔒</span></span>)}
+    {scheduled.map(item=>(item.label==='Reports'||unlocked)?<Link key={item.href} href={item.href} aria-current={isActive(pathname,focus,item.href,currentTarget)?'page':undefined} className={`mdp-scheduled-link${isActive(pathname,focus,item.href,currentTarget)?' is-active':''}`}><NavIcon name={item.icon}/><span>{item.label}</span></Link>:<span key={item.href} className="mdp-scheduled-link is-locked" aria-label={item.label+' locked until 27 November 2026 at 11:30 PM Maldives time'} title="Available 27 Nov 2026, 11:30 PM MVT"><NavIcon name={item.icon}/><span>{item.label}</span><span className="mdp-scheduled-lock" aria-hidden="true">🔒</span></span>)}
    </div>
   </div>
   <div className="mdp-nav-account"><AuthControl/></div>
