@@ -1,4 +1,2 @@
-import {Suspense} from 'react';
-import VoterManagementContent from '../../../components/VoterManagementContent';
-
-export default function Page(){return <Suspense fallback={<div className="panel h-64 animate-pulse"/>}><VoterManagementContent profilePath="/mdp/resident-profile/" partyControls={false}/></Suspense>}
+import {redirect} from 'next/navigation';
+export default function Page(){redirect('/mdp/vote-target/');}
