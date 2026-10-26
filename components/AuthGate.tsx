@@ -13,6 +13,10 @@ export function useStaffAccess(){return useContext(StaffAccessContext)}
 export default function AuthGate({children}:{children:React.ReactNode}){
  const [access,setAccess]=useState<Access>(null),[ready,setReady]=useState(false),[error,setError]=useState(''),[attempt,setAttempt]=useState(0),[recovery,setRecovery]=useState(false),[mdpAccess,setMdpAccess]=useState<{userId:string;allowed:boolean;checkFailed?:boolean}|null>(null),[mdpAttempt,setMdpAttempt]=useState(0);
  const [featureAccess,setFeatureAccess]=useState<{route:string;allowed:boolean;failed:boolean}|null>(null);
+ const [accessClock,setAccessClock]=useState<number|null>(null);
+ useEffect(()=>{setAccessClock(Date.now());const timer=window.setInterval(()=>setAccessClock(Date.now()),15000);return()=>window.clearInterval(timer)},[]);
+ const isScheduledFeature=(name:string|null)=>name==='reports'||name==='election_day';
+ const scheduledReleased=accessClock!==null&&accessClock>=Date.parse('2026-11-27T23:30:00+05:00');
  const pathname=usePathname();
  const permissionCache=useRef<Map<string,{allowed:boolean;checkedAt:number}>>(new Map());
  const route=pathname.replace(/^\/Vote(?=\/|$)/i,'').replace(/\/$/,'');
@@ -22,6 +26,10 @@ export default function AuthGate({children}:{children:React.ReactNode}){
  useEffect(()=>{
   let active=true;
   if(!access||!isMdpRoute||!feature){setFeatureAccess(null);return()=>{active=false}}
+  if(isScheduledFeature(feature)){
+   if(access.role!=='admin'&&!scheduledReleased){setFeatureAccess({route:feature,allowed:false,failed:false});return()=>{active=false}}
+   if(scheduledReleased){setFeatureAccess({route:feature,allowed:true,failed:false});return()=>{active=false}}
+  }
   const cacheKey=access.user.id+':'+access.role+':'+feature;
   const cached=permissionCache.current.get(cacheKey);
   const valid=Boolean(cached&&Date.now()-cached.checkedAt<30000);
@@ -37,7 +45,7 @@ export default function AuthGate({children}:{children:React.ReactNode}){
    setFeatureAccess({route:feature,allowed,failed:!!error});
   });
   return()=>{active=false}
- },[access?.user.id,access?.role,isMdpRoute,feature,attempt]);
+ },[access?.user.id,access?.role,isMdpRoute,feature,attempt,scheduledReleased]);
 
  useEffect(()=>{
   let active=true,generation=0;
@@ -105,7 +113,7 @@ export default function AuthGate({children}:{children:React.ReactNode}){
  if(['/users','/backup'].includes(route)&&access.role!=='admin')return <main className="p-6"><h1>Administrator access required</h1><a href="/Vote/">Return to dashboard</a></main>;
  if((route==='/mdp/verification'||route.startsWith('/mdp/verification/'))&&access.role!=='admin')return <main className="p-6"><h1>Administrator access required</h1><a href="/Vote/mdp/">Return to MDP home</a></main>;
  if(isMdpRoute&&feature&&(!featureAccess||featureAccess.route!==feature))return <main className="grid min-h-screen place-items-center p-6"><p role="status">Checking task permission…</p></main>;
- if(isMdpRoute&&feature&&!featureAccess?.allowed)return <main className="grid min-h-screen place-items-center bg-calm-50 p-6"><section className="panel max-w-lg"><h1>Permission required</h1><p className="mt-2 text-sm text-body">{featureAccess?.failed?'Could not verify your task permission. Please retry.':'An administrator has not authorized this feature for your account.'}</p><a className="btn-primary mt-4 inline-flex" href="/Vote/mdp/">Return to MDP home</a></section></main>;
+ if(isMdpRoute&&feature&&!featureAccess?.allowed)return <main className="grid min-h-screen place-items-center bg-calm-50 p-6"><section className="panel max-w-lg"><h1>Permission required</h1><p className="mt-2 text-sm text-body">{featureAccess?.failed?'Could not verify your task permission. Please retry.':'isScheduledFeature(feature)&&!scheduledReleased?'Only administrators can access this section until 27 November 2026 at 11:30 PM Maldives time.':'An administrator has not authorized this feature for your account.''}</p><a className="btn-primary mt-4 inline-flex" href="/Vote/mdp/">Return to MDP home</a></section></main>;
   if(!isMdpRoute&&access.role!=='admin')return <main className="grid min-h-screen place-items-center bg-calm-50 p-6"><section className="panel max-w-lg"><h1>Administrator access required</h1><p className="mt-2 text-sm text-body">The main Vote app is for administrators. Staff approved for MDP operations should use the separate MDP workspace link.</p><a className="btn-primary mt-4 inline-flex" href="/Vote/mdp/">Open MDP workspace</a></section></main>;
  if(route==='/contact-verification'&&!['admin','supervisor'].includes(access.role))return <main className="p-6"><h1>Supervisor access required</h1><a href="/Vote/">Return to dashboard</a></main>;
  return <StaffAccessContext.Provider value={access}>{children}</StaffAccessContext.Provider>;
