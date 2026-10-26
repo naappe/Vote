@@ -829,3 +829,47 @@
  .mdp-workspace .mdp-directory-paging>div>button{width:100%!important;min-width:0!important;min-height:36px!important;padding:5px 6px!important}
  .mdp-workspace .mdp-directory-paging>div>span{min-width:42px!important;white-space:nowrap!important;text-align:center!important}
 }
+
+/* Approved airy soft-yellow mobile design (shared across MDP operational pages). */
+.mdp-workspace{
+ --mdp-blue:#53709b;--mdp-blue-dark:#304765;--mdp-yellow:#f7db7a;
+ --mdp-yellow-pale:#fff9e9;--mdp-ink:#273a5e;--mdp-muted:#78889e;
+ --mdp-border:#e9edf2;background:#fafbfd!important;color:#273a5e!important;
+ font-size:14px;font-weight:400;
+}
+.mdp-workspace .mdp-header{background:#fff!important;border-bottom:1px solid #ecedf1!important;box-shadow:none!important}
+.mdp-workspace .mdp-brand{color:#304765!important}
+.mdp-workspace .mdp-brand-name strong{font-size:16px!important;letter-spacing:0!important;font-weight:650!important;color:#304765!important}
+.mdp-workspace .mdp-brand-name small{font-size:10px!important;font-weight:400!important;color:#8798ad!important}
+.mdp-workspace .mdp-operational-heading h1{font-size:21px!important;font-weight:600!important;letter-spacing:-.025em!important;color:#273a5e!important}
+.mdp-workspace .panel,.mdp-workspace .mdp-unified-filter,.mdp-workspace .mdp-master-card,.mdp-workspace .mdp-reference-filters,.mdp-workspace .mdp-home-quick-card{background:#fff!important;border:1px solid #e9edf2!important;border-radius:15px!important;box-shadow:none!important}
+.mdp-workspace .mdp-operational-page input,.mdp-workspace .mdp-operational-page select,.mdp-workspace .mdp-operational-page textarea{background:#fff!important;border-color:#e3e9f1!important;color:#304765!important;box-shadow:none!important}
+.mdp-workspace .mdp-operational-page input::placeholder{color:#98a6b9!important}
+.mdp-workspace .mdp-nav-link.is-active,.mdp-workspace .mdp-mobile-tab.is-active{background:#fff8e4!important;color:#886922!important;border-color:transparent!important;box-shadow:none!important}
+.mdp-workspace .mdp-mobile-tab{font-size:10px!important;font-weight:500!important;color:#8190a4!important}
+.mdp-workspace .mdp-mobile-tab svg{width:20px!important;height:20px!important;stroke-width:1.6!important;color:#607da2!important}
+.mdp-workspace .mdp-mobile-tab.is-active svg{color:#c49b29!important}
+.mdp-workspace .mdp-mobile-bottom-tabs{background:#fff!important;border-top:1px solid #e9edf2!important;box-shadow:0 -2px 12px rgba(35,54,79,.035)!important}
+.mdp-workspace .mdp-scheduled-link{background:#fff!important;border-color:#e9edf2!important;box-shadow:none!important;font-weight:500!important;color:#536b90!important}
+.mdp-workspace .mdp-scheduled-link.is-active{background:#fff8e4!important;border-color:#e8dbb2!important}
+.mdp-workspace .mdp-election-countdown{background:#fffaf0!important;border:1px solid #f0e5c9!important;box-shadow:none!important}
+.mdp-workspace .mdp-flip-digit{background:#fff!important;border-color:#eee6d5!important;color:#435772!important;box-shadow:none!important;font-weight:600!important}
+.mdp-workspace .mdp-flip-words b{background:#f7e7a9!important;color:#776222!important}
+.mdp-workspace section[aria-label$="summary"]>button,.mdp-workspace section[aria-label$="KPI summary"]>button{
+ background:#fff!important;border:1px solid #e9edf2!important;border-radius:12px!important;
+ box-shadow:none!important;transform:none!important;
+}
+.mdp-workspace section[aria-label$="summary"]>button[aria-pressed="true"],.mdp-workspace section[aria-label$="KPI summary"]>button[aria-pressed="true"]{background:#fff9e9!important;border-color:#eadba9!important;box-shadow:none!important}
+.mdp-workspace section[aria-label$="summary"]>button strong,.mdp-workspace section[aria-label$="KPI summary"]>button strong{color:#304765!important;font-weight:600!important}
+.mdp-workspace section[aria-label$="summary"]>button span,.mdp-workspace section[aria-label$="KPI summary"]>button span{color:#728096!important;font-weight:500!important}
+.mdp-workspace .mdp-target-filter-pill{background:#fff!important;border-color:#e8edf3!important;color:#697e9b!important;font-weight:500!important}
+.mdp-workspace .mdp-target-filter-pill.is-selected{background:#fff6d9!important;border-color:#e9d9a9!important;color:#776222!important}
+.mdp-workspace .mdp-house-group-heading{background:#fffaf0!important;border-color:#eee3c5!important}
+.mdp-workspace .mdp-master-resident-name{font-weight:600!important;color:#304765!important}
+.mdp-workspace .mdp-master-card .mdp-master-action{box-shadow:none!important}
+@media(max-width:850px){
+ .mdp-workspace .mdp-main{padding-bottom:8px!important}
+ .mdp-workspace .mdp-mobile-bottom-tabs{padding:7px 4px calc(7px + env(safe-area-inset-bottom,0px))!important}
+ .mdp-workspace .mdp-mobile-tab{min-height:51px!important;gap:4px!important}
+ .mdp-workspace .mdp-operational-heading h1{font-size:20px!important}
+}
