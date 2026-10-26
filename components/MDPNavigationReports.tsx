@@ -1,7 +1,8 @@
 'use client';
 import Link from 'next/link';
 import {useEffect,useState} from 'react';
-import {getMdpReportsSnapshot,subscribeMdpReportChanges,type MdpReportSnapshot} from '../lib/mdp-report-updates';
+import {getMdpReportsSnapshot,type MdpReportSnapshot} from '../lib/mdp-report-updates';
+import {subscribeMdpReportChanges} from '../lib/mdp-report-events';
 import {useStaffAccess} from './AuthGate';
 import OperationalPageLayout from './OperationalPageLayout';
 
