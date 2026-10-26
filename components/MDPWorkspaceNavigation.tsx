@@ -12,8 +12,6 @@ const primary:NavItem[]=[
  {label:'Calls',href:'/mdp/calls/?status=need-call',icon:'phone'},
  {label:'Remarks',href:'/mdp/remarks/',icon:'note'},
  {label:'Transport',href:'/mdp/transportation/?status=pending',icon:'truck'},
- {label:'Reports',href:'/mdp/reports/',icon:'chart'},
- {label:'Voting day',href:'/mdp/voting-days/?status=pending',icon:'vote',roles:['admin','supervisor','election_operator']},
 ];
 const iconPaths:Record<string,string>={
  users:'M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2 M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8 M22 21v-2a4 4 0 0 0-3-3.87 M16 3.13a4 4 0 0 1 0 7.75',
@@ -30,6 +28,10 @@ function isActive(pathname:string,focus:string|null,href:string,currentTarget:st
 export default function MDPWorkspaceNavigation(){
  const access=useStaffAccess(),role=access?.role||'',pathname=(usePathname()||'/mdp/').replace(/\/$/,'')||'/mdp',params=useSearchParams(),focus=params.get('focus'),currentTarget=params.get('target');
  const [menuOpen,setMenuOpen]=useState(false);
+ const [clock,setClock]=useState<number|null>(null);
+ useEffect(()=>{setClock(Date.now());const timer=window.setInterval(()=>setClock(Date.now()),15000);return()=>window.clearInterval(timer)},[]);
+ const unlocked=role==='admin'||(clock!==null&&clock>=Date.parse('2026-11-27T23:30:00+05:00'));
+ const scheduled:NavItem[]=[{label:'Reports',href:'/mdp/reports/',icon:'chart'},{label:'Voting day',href:'/mdp/voting-days/?status=pending',icon:'vote'}];
  const drawerRef=useRef<HTMLDivElement>(null),menuTriggerRef=useRef<HTMLButtonElement>(null);
  useEffect(()=>{setMenuOpen(false)},[pathname,focus]);
  useEffect(()=>{
@@ -57,7 +59,12 @@ export default function MDPWorkspaceNavigation(){
   <div ref={drawerRef} id="mdp-navigation-items" className={`mdp-navigation-items${menuOpen?" is-open":""}`}>
    <div className="mdp-mobile-menu-heading"><strong>MDP Resident Voters</strong><button type="button" aria-label="Close menu" onClick={()=>setMenuOpen(false)}>✕</button></div>
   {visible(primary).map(item=><Link key={item.href} href={item.href} aria-current={isActive(pathname,focus,item.href,currentTarget)?'page':undefined} className={`mdp-nav-link${isActive(pathname,focus,item.href,currentTarget)?' is-active':''}`}><NavIcon name={item.icon}/><span>{item.label}</span></Link>)}
-  <div className="mdp-nav-countdown"><MDPElectionCountdown/></div>
+  <div className="mdp-nav-countdown">
+   <MDPElectionCountdown/>
+   <div className="mdp-scheduled-links" aria-label="Election release sections">
+    {scheduled.map(item=>unlocked?<Link key={item.href} href={item.href} aria-current={isActive(pathname,focus,item.href,currentTarget)?'page':undefined} className={`mdp-scheduled-link${isActive(pathname,focus,item.href,currentTarget)?' is-active':''}`}><NavIcon name={item.icon}/><span>{item.label}</span></Link>:<span key={item.href} className="mdp-scheduled-link is-locked" aria-label={item.label+' locked until 27 November 2026 at 11:30 PM Maldives time'} title="Available 27 Nov 2026, 11:30 PM MVT"><NavIcon name={item.icon}/><span>{item.label}</span><span className="mdp-scheduled-lock" aria-hidden="true">🔒</span></span>)}
+   </div>
+  </div>
   <div className="mdp-nav-account"><AuthControl/></div>
   </div>
   <div className="mdp-mobile-bottom-tabs" role="navigation" aria-label="MDP mobile sections">
