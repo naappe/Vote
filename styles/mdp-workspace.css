@@ -724,3 +724,23 @@
  .mdp-workspace .mdp-mobile-tab svg{color:#1557b0}
  .mdp-workspace .mdp-mobile-tab.is-active{background:#f0f5ff;color:#0d48a0!important}
 }
+
+/* Operational-page simplification: white KPI tiles, grey outline, blue values and a restrained yellow selection. */
+.mdp-workspace section[aria-label$="KPI summary"]{gap:8px!important}
+.mdp-workspace section[aria-label$="KPI summary"]>button{
+ min-height:82px!important;padding:13px!important;background:#fff!important;color:#1d4fa7!important;
+ border:1px solid #e1e5eb!important;border-radius:12px!important;box-shadow:none!important;
+ transform:none!important;outline-offset:1px;transition:border-color .12s ease,background-color .12s ease!important
+}
+.mdp-workspace section[aria-label$="KPI summary"]>button[aria-pressed="true"]{
+ border-color:#e5c868!important;background:#fff9e8!important;
+ box-shadow:inset 0 0 0 1px #f2db8b!important
+}
+.mdp-workspace section[aria-label$="KPI summary"]>button strong{font-size:27px!important;line-height:1.1!important;font-weight:800}
+.mdp-workspace section[aria-label$="KPI summary"]>button span{font-size:12px!important;margin-top:9px!important;font-weight:650;color:#364153!important}
+.mdp-workspace .mdp-reference-filters,.mdp-workspace section.panel{box-shadow:none!important;border-color:#e1e5eb!important}
+@media(max-width:640px){
+ .mdp-workspace section[aria-label$="KPI summary"]{grid-template-columns:repeat(2,minmax(0,1fr))!important}
+ .mdp-workspace section[aria-label$="KPI summary"]>button{min-height:76px!important;padding:11px!important}
+ .mdp-workspace section[aria-label$="KPI summary"]>button strong{font-size:25px!important}
+}
