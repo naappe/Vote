@@ -1033,3 +1033,59 @@
  .mdp-workspace .mdp-slim-details{padding-left:0}
  .mdp-workspace .mdp-slim-action{width:31px;height:31px;min-width:31px;min-height:31px}
 }
+
+
+/* Shared compact resident card geometry for all MDP roster and operational pages.
+   Visual-only: no changes to resident data, filters, task handling or access. */
+.mdp-workspace .mdp-master-card{
+ min-height:0!important;
+ padding:12px!important;
+ gap:0!important;
+ justify-content:flex-start!important;
+ border-radius:14px!important;
+}
+.mdp-workspace .mdp-master-identity{
+ align-items:center!important;
+ gap:10px!important;
+ min-height:52px!important;
+}
+.mdp-workspace .mdp-master-identity .mdp-card-photo{
+ width:48px!important;height:48px!important;
+ min-width:48px!important;min-height:48px!important;
+ border-radius:50%!important;object-fit:cover!important;
+}
+.mdp-workspace .mdp-master-resident-name{
+ font-size:13px!important;font-weight:600!important;line-height:1.25!important;
+}
+.mdp-workspace .mdp-master-id{font-size:11px!important;line-height:1.3!important}
+.mdp-workspace .mdp-master-actions{
+ display:grid!important;
+ grid-template-columns:repeat(3,minmax(0,1fr))!important;
+ gap:7px!important;
+ padding:0!important;
+ margin:8px 0!important;
+}
+.mdp-workspace .mdp-master-actions .mdp-master-action{
+ box-sizing:border-box!important;
+ width:100%!important;max-width:none!important;
+ height:38px!important;min-height:38px!important;
+ min-width:0!important;flex:none!important;
+ border-radius:9px!important;
+ box-shadow:none!important;
+}
+.mdp-workspace .mdp-master-actions .mdp-master-action svg{
+ width:17px!important;height:17px!important;
+}
+.mdp-workspace .mdp-master-data{
+ padding-top:7px!important;
+ margin-top:0!important;
+ gap:0!important;
+}
+.mdp-workspace .mdp-master-data>div{padding:0 5px!important}
+.mdp-workspace .mdp-master-data dt{font-size:9px!important;line-height:1.2!important}
+.mdp-workspace .mdp-master-data dd{font-size:11px!important;line-height:1.35!important}
+@media(max-width:650px){
+ .mdp-workspace .mdp-master-card{min-height:0!important;padding:11px!important}
+ .mdp-workspace .mdp-master-actions{gap:7px!important;margin:8px 0!important}
+ .mdp-workspace .mdp-master-actions .mdp-master-action{height:38px!important;min-height:38px!important}
+}
