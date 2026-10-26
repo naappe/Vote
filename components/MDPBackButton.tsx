@@ -21,11 +21,11 @@ export default function MDPBackButton(){
  function goBack(){
   const stack=readHistory();
   if(stack[stack.length-1]===current)stack.pop();
-  const destination=stack[stack.length-1]||(pathname?.includes('/resident-profile')?'/mdp/residents/':HOME);
+  const destination=stack[stack.length-1]||(pathname?.includes('/resident-profile')?'/mdp/vote-target/':HOME);
   sessionStorage.setItem(KEY,JSON.stringify(stack));
   navigatingBack.current=true;
   router.push(destination);
  }
- if(pathname===HOME||pathname==='/mdp')return null;
+ if(pathname===HOME||pathname==='/mdp'||pathname==='/mdp/vote-target/'||pathname==='/mdp/vote-target')return null;
  return <button type="button" className="mdp-back-button" onClick={goBack} aria-label="Back to previous page"><span aria-hidden="true">←</span> Back</button>;
 }
