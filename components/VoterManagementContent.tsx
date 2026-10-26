@@ -19,6 +19,22 @@ type ViewMode='list'|'gallery';
 type Props={profilePath?:string;partyControls?:boolean};
 type WorkflowSummary={hasCallRecord:boolean;callOutcome:string|null;callAttempts:number;voteStatus:string|null;hasVoteIntention:boolean;lastCallAt:string|null;visitStatus:string|null;lastVisitAt:string|null;transportStatus:string|null;transportNote:string|null;latestRemark:string|null;writtenRemarks:string[];hasRemarks:boolean;hasInPersonMeeting:boolean};
 const focusOptions=[['all','All residents'],['missing-phone','Missing phone'],['call-pending','Pending calls'],['need-call','Need call'],['called','Called'],['reached','Reached'],['connected','Connected'],['visit-pending','Pending visits'],['visited','Visited'],['not-visited','Not visited'],['assignment-pending','Unassigned'],['unassigned','Unassigned (legacy)'],['remarks','Remarks recorded'],['remarks-pending','No remarks yet'],['transport-pending','Not requested'],['transport','Transport recorded'],['vote-pending','Not asked yet'],['vote-unsure','Not sure yet'],['will-vote','Will vote'],['not-vote','Will not vote'],['undecided','Undecided (all)']] as const;
+// Share short-lived Vote Target KPI requests across remounts and navigation.
+let voteTargetCountCache:{expires:number;data:Record<string,number>}|null=null;
+let voteTargetCountRequest:Promise<Record<string,number>>|null=null;
+function getVoteTargetCounts(){
+ if(voteTargetCountCache&&voteTargetCountCache.expires>Date.now())return Promise.resolve(voteTargetCountCache.data);
+ if(voteTargetCountRequest)return voteTargetCountRequest;
+ const empty={search:'',house:'all',gender:'all',age:'all',box:'all',party:'all'};
+ const request=Promise.all((['will-vote','not-vote','vote-unsure','vote-pending'] as const).map(async status=>[status,(await getMdpRosterPage(empty,1,1,true,status)).count] as const)).then(entries=>{
+  const data=Object.fromEntries(entries) as Record<string,number>;
+  voteTargetCountCache={data,expires:Date.now()+30000};
+  return data;
+ });
+ voteTargetCountRequest=request;
+ void request.finally(()=>{if(voteTargetCountRequest===request)voteTargetCountRequest=null}).catch(()=>{});
+ return request;
+}
 const meetingWasCompleted=(remark:string)=>/^Meeting result:\s*Met resident in person\b|^Met resident in person\b/i.test(remark.trim());
 export default function VoterManagementContent({profilePath='/resident-profile/',partyControls=true}:Props={}){
  const pathname=usePathname(),router=useRouter(),params=useSearchParams(),resultsRef=useRef<HTMLElement>(null);
@@ -32,7 +48,7 @@ export default function VoterManagementContent({profilePath='/resident-profile/'
  const residentsRoute=pathname.startsWith('/mdp/residents');
  const [residentKpis,setResidentKpis]=useState<Record<string,number>|null>(null);
  useEffect(()=>{if(partyControls||!residentsRoute)return;let active=true;const base={search:'',house:'all',gender:'all',age:'all',box:'all',party:'all'};void Promise.all((['all','called','need-call','visited','not-visited'] as const).map(async key=>[key,(await getMdpRosterPage(base,1,1,true,key)).count] as const)).then(data=>{if(active)setResidentKpis(Object.fromEntries(data))}).catch(()=>{if(active)setResidentKpis(null)});return()=>{active=false}},[partyControls,residentsRoute]);
- useEffect(()=>{if(partyControls||!targetRoute)return;let active=true;const empty={search:'',house:'all',gender:'all',age:'all',box:'all',party:'all'};void Promise.all((['will-vote','not-vote','vote-unsure','vote-pending'] as const).map(async status=>[status,(await getMdpRosterPage(empty,1,1,true,status)).count] as const)).then(entries=>{if(active)setTargetCounts(Object.fromEntries(entries))}).catch(()=>{if(active)setTargetCounts(null)});return()=>{active=false}},[partyControls,targetRoute]);
+ useEffect(()=>{if(partyControls||!targetRoute)return;let active=true;void getVoteTargetCounts().then(data=>{if(active)setTargetCounts(data)}).catch(()=>{if(active)setTargetCounts(null)});return()=>{active=false}},[partyControls,targetRoute]);
 
  useEffect(()=>{if(partyControls)return;let mounted=true;void supabase.rpc('mdp_2026_roster_counts').then(({data,error})=>{if(mounted&&!error&&data)setRosterTotals({total:Number(data.total)||0,linked:Number(data.linked)||0,pending:Number(data.pending)||0})});return()=>{mounted=false}},[partyControls]);
  const [serialInput,setSerialInput]=useState(()=>params.get('serial')||'');
