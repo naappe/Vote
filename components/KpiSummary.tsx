@@ -8,8 +8,8 @@ function KpiSummary({title='Status summary',items,activeId,onSelect,loading=fals
   {items.map(item=><button key={item.id} type="button" disabled={loading}
    aria-pressed={activeId===item.id} aria-label={`Filter by ${item.label}`}
    onClick={()=>onSelect(item.id)}
-   className={`flex min-h-[68px] min-w-0 flex-col items-start justify-center gap-1 rounded-lg border px-2.5 py-2 text-left transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600 disabled:opacity-60 ${activeId===item.id?'border-amber-300 bg-amber-50':'border-slate-200 bg-white hover:border-blue-200'}`}>
-    <strong className="text-[22px] sm:text-[27px] leading-none font-extrabold tabular-nums text-blue-700">{loading||item.value===null?'—':item.value.toLocaleString()}</strong>
+   className={`flex min-h-[68px] min-w-0 flex-col items-start justify-center gap-1 rounded-lg border px-2.5 py-2 text-left transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#315b91] disabled:opacity-60 ${activeId===item.id?'border-[#e8d58f] bg-[#fff9e9]':'border-slate-200 bg-white hover:border-blue-200'}`}>
+    <strong className="text-[22px] sm:text-[27px] leading-none font-extrabold tabular-nums text-[#315b91]">{loading||item.value===null?'—':item.value.toLocaleString()}</strong>
     <span className="text-[10px] sm:text-xs font-semibold leading-snug text-slate-700">{item.label}</span>
    </button>)}
  </section>;
