@@ -15,7 +15,7 @@ export default function AuthGate({children}:{children:React.ReactNode}){
  const [featureAccess,setFeatureAccess]=useState<{route:string;allowed:boolean;failed:boolean}|null>(null);
  const [accessClock,setAccessClock]=useState<number|null>(null);
  useEffect(()=>{setAccessClock(Date.now());const timer=window.setInterval(()=>setAccessClock(Date.now()),15000);return()=>window.clearInterval(timer)},[]);
- const isScheduledFeature=(name:string|null)=>name==='reports'||name==='election_day';
+ const isScheduledFeature=(name:string|null)=>name==='election_day';
  const scheduledReleased=accessClock!==null&&accessClock>=Date.parse('2026-11-27T23:30:00+05:00');
  const pathname=usePathname();
  const permissionCache=useRef<Map<string,{allowed:boolean;checkedAt:number}>>(new Map());
@@ -26,6 +26,7 @@ export default function AuthGate({children}:{children:React.ReactNode}){
  useEffect(()=>{
   let active=true;
   if(!access||!isMdpRoute||!feature){setFeatureAccess(null);return()=>{active=false}}
+  if(feature==='reports'){setFeatureAccess({route:feature,allowed:true,failed:false});return()=>{active=false}}
   if(isScheduledFeature(feature)){
    if(access.role!=='admin'&&!scheduledReleased){setFeatureAccess({route:feature,allowed:false,failed:false});return()=>{active=false}}
    if(scheduledReleased){setFeatureAccess({route:feature,allowed:true,failed:false});return()=>{active=false}}
