@@ -1089,3 +1089,28 @@
  .mdp-workspace .mdp-master-actions{gap:7px!important;margin:8px 0!important}
  .mdp-workspace .mdp-master-actions .mdp-master-action{height:38px!important;min-height:38px!important}
 }
+
+
+/* Reference-inspired mobile architecture: shared visual rhythm across MDP pages. */
+@media(max-width:650px){
+ .mdp-workspace{background:#f8fafc!important}
+ .mdp-workspace .mdp-main{width:calc(100% - 24px)!important;margin:12px auto 88px!important}
+ .mdp-workspace .mdp-header{border-bottom:1px solid #edf1f6!important;box-shadow:none!important}
+ .mdp-workspace .mdp-header-inner{min-height:62px!important}
+ .mdp-workspace .mdp-residents-grid{display:grid!important;grid-template-columns:minmax(0,1fr)!important;gap:7px!important;padding:5px 0!important}
+ .mdp-workspace .mdp-master-card{display:grid!important;grid-template-columns:minmax(0,1fr) auto!important;align-items:center!important;padding:10px 12px!important;min-height:76px!important;gap:0 8px!important;border:1px solid #edf1f6!important;border-radius:14px!important;background:#fff!important;box-shadow:0 2px 10px rgba(28,52,84,.035)!important}
+ .mdp-workspace .mdp-master-identity{grid-column:1!important;min-width:0!important;min-height:48px!important;gap:10px!important}
+ .mdp-workspace .mdp-master-identity img{width:44px!important;height:44px!important;min-width:44px!important;min-height:44px!important;border-radius:50%!important}
+ .mdp-workspace .mdp-master-resident-name{font-size:13px!important;font-weight:650!important;color:#263d70!important}
+ .mdp-workspace .mdp-master-id{font-size:10px!important;color:#8493b1!important}
+ .mdp-workspace .mdp-master-chevron{font-size:22px!important;color:#7792c7!important}
+ .mdp-workspace .mdp-master-actions{grid-column:2!important;grid-row:1!important;display:flex!important;gap:4px!important;margin:0!important;padding:0!important;align-items:center!important}
+ .mdp-workspace .mdp-master-actions .mdp-master-action{width:30px!important;min-width:30px!important;height:32px!important;min-height:32px!important;padding:0!important;border-radius:9px!important;background:#f3f6fc!important}
+ .mdp-workspace .mdp-master-actions .mdp-master-action svg{width:15px!important;height:15px!important}
+ .mdp-workspace .mdp-master-data{grid-column:1/-1!important;display:grid!important;grid-template-columns:minmax(0,1.4fr) minmax(0,1fr) 35px 25px!important;gap:3px!important;margin-top:6px!important;padding-top:6px!important;border-top:1px solid #f0f3f9!important}
+ .mdp-workspace .mdp-master-data>div{padding:0 3px!important;min-width:0!important}
+ .mdp-workspace .mdp-master-data span{font-size:8px!important}
+ .mdp-workspace .mdp-master-data strong,.mdp-workspace .mdp-master-data a{font-size:10px!important}
+ .mdp-workspace .mdp-master-card:focus-within{outline:2px solid #ffdc73;outline-offset:2px}
+ .mdp-workspace .panel,.mdp-workspace .mdp-task-panel{border-radius:16px!important;box-shadow:0 3px 14px rgba(30,58,95,.035)!important}
+}
