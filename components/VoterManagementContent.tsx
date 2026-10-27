@@ -318,7 +318,7 @@ function ResidentGalleryCard({resident:r,profilePath,workflow,workflowError,pdfS
   </div>
   <div className="mdp-master-actions" aria-label="Resident tasks">
    <button type="button" title={taskTooltip('call','Call')} aria-label={taskTooltip('call','Call')} onClick={()=>onViewTasks('call')} className={taskClass('call')}><ResidentTaskIcon name="phone"/></button>
-   <button type="button" title={taskTooltip('voting-intention','Voting plan')} aria-label={taskTooltip('voting-intention','Voting plan')} onClick={()=>onViewTasks('voting-intention')} className={taskClass('voting-intention')}><ResidentTaskIcon name="vote"/></button>
+   <button type="button" title={taskTooltip('voting-intention','Voting plan')} aria-label={taskTooltip('voting-intention','Voting plan')} onClick={()=>onViewTasks('voting-intention')} className={taskClass('voting-intention')} style={(workflow?.hasVoteIntention||r.vote_status==='will-vote'||r.vote_status==='not-vote'||r.vote_status==='vote-unsure')?{backgroundColor:'#dcfce7',color:'#166534',borderColor:'#86efac'}:undefined}><ResidentTaskIcon name="vote"/></button>
    <button type="button" title={taskTooltip('remarks','Remarks')} aria-label={taskTooltip('remarks','Remarks')} onClick={()=>onViewTasks('remarks')} className={taskClass('remarks')}><ResidentTaskIcon name="remark"/></button>
 
   </div>
