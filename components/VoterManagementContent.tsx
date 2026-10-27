@@ -65,18 +65,18 @@ export default function VoterManagementContent({profilePath='/resident-profile/'
  const [serialInput,setSerialInput]=useState(()=>params.get('serial')||'');
  const [serialFilter,setSerialFilter]=useState(()=>params.get('serial')||'');
  const [rows,setRows]=useState<Resident[]>([]),[workflow,setWorkflow]=useState<Record<string,WorkflowSummary>>({}),[workflowError,setWorkflowError]=useState(''),[houses,setHouses]=useState<HouseOption[]>([]),[parties,setParties]=useState<PartyOption[]>([]),[boxes,setBoxes]=useState<string[]>([]),[loading,setLoading]=useState(true),[filtersLoading,setFiltersLoading]=useState(false),[filtersLoaded,setFiltersLoaded]=useState(false),[error,setError]=useState(''),[message,setMessage]=useState('');
+ const pdfSerialRequestKey=rows.map(row=>String(row.id)).join(',');
  useEffect(()=>{
-  if(partyControls||rows.length===0){setPdfSerials({});return}
+  if(partyControls||!pdfSerialRequestKey){setPdfSerials({});return}
   let active=true;
-  const ids=rows.map(row=>Number(row.id)).filter(Number.isFinite);
-  setPdfSerials({});
+  const ids=pdfSerialRequestKey.split(',').map(Number).filter(Number.isFinite);
   void supabase.rpc('mdp_visible_pdf_serials',{p_resident_ids:ids}).then(({data,error})=>{
    if(!active)return;
    if(error){setPdfSerials({});return}
    setPdfSerials(Object.fromEntries(((data||[]) as {resident_id:number;pdf_serial:number}[]).map(item=>[String(item.resident_id),item.pdf_serial])));
   });
   return()=>{active=false};
- },[rows,partyControls]);
+ },[pdfSerialRequestKey,partyControls]);
  const [focus,setFocus]=useState(()=>params.get('focus')||'all');
  // Next.js preserves the component when navigating between query-only task links.
  // Synchronize the selected task before updating the URL again.
