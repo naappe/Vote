@@ -25,7 +25,7 @@ export default function CallCenterContent({partyControls=true}:{partyControls?:b
   if(!queryReady)return;
   const requestId=++callQueryId.current;
   setLoading(true);setError('');if(!partyControls)setPrivateLoaded(false);
-  void (partyControls?getCallCenterQueue({page,pageSize:30,search:deferredSearch,party,phoneStatus:status,outcome,reachStatus:reach}):getMdpRosterPage({search:deferredSearch,party:'MDP',house:'all',gender:'all',age:'all',box:'all'},1,1000))
+  void (partyControls?getCallCenterQueue({page,pageSize:30,search:deferredSearch,party,phoneStatus:status,outcome,reachStatus:reach}):(async()=>{const filters={search:deferredSearch,party:'MDP',house:'all',gender:'all',age:'all',box:'all'};const first=await getMdpRosterPage(filters,1,500);const pages=Math.ceil(first.count/500);if(pages<=1)return first;const rest=await Promise.all(Array.from({length:pages-1},(_,i)=>getMdpRosterPage(filters,i+2,500)));return {rows:[...first.rows,...rest.flatMap(x=>x.rows)],count:first.count};})())
    .then(async result=>{if(requestId!==callQueryId.current)return;if(partyControls){setRows(result.rows);setCount(result.count);return;}
     const neutral=result.rows.map(row=>({...row,phone_status:'need-call' as Resident['phone_status'],reach_status:'not-reached' as Resident['reach_status'],call_outcome:'pending' as Resident['call_outcome'],call_attempts:0,call_notes:null}));
     setRows(neutral);setCount(result.count);setLoading(false);
