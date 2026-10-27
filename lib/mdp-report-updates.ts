@@ -48,11 +48,34 @@ export async function getMdpReportsSnapshot(fresh=false):Promise<MdpReportSnapsh
  if(pending?.userId===userId&&pending.epoch===cacheEpoch)return pending.request;
  const epoch=cacheEpoch;
  const request=(async()=>{
-  const {data,error}=await supabase.rpc('mdp_2026_reports_snapshot');
-  if(error)throw new Error('Reports could not load: '+error.message);
-  const snapshot=data as MdpReportSnapshot|null;
-  if(!snapshot||typeof snapshot.total!=='number'||typeof snapshot.canViewVoting!=='boolean')
-   throw new Error('Reports returned an invalid summary.');
+  const {data:accessData,error:accessError}=await supabase.rpc('mdp_2026_reports_snapshot');
+  if(accessError)throw new Error('Report permissions could not load: '+accessError.message);
+  const access=accessData as MdpReportSnapshot|null;
+  if(!access||typeof access.total!=='number'||typeof access.canViewVoting!=='boolean')throw new Error('Report permissions returned an invalid summary.');
+  const {data:privateRows,error:privateError}=await supabase.from('staff_private_work_records').select('resident_id,workflow_type,payload');
+  if(privateError)throw new Error('Private report records could not load: '+privateError.message);
+  const own=new Map<string,Record<string,Record<string,unknown>>>();
+  for(const row of privateRows||[]){
+   const key=String(row.resident_id),entry=own.get(key)||{};
+   entry[row.workflow_type]=(row.payload||{}) as Record<string,unknown>;
+   own.set(key,entry);
+  }
+  let willVote=0,willNotVote=0,called=0,reached=0,noteCount=0,residentsWithRemarks=0,transportNeeded=0,transportInProgress=0,transportCompleted=0;
+  for(const records of own.values()){
+   const vote=String(records.status?.vote_status||'not-decided');
+   if(vote==='will-vote')willVote++;
+   if(vote==='not-vote')willNotVote++;
+   const call=records.call;
+   if(call&&call.outcome!=='pending')called++;
+   if(call?.reach_status==='reached')reached++;
+   const remark=String(records.remark?.remark||'').trim();
+   if(remark){noteCount++;residentsWithRemarks++;}
+   const transport=String(records.transport?.transport_status||'');
+   if(transport==='needed'||transport==='requested')transportNeeded++;
+   if(transport==='in-progress')transportInProgress++;
+   if(transport==='completed')transportCompleted++;
+  }
+  const snapshot:MdpReportSnapshot={...access,willVote,willNotVote,called,reached,noteCount,residentsWithRemarks,transportNeeded,transportInProgress,transportCompleted,votingDay:null,canViewVotingDay:false};
   if(epoch===cacheEpoch)reportCache={userId,epoch,expires:Date.now()+CACHE_MS,data:snapshot};
   return snapshot;
  })();
