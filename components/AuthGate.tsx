@@ -22,7 +22,7 @@ export default function AuthGate({children}:{children:React.ReactNode}){
  const route=pathname.replace(/^\/Vote(?=\/|$)/i,'').replace(/\/$/,'');
  const isMdpRoute=route==='/mdp'||route.startsWith('/mdp/');
  const featurePaths:[string,string][]=[['/mdp/calls','calls'],['/mdp/door-to-door','door_to_door'],['/mdp/voting-days','election_day'],['/mdp/voting','voting'],['/mdp/transportation','transport'],['/mdp/transport-links','transport'],['/mdp/assignments','assignments'],['/mdp/remarks','remarks'],['/mdp/reports','reports'],['/mdp/residents','residents']];
- const feature=featurePaths.find(([path])=>route===path||route.startsWith(path+'/'))?.[1]||(isMdpRoute?'residents':null);
+ const feature=route==='/mdp'?null:(featurePaths.find(([path])=>route===path||route.startsWith(path+'/'))?.[1]||(isMdpRoute?'residents':null));
  useEffect(()=>{
   let active=true;
   if(!access||!isMdpRoute||!feature){setFeatureAccess(null);return()=>{active=false}}
