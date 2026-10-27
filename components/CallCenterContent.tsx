@@ -15,6 +15,7 @@ const phoneHref=(value?:string|null)=>{const digits=phoneDigits(value);if(!digit
 
 export default function CallCenterContent({partyControls=true}:{partyControls?:boolean}){
  const [rows,setRows]=useState<Resident[]>([]),[count,setCount]=useState(0),[page,setPage]=useState(1),[loading,setLoading]=useState(true),[error,setError]=useState('');
+ const [privateLoaded,setPrivateLoaded]=useState(false);
  const [searchInput,setSearchInput]=useState(''),[partyInput,setPartyInput]=useState('all'),[statusInput,setStatusInput]=useState('all'),[outcomeInput,setOutcomeInput]=useState('all'),[reachInput,setReachInput]=useState('all');
  const [search,setSearch]=useState(''),[party,setParty]=useState('all'),[status,setStatus]=useState('all'),[outcome,setOutcome]=useState('all'),[reach,setReach]=useState('all'),[selected,setSelected]=useState<Resident|null>(null),[queryReady,setQueryReady]=useState(false);
  useEffect(()=>{const params=new URLSearchParams(window.location.search),requestedStatus=params.get('status'),requestedOutcome=params.get('outcome'),requestedReach=params.get('reach');if(['need-call','called'].includes(requestedStatus||'')){setStatus(requestedStatus!);setStatusInput(requestedStatus!)}if(outcomes.includes(requestedOutcome as CallOutcome)){setOutcome(requestedOutcome!);setOutcomeInput(requestedOutcome!)}if(['reached','not-reached'].includes(requestedReach||'')){setReach(requestedReach!);setReachInput(requestedReach!)}setQueryReady(true)},[]);
@@ -23,31 +24,35 @@ export default function CallCenterContent({partyControls=true}:{partyControls?:b
  useEffect(()=>{
   if(!queryReady)return;
   const requestId=++callQueryId.current;
-  setLoading(true);setError('');
-  void (partyControls?getCallCenterQueue({page,pageSize:30,search:deferredSearch,party,phoneStatus:status,outcome,reachStatus:reach}):getMdpRosterPage({search:deferredSearch,party:'MDP',house:'all',gender:'all',age:'all',box:'all'},page,30))
-   .then(async result=>{if(requestId!==callQueryId.current)return;if(partyControls){setRows(result.rows);setCount(result.count);return;}setRows(result.rows.map(row=>({...row,phone_status:'need-call' as Resident['phone_status'],reach_status:'not-reached' as Resident['reach_status'],call_outcome:'pending' as Resident['call_outcome'],call_attempts:0,call_notes:null})));setCount(result.count);setLoading(false);
-    const ids=result.rows.map(row=>Number(row.id)).filter(Number.isFinite);
-    if(!ids.length)return;
-    const {data:ownRows,error:ownError}=await supabase.from('staff_private_work_records').select('resident_id,payload').eq('workflow_type','call').in('resident_id',ids);
+  setLoading(true);setError('');if(!partyControls)setPrivateLoaded(false);
+  void (partyControls?getCallCenterQueue({page,pageSize:30,search:deferredSearch,party,phoneStatus:status,outcome,reachStatus:reach}):getMdpRosterPage({search:deferredSearch,party:'MDP',house:'all',gender:'all',age:'all',box:'all'},1,1000))
+   .then(async result=>{if(requestId!==callQueryId.current)return;if(partyControls){setRows(result.rows);setCount(result.count);return;}
+    const neutral=result.rows.map(row=>({...row,phone_status:'need-call' as Resident['phone_status'],reach_status:'not-reached' as Resident['reach_status'],call_outcome:'pending' as Resident['call_outcome'],call_attempts:0,call_notes:null}));
+    setRows(neutral);setCount(result.count);setLoading(false);
+    const ids=neutral.map(row=>Number(row.id)).filter(Number.isFinite);
+    if(!ids.length){setPrivateLoaded(true);return;}
+    const chunks:number[][]=[];for(let i=0;i<ids.length;i+=150)chunks.push(ids.slice(i,i+150));
+    const responses=await Promise.all(chunks.map(chunk=>supabase.from('staff_private_work_records').select('resident_id,payload').eq('workflow_type','call').in('resident_id',chunk)));
     if(requestId!==callQueryId.current)return;
-    if(ownError){setError('Private call history unavailable: '+ownError.message);return;}
-    const ownMap=new Map((ownRows||[]).map(item=>[String(item.resident_id),(item.payload||{}) as Record<string,unknown>]));
-    setRows(result.rows.map(row=>{const p=ownMap.get(String(row.id))||{};return {...row,phone_status:(p.phone_status as Resident['phone_status'])||'need-call',reach_status:(p.reach_status as Resident['reach_status'])||'not-reached',call_outcome:(p.outcome as Resident['call_outcome'])||'pending',call_attempts:Number(p.call_attempts||0),call_notes:(p.notes as string)||null,callback_scheduled_at:(p.callback_at as string)||null,last_call_at:(p.last_call_at as string)||null};}));})
+    const failed=responses.find(item=>item.error);if(failed?.error){setError('Private call history unavailable: '+failed.error.message);return;}
+    const ownMap=new Map(responses.flatMap(item=>item.data||[]).map(item=>[String(item.resident_id),(item.payload||{}) as Record<string,unknown>]));
+    setRows(neutral.map(row=>{const p=ownMap.get(String(row.id))||{};return {...row,phone_status:(p.phone_status as Resident['phone_status'])||'need-call',reach_status:(p.reach_status as Resident['reach_status'])||'not-reached',call_outcome:(p.outcome as Resident['call_outcome'])||'pending',call_attempts:Number(p.call_attempts||0),call_notes:(p.notes as string)||null,callback_scheduled_at:(p.callback_at as string)||null,last_call_at:(p.last_call_at as string)||null};}));setPrivateLoaded(true);})
    .catch(e=>{if(requestId===callQueryId.current)setError(e instanceof Error?e.message:'Unable to load calls')})
    .finally(()=>{if(requestId===callQueryId.current)setLoading(false)});
   return()=>{callQueryId.current++};
  },[deferredSearch,party,partyControls,status,outcome,reach,page,queryReady]);
  function applySearch(){startTransition(()=>{setPage(1);setSearch(searchInput.trim());setParty(partyInput);setStatus(statusInput);setOutcome(outcomeInput);setReach(reachInput)})}
  function reset(){setSearchInput('');setPartyInput('all');setStatusInput('all');setOutcomeInput('all');setReachInput('all');setSearch('');setParty('all');setStatus('all');setOutcome('all');setReach('all');setPage(1)}
- const visibleRows=useMemo(()=>partyControls?rows:rows.filter(r=>(status==='all'||(status==='called'?r.phone_status==='called':r.phone_status!=='called'))&&(outcome==='all'||r.call_outcome===outcome)&&(reach==='all'||r.reach_status===reach)),[rows,partyControls,status,outcome,reach]);
+ const filteredPrivateRows=useMemo(()=>rows.filter(r=>(status==='all'||(status==='called'?r.phone_status==='called':r.phone_status!=='called'))&&(outcome==='all'||r.call_outcome===outcome)&&(reach==='all'||r.reach_status===reach)),[rows,status,outcome,reach]);
+ const visibleRows=partyControls?rows:filteredPrivateRows.slice((page-1)*30,page*30);
  const pageCallCounts=useMemo(()=>({need:rows.filter(r=>r.phone_status!=='called').length,called:rows.filter(r=>r.phone_status==='called').length,noAnswer:rows.filter(r=>r.call_outcome==='not-answer').length}),[rows]);
  return <div className="min-w-0 max-w-full space-y-4 overflow-x-hidden">
   <section className="page-hero"><p className="eyebrow">Resident calls</p><h1 className="mt-2">Calls</h1></section>
   {!partyControls&&<MDPTaskKpiSummary title="Call task KPI summary" items={[
     {key:'all',label:'Matching residents',value:loading?null:count,detail:'Current search',active:status==='all'&&outcome==='all',onSelect:()=>{setStatus('all');setStatusInput('all');setOutcome('all');setOutcomeInput('all');setPage(1)}},
-    {key:'need',label:'Need a call',value:loading?null:rows.filter(r=>r.phone_status!=='called').length,detail:'Current page only',active:status==='need-call',onSelect:()=>{setStatus('need-call');setStatusInput('need-call');setOutcome('all');setOutcomeInput('all');setPage(1)}},
-    {key:'called',label:'Calls recorded',value:loading?null:rows.filter(r=>r.phone_status==='called').length,detail:'Current page only',active:status==='called',onSelect:()=>{setStatus('called');setStatusInput('called');setOutcome('all');setOutcomeInput('all');setPage(1)}},
-    {key:'no-answer',label:'No answer',value:loading?null:rows.filter(r=>r.call_outcome==='not-answer').length,detail:'Current page only',active:outcome==='not-answer',onSelect:()=>{setOutcome('not-answer');setOutcomeInput('not-answer');setStatus('all');setStatusInput('all');setPage(1)}},
+    {key:'need',label:'Need a call',value:loading||!privateLoaded?null:rows.filter(r=>r.phone_status!=='called').length,detail:'All matching residents',active:status==='need-call',onSelect:()=>{setStatus('need-call');setStatusInput('need-call');setOutcome('all');setOutcomeInput('all');setPage(1)}},
+    {key:'called',label:'Calls recorded',value:loading||!privateLoaded?null:rows.filter(r=>r.phone_status==='called').length,detail:'All matching residents',active:status==='called',onSelect:()=>{setStatus('called');setStatusInput('called');setOutcome('all');setOutcomeInput('all');setPage(1)}},
+    {key:'no-answer',label:'No answer',value:loading||!privateLoaded?null:rows.filter(r=>r.call_outcome==='not-answer').length,detail:'All matching residents',active:outcome==='not-answer',onSelect:()=>{setOutcome('not-answer');setOutcomeInput('not-answer');setStatus('all');setStatusInput('all');setPage(1)}},
    ]}/>}
   <section className="panel space-y-4">{partyControls&&<PartyFilter value={partyInput} onChange={value=>{setPartyInput(value);setParty(value)}}/>}<label className="block"><span className="field-label">Find a resident or house</span><input className="field w-full min-w-0" value={searchInput} onChange={e=>setSearchInput(e.target.value)} onKeyDown={e=>{if(e.key==='Enter')applySearch()}} placeholder="Name, ID, house or phone"/></label><div className="grid min-w-0 gap-3 sm:grid-cols-2 xl:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_minmax(0,1fr)_auto_auto]"><select aria-label="Filter by call status" className="field" value={statusInput} onChange={e=>{setStatusInput(e.target.value);setStatus(e.target.value);setPage(1)}}><option value="all">All call statuses</option><option value="need-call">Need call</option><option value="called">Called</option></select><select aria-label="Filter by call result" className="field" value={outcomeInput} onChange={e=>{setOutcomeInput(e.target.value);setOutcome(e.target.value);setPage(1)}}><option value="all">All call results</option>{outcomes.map(item=><option key={item} value={item}>{text(item)}</option>)}</select><select aria-label="Filter by resident reach" className="field" value={reachInput} onChange={e=>{setReachInput(e.target.value);setReach(e.target.value);setPage(1)}}><option value="all">All reach statuses</option><option value="reached">Reached</option><option value="not-reached">Not reached</option></select><button className="btn-primary" onClick={applySearch}>Search</button><button className="btn-secondary" onClick={reset}>Reset</button></div></section>
   {error&&<div className="error-banner">{error}</div>}
