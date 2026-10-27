@@ -1114,3 +1114,21 @@
  .mdp-workspace .mdp-master-card:focus-within{outline:2px solid #ffdc73;outline-offset:2px}
  .mdp-workspace .panel,.mdp-workspace .mdp-task-panel{border-radius:16px!important;box-shadow:0 3px 14px rgba(30,58,95,.035)!important}
 }
+
+
+/* Approved reference: refined mobile shell and directory, presentation only. */
+@media(max-width:650px){
+ .mdp-workspace .mdp-header{background:#fff!important;border-bottom:1px solid #f0f2f7!important}
+ .mdp-workspace .mdp-header-inner{padding:0 3px!important}
+ .mdp-workspace .mdp-brand{position:relative;padding-left:33px!important;min-height:44px!important}
+ .mdp-workspace .mdp-brand::before{content:"";position:absolute;left:0;top:11px;width:26px;height:19px;border-radius:70% 5% 70% 8%;background:linear-gradient(140deg,#ffe694,#ffd45c);transform:rotate(-20deg)}
+ .mdp-workspace .mdp-brand-name{max-width:none!important;display:flex!important;flex-direction:column!important;gap:2px!important;font-size:15px!important;font-weight:650!important;line-height:1.1!important}
+ .mdp-workspace .mdp-brand-name small{font-size:10px!important;color:#8fa1c0!important;font-weight:450!important}
+ .mdp-workspace .mdp-mobile-menu-toggle{border-radius:12px!important;border:1px solid #edf0f7!important;background:#fff!important;box-shadow:none!important;color:#344d7d!important}
+ .mdp-workspace .mdp-directory-paging{margin-top:4px!important;margin-bottom:4px!important}
+ .mdp-workspace .mdp-master-card{grid-template-columns:minmax(0,1fr) auto!important;min-height:69px!important;padding:10px!important}
+ .mdp-workspace .mdp-master-identity{grid-column:1/-1!important;grid-row:1!important;padding-right:15px!important}
+ .mdp-workspace .mdp-master-actions{grid-column:1/-1!important;grid-row:3!important;justify-content:flex-end!important;margin-top:5px!important}
+ .mdp-workspace .mdp-master-data{grid-row:2!important;grid-column:1/-1!important;grid-template-columns:minmax(0,1fr) minmax(0,1fr) 30px 24px!important;margin-top:5px!important}
+ .mdp-workspace .mdp-mobile-bottom-tabs{border:1px solid #f0f1f5!important;border-radius:24px 24px 0 0!important;background:#fff!important;box-shadow:0 -4px 18px rgba(39,61,103,.045)!important}
+}
