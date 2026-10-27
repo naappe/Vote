@@ -7,6 +7,7 @@ import type {Resident} from '../lib/types';
 import {PartyFilter,ResidentIdentity,matchesParty} from '../shared/ResidentIdentity';
 import TaskState from '../shared/TaskState';
 import KpiSummary from './KpiSummary';
+import {saveMyPrivateWork} from '../lib/mdp-private-work';
 
 type Remark={id:number|string;resident_id:number|string;section:string;remark:string;recorded_by?:string|null;recorded_at?:string|null};
 const sources=['general','call-center','door-to-door','candidate-meeting','election-day','transportation'];
@@ -19,10 +20,24 @@ export default function RemarksContent({partyControls=true}:{partyControls?:bool
  const [editingId,setEditingId]=useState<string|null>(null),[editingRemark,setEditingRemark]=useState(''),[editingSection,setEditingSection]=useState('general'),[savingEdit,setSavingEdit]=useState(false);
  const [noteDateFilter,setNoteDateFilter]=useState<'all'|'today'|'earlier'>('all');
  const [canManage,setCanManage]=useState(false),[isAdmin,setIsAdmin]=useState(false),[currentEmail,setCurrentEmail]=useState('');
- async function load(){try{const [{data:{user},error:userError},response]=await Promise.all([supabase.auth.getUser(),supabase.from('remarks').select('*').eq('section','general').order('recorded_at',{ascending:false}).limit(300)]);if(userError)throw userError;if(response.error)throw response.error;if(user){setCurrentEmail(user.email||'');const {data:membership,error:roleError}=await supabase.from('user_roles').select('role,active').eq('user_id',user.id).maybeSingle();if(roleError)throw roleError;setIsAdmin(Boolean(membership?.active&&membership.role==='admin'));setCanManage(Boolean(membership?.active&&['admin','supervisor'].includes(membership.role)))}const nextItems=(response.data||[]) as Remark[];setItems(nextItems);const ids=[...new Set(nextItems.map(item=>Number(item.resident_id)).filter(Number.isFinite))];const rows:Resident[]=[];for(let start=0;start<ids.length;start+=500){const residentResponse=await supabase.from('Resident').select('*').in('id',ids.slice(start,start+500));if(residentResponse.error)throw residentResponse.error;rows.push(...(residentResponse.data||[]).map(normalizeResident))}setResidents(rows)}catch(e){setError(e instanceof Error?e.message:'Unable to load remarks')}}
+ async function load(){try{
+ const {data:{user},error:userError}=await supabase.auth.getUser();if(userError)throw userError;if(!user)throw new Error('Sign in to view remarks.');
+ setCurrentEmail(user.email||'');
+ const {data:membership,error:roleError}=await supabase.from('user_roles').select('role,active').eq('user_id',user.id).maybeSingle();
+ if(roleError)throw roleError;setIsAdmin(Boolean(membership?.active&&membership.role==='admin'));setCanManage(Boolean(membership?.active));
+ const response=partyControls?await supabase.from('remarks').select('*').eq('section','general').order('recorded_at',{ascending:false}).limit(300):await supabase.from('staff_private_work_records').select('id,resident_id,payload,updated_at').eq('owner_user_id',user.id).eq('workflow_type','remark').order('updated_at',{ascending:false}).limit(500);
+ if(response.error)throw response.error;
+ const loaded:Remark[]=partyControls?(response.data||[]) as Remark[]:(response.data||[]).map((row:any)=>({id:row.id,resident_id:row.resident_id,section:'general',remark:String(row.payload?.remark||''),recorded_by:user.email||'',recorded_at:row.updated_at})).filter((row:Remark)=>row.remark.trim());
+ setItems(loaded);
+ const ids=[...new Set(loaded.map(item=>Number(item.resident_id)).filter(Number.isFinite))];const rows:Resident[]=[];
+ for(let start=0;start<ids.length;start+=500){const residentResponse=await supabase.from('Resident').select('*').in('id',ids.slice(start,start+500));if(residentResponse.error)throw residentResponse.error;rows.push(...(residentResponse.data||[]).map(normalizeResident))}
+ setResidents(rows);
+ }catch(e){setError(e instanceof Error?e.message:'Unable to load remarks')}}
+
  useEffect(()=>{load()},[]);
  useEffect(()=>{const term=query.trim();if(selected||term.length<2){setSearchRows([]);setSearching(false);return}let active=true;setSearching(true);const timer=setTimeout(()=>(partyControls?getResidentsPage({page:1,pageSize:20,search:term,party}):getMdpRosterPage({search:term,party:'MDP',house:'all',gender:'all',age:'all',box:'all'},1,20)).then(result=>{if(active)setSearchRows(result.rows)}).catch(e=>active&&setError(e instanceof Error?e.message:'Resident search failed')).finally(()=>active&&setSearching(false)),250);return()=>{active=false;clearTimeout(timer)}},[query,party,selected,partyControls]);
- useEffect(()=>{const params=new URLSearchParams(window.location.search),residentId=params.get('resident'),requestedSection=params.get('section');if(requestedSection&&sources.includes(requestedSection)){setSection(requestedSection);setSourceFilter(requestedSection)}if(!residentId)return;setSelected(residentId);let active=true;void(async()=>{try{const [person,notes]=await Promise.all([supabase.from('Resident').select('*').eq('id',Number(residentId)).maybeSingle(),supabase.from('remarks').select('*').eq('resident_id',Number(residentId)).eq('section','general').order('recorded_at',{ascending:false}).limit(500)]);if(!active)return;if(person.error)throw person.error;if(notes.error)throw notes.error;if(person.data){const row=normalizeResident(person.data);setResidents(current=>current.some(x=>String(x.id)===residentId)?current:[row,...current]);setQuery(row.name||`Resident ${residentId}`)}setItems(current=>{const byId=new Map(current.map(item=>[String(item.id),item]));for(const item of (notes.data||[]) as Remark[])byId.set(String(item.id),item);return [...byId.values()].sort((x,y)=>String(y.recorded_at||'').localeCompare(String(x.recorded_at||'')))});}catch(e){if(active)setError(e instanceof Error?e.message:'Could not load resident remarks')}})();return()=>{active=false}},[]);
+ useEffect(()=>{const params=new URLSearchParams(window.location.search),residentId=params.get('resident'),requestedSection=params.get('section');if(requestedSection&&sources.includes(requestedSection)){setSection(requestedSection);setSourceFilter(requestedSection)}if(!residentId)return;setSelected(residentId);let active=true;void(async()=>{try{const person=await supabase.from('Resident').select('*').eq('id',Number(residentId)).maybeSingle();if(!active)return;if(person.error)throw person.error;if(person.data){const row=normalizeResident(person.data);setResidents(current=>current.some(x=>String(x.id)===residentId)?current:[row,...current]);setQuery(row.name||`Resident ${residentId}`)}}catch(e){if(active)setError(e instanceof Error?e.message:'Could not load resident')}})();return()=>{active=false}},[]);
+
  const allResidents=useMemo(()=>{const map=new Map<string,Resident>();[...residents,...searchRows].forEach(r=>map.set(String(r.id),r));return [...map.values()]},[residents,searchRows]);
  const map=useMemo(()=>new Map(allResidents.map(r=>[String(r.id),r])),[allResidents]);
  const matches=useMemo(()=>searchRows.filter(r=>matchesParty(r,partyControls?party:'MDP')),[searchRows,party,partyControls]);
@@ -43,8 +58,7 @@ export default function RemarksContent({partyControls=true}:{partyControls?:bool
   if(!selected||!remark.trim()){setError('Select a resident and enter a remark.');return}
   setSaving(true);setError('');setMessage('');
   try{
-   const saved=await appendGeneralRemark(selected,remark);
-   setItems(current=>[saved,...current]);
+   if(!partyControls){await saveMyPrivateWork(Number(selected),'remark',{remark:remark.trim()});await load();}else{const saved=await appendGeneralRemark(selected,remark);setItems(current=>[saved,...current]);}
    setRemark('');
    setMessage('Latest remark saved. Previous versions remain preserved.');
   }catch(e){setError(e instanceof Error?e.message:'Could not save remark')}finally{setSaving(false)}
@@ -57,6 +71,7 @@ export default function RemarksContent({partyControls=true}:{partyControls?:bool
   try{
    const own=Boolean(currentEmail&&item.recorded_by?.trim().toLowerCase()===currentEmail.trim().toLowerCase());
    if(!canManage||(!own&&!isAdmin))throw new Error('You do not have permission to edit this remark.');
+   if(!partyControls){await saveMyPrivateWork(Number(item.resident_id),'remark',{remark:editingRemark.trim()});await load();cancelEdit();setMessage('Remark updated successfully.');return;}
    const {data,error}=await supabase.from('remarks')
     .update({remark:editingRemark.trim()})
     .eq('id',item.id).eq('resident_id',item.resident_id).eq('section','general')
@@ -72,6 +87,7 @@ export default function RemarksContent({partyControls=true}:{partyControls?:bool
  async function deleteRemark(item:Remark){
   const own=Boolean(currentEmail&&item.recorded_by?.trim().toLowerCase()===currentEmail.trim().toLowerCase());
   if(!canManage||(!own&&!isAdmin)){setError('You do not have permission to delete this remark.');return}
+  if(!partyControls){setError('Private remark deletion is disabled to preserve saved history. You can edit your remark instead.');return;}
   if(!window.confirm('Permanently delete this individual written remark? Other task histories will remain unchanged.'))return;
   setError('');setMessage('');
   try{
