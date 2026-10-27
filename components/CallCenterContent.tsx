@@ -25,7 +25,14 @@ export default function CallCenterContent({partyControls=true}:{partyControls?:b
   const requestId=++callQueryId.current;
   setLoading(true);setError('');
   void getCallCenterQueue({page,pageSize:30,search:deferredSearch,party:partyControls?party:'MDP',phoneStatus:partyControls?status:'all',outcome:partyControls?outcome:'all',reachStatus:partyControls?reach:'all'})
-   .then(async result=>{if(requestId!==callQueryId.current)return;if(partyControls){setRows(result.rows);setCount(result.count);return;}const privateRows=await Promise.all(result.rows.map(async row=>{const own=await getMyPrivateWork(Number(row.id),'call');const p=(own?.payload||{}) as Record<string,unknown>;return {...row,phone_status:(p.phone_status as Resident['phone_status'])||'need-call',reach_status:(p.reach_status as Resident['reach_status'])||'not-reached',call_outcome:(p.outcome as Resident['call_outcome'])||'pending',call_attempts:Number(p.call_attempts||0),call_notes:(p.notes as string)||null,callback_scheduled_at:(p.callback_at as string)||null,last_call_at:(p.last_call_at as string)||null};}));if(requestId!==callQueryId.current)return;setRows(privateRows);setCount(result.count)})
+   .then(async result=>{if(requestId!==callQueryId.current)return;if(partyControls){setRows(result.rows);setCount(result.count);return;}setRows(result.rows.map(row=>({...row,phone_status:'need-call' as Resident['phone_status'],reach_status:'not-reached' as Resident['reach_status'],call_outcome:'pending' as Resident['call_outcome'],call_attempts:0,call_notes:null})));setCount(result.count);setLoading(false);
+    const ids=result.rows.map(row=>Number(row.id)).filter(Number.isFinite);
+    if(!ids.length)return;
+    const {data:ownRows,error:ownError}=await supabase.from('staff_private_work_records').select('resident_id,payload').eq('workflow_type','call').in('resident_id',ids);
+    if(requestId!==callQueryId.current)return;
+    if(ownError){setError('Private call history unavailable: '+ownError.message);return;}
+    const ownMap=new Map((ownRows||[]).map(item=>[String(item.resident_id),(item.payload||{}) as Record<string,unknown>]));
+    setRows(result.rows.map(row=>{const p=ownMap.get(String(row.id))||{};return {...row,phone_status:(p.phone_status as Resident['phone_status'])||'need-call',reach_status:(p.reach_status as Resident['reach_status'])||'not-reached',call_outcome:(p.outcome as Resident['call_outcome'])||'pending',call_attempts:Number(p.call_attempts||0),call_notes:(p.notes as string)||null,callback_scheduled_at:(p.callback_at as string)||null,last_call_at:(p.last_call_at as string)||null};}));})
    .catch(e=>{if(requestId===callQueryId.current)setError(e instanceof Error?e.message:'Unable to load calls')})
    .finally(()=>{if(requestId===callQueryId.current)setLoading(false)});
   return()=>{callQueryId.current++};
