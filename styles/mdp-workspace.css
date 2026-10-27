@@ -1132,3 +1132,7 @@
  .mdp-workspace .mdp-master-data{grid-row:2!important;grid-column:1/-1!important;grid-template-columns:minmax(0,1fr) minmax(0,1fr) 30px 24px!important;margin-top:5px!important}
  .mdp-workspace .mdp-mobile-bottom-tabs{border:1px solid #f0f1f5!important;border-radius:24px 24px 0 0!important;background:#fff!important;box-shadow:0 -4px 18px rgba(39,61,103,.045)!important}
 }
+
+/* Saved resident voting intention: override later compact-card neutral backgrounds. */
+.mdp-workspace .mdp-master-actions .mdp-master-action.mdp-master-action-green{background:#dcfce7!important;color:#166534!important;border-color:#86efac!important}
+.mdp-workspace .mdp-master-actions .mdp-master-action.mdp-master-action-green svg{color:#166534!important;stroke:#166534!important}
