@@ -303,7 +303,7 @@ function ResidentGalleryCard({resident:r,profilePath,workflow,workflowError,pdfS
  const access=useStaffAccess(),canAssign=access?.role==='admin'||access?.role==='supervisor';
  const taskStatuses=workflow?residentTaskCards(workflow):[];
  const taskState=(id:QuickTask)=>taskStatuses.find(item=>item.id===id);
- const taskClass=(id:QuickTask)=>'mdp-master-action'+(taskState(id)?.done?' mdp-master-action-green':'');
+ const taskClass=(id:QuickTask)=>'mdp-master-action'+(id==='voting-intention'&&workflow?.hasVoteIntention?' mdp-master-action-green':taskState(id)?.done?' mdp-master-action-green':'');
  const taskTooltip=(id:QuickTask,label:string)=>label+' · '+(taskState(id)?.status||'Status loading');
 
  return <article className="mdp-resident-card mdp-master-card min-w-0 bg-white">
